@@ -13,6 +13,22 @@ namespace BuildAdvisor.Integration;
 public static class CardRewardPatch
 {
     private static IReadOnlySet<string> currentUpgraded = new HashSet<string>();
+    private static IReadOnlyList<object> currentOptions = [];
+
+    // The holder that shows an offered card, for badges drawn as children of the holder.
+    private static Func<string, (Control Holder, object Model)?> HolderFor(Node screen) => id =>
+    {
+        if (screen is not NCardRewardSelectionScreen reward || !GodotObject.IsInstanceValid(reward)) return null;
+        var key = SpireCodexMetricsClient.NormalizeId(id);
+        foreach (var option in currentOptions)
+        {
+            if (ReflectionIds.Member(option, "Card") is not CardModel card) continue;
+            if (!string.Equals(SpireCodexMetricsClient.NormalizeId(ReflectionIds.FindId(option) ?? ReflectionIds.FindId(card) ?? ""), key, StringComparison.OrdinalIgnoreCase)) continue;
+            try { if (reward.GetCardHolder(card) is { } holder && GodotObject.IsInstanceValid(holder)) return (holder, card); }
+            catch { /* the fixed layout is the fallback */ }
+        }
+        return null;
+    };
     private static readonly SpireCodexMetricsClient Metrics = new();
     private static readonly PickCoachClient Coach = new();
     private static readonly CardCatalogClient Catalog = new();
@@ -28,6 +44,7 @@ public static class CardRewardPatch
         activeRequest = new CancellationTokenSource();
         var token = activeRequest.Token;
         var optionObjects = options.Cast<object>().ToArray();
+        currentOptions = optionObjects;
         RunContextReader.ObserveCards(optionObjects);
         var ids = ReflectionIds.FindIds(optionObjects); if (ids.Count == 0) ids = ReflectionIds.FindIds(screen);
         // M5: reward cards can be offered already upgraded (relics, ascension modifiers).
@@ -48,7 +65,7 @@ public static class CardRewardPatch
         if (context is not null && cachedCatalog.Count > 0)
         {
             var emptyMetrics = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase);
-            AdviceOverlay.RenderBadges(screen, DeckBuildScoring.Evaluate(context, ids, cachedCatalog, emptyMetrics, null, currentUpgraded).Offers, ids);
+            AdviceOverlay.RenderBadges(screen, DeckBuildScoring.Evaluate(context, ids, cachedCatalog, emptyMetrics, null, currentUpgraded).Offers, ids, HolderFor(screen));
             AdviceOverlay.EnableCardSearch(screen, context, () => BuildSearchEntries(RunContextReader.TryRead() ?? context, cachedCatalog, emptyMetrics));
         }
         try
@@ -84,7 +101,7 @@ public static class CardRewardPatch
             var assessment = DeckBuildScoring.Evaluate(context, ids, catalog, metrics, coachMap, currentUpgraded, ArchetypeAdvisor.Current(context, coach).Direction);
             PersonalRunDiary.RecordAdvice(assessment);
             var text = FormatAdvice(context, assessment, metrics, coach, coachPending) + metricsNote;
-            AdviceOverlay.RenderBadges(screen, assessment.Offers, ids);
+            AdviceOverlay.RenderBadges(screen, assessment.Offers, ids, HolderFor(screen));
             AdviceOverlay.Render(screen, text, null, context);
             AdviceOverlay.SetRefreshAction(async () =>
             {
@@ -97,7 +114,7 @@ public static class CardRewardPatch
                     var localizedCatalog = await Catalog.GetAsync();
                     if (!GodotObject.IsInstanceValid(screen)) return;
                     var refreshed = DeckBuildScoring.Evaluate(liveContext, ids, localizedCatalog, metrics, coachMap, currentUpgraded, ArchetypeAdvisor.Current(liveContext, coach).Direction);
-                    AdviceOverlay.RenderBadges(screen, refreshed.Offers, ids);
+                    AdviceOverlay.RenderBadges(screen, refreshed.Offers, ids, HolderFor(screen));
                     AdviceOverlay.Render(screen, FormatAdvice(liveContext, refreshed, metrics, coach, false), null, liveContext);
                     AdviceOverlay.EnableCardSearch(screen, liveContext, () => BuildSearchEntries(RunContextReader.TryRead() ?? liveContext, localizedCatalog, metrics));
                 }
@@ -151,7 +168,7 @@ public static class CardRewardPatch
             var coachMap = coach?.Offers.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
             var assessment = DeckBuildScoring.Evaluate(RunContextReader.TryRead() ?? context, ids, catalog, metrics, coachMap, currentUpgraded, ArchetypeAdvisor.Current(RunContextReader.TryRead() ?? context, coach).Direction);
             PersonalRunDiary.RecordAdvice(assessment);
-            AdviceOverlay.RenderBadges(screen, assessment.Offers, ids);
+            AdviceOverlay.RenderBadges(screen, assessment.Offers, ids, HolderFor(screen));
             AdviceOverlay.Render(screen, FormatAdvice(context, assessment, metrics, coach, false), null, context);
             GD.Print("Build Advisor Pick Coach: " + (coach is null ? "no matching build" : $"loaded {coach.Archetype}, {coach.Offers.Count} offers"));
         }
@@ -166,7 +183,7 @@ public static class CardRewardPatch
             var catalog = await catalogTask;
             var emptyMetrics = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase);
             AdviceOverlay.EnableCardSearch(screen, context, () => BuildSearchEntries(RunContextReader.TryRead() ?? context, catalog, emptyMetrics));
-            if (GodotObject.IsInstanceValid(screen)) AdviceOverlay.RenderBadges(screen, DeckBuildScoring.Evaluate(context, ids, catalog, emptyMetrics, null, currentUpgraded).Offers, ids);
+            if (GodotObject.IsInstanceValid(screen)) AdviceOverlay.RenderBadges(screen, DeckBuildScoring.Evaluate(context, ids, catalog, emptyMetrics, null, currentUpgraded).Offers, ids, HolderFor(screen));
         }
         catch { /* The main request shows the fallback if the catalogue is unavailable. */ }
     }

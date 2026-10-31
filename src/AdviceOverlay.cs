@@ -189,6 +189,7 @@ public static class AdviceOverlay
     // visuals in combat). This restores S-D markers without leaking them into the player's hand.
     internal static void ClearBadges(Node screen)
     {
+        if (screen is not Viewport) AttachedBadges.StripDescendants(screen, "BuildAdvisorTier");
         var host = GlobalHost(screen);
         foreach (var child in host.GetChildren().Where(x => x.Name.ToString().StartsWith("BuildAdvisorTier", StringComparison.Ordinal)).ToArray())
         {
@@ -199,6 +200,7 @@ public static class AdviceOverlay
 
     internal static void ClearShopBadges(Node screen)
     {
+        if (screen is not Viewport) AttachedBadges.StripDescendants(screen, ShopTierPrefix);
         foreach (var child in Descendants(GlobalHost(screen)).Where(x => x.Name.ToString().StartsWith(ShopTierPrefix, StringComparison.Ordinal)).ToArray())
         {
             child.GetParent()?.RemoveChild(child);
@@ -208,6 +210,7 @@ public static class AdviceOverlay
 
     internal static void ClearSelectionBadges(Node screen)
     {
+        if (screen is not Viewport) AttachedBadges.StripDescendants(screen, GridBadgeName);
         foreach (var child in Descendants(GlobalHost(screen)).Where(x => x.Name.ToString().StartsWith(SelectionTierPrefix, StringComparison.Ordinal)).ToArray())
         {
             child.GetParent()?.RemoveChild(child);
@@ -360,7 +363,7 @@ public static class AdviceOverlay
                     if (entry.Badge is not null && GodotObject.IsInstanceValid(entry.Badge)) entry.Badge.Visible = false;
                     continue;
                 }
-                var badge = entry.Badge is not null && GodotObject.IsInstanceValid(entry.Badge) ? entry.Badge : Create(holder);
+                var badge = entry.Badge is not null && GodotObject.IsInstanceValid(entry.Badge) ? entry.Badge : Create(holder, Screen);
                 if (entry.Id != id || !ReferenceEquals(badge, entry.Badge)) Describe(badge, score);
                 badges[holder] = (badge, id);
                 badge.Visible = true;
@@ -372,10 +375,12 @@ public static class AdviceOverlay
             }
         }
 
-        private static Label Create(Control holder)
+        private static Label Create(Control holder, Node screen)
         {
-            var badge = new Label
+            // The holder is pooled: the badge leaves by itself once the holder serves another screen.
+            var badge = new AttachedBadge
             {
+                OwnerScreen = screen,
                 Name = GridBadgeName, Size = new Vector2(132, 34), ZIndex = 20, ZAsRelative = true,
                 MouseFilter = Control.MouseFilterEnum.Pass,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
@@ -438,7 +443,11 @@ public static class AdviceOverlay
         return badge;
     }
 
-    internal static void RenderBadges(Node screen, IEnumerable<OfferScore> scores, IEnumerable<string>? offeredIds = null)
+    // Reward badges are children of the reward card holders (6.22.6): the reward screen is an
+    // overlay, and a badge on the mod's own layer could end up under it (a reward with no badges
+    // at all). A holder child is drawn with the card, above it, and leaves with it.
+    internal static void RenderBadges(Node screen, IEnumerable<OfferScore> scores, IEnumerable<string>? offeredIds = null,
+        Func<string, (Control Holder, object Model)?>? holderFor = null)
     {
         var row = ReflectionIds.Member(screen, "_cardRow") as Control;
         if (row is null) return;
@@ -454,15 +463,34 @@ public static class AdviceOverlay
         for (var index = 0; index < values.Length; index++)
         {
             var score = values[index];
-            // Reward cards use a stable centred layout. Matching internal model nodes is
-            // unreliable because their position can be (0,0) even when the visual is elsewhere.
-            var width = Math.Max(1280, screen.GetViewport().GetVisibleRect().Size.X);
-            var spacing = values.Length <= 3 ? 350f : 285f;
-            var position = new Vector2(width / 2f + (index - (values.Length - 1) / 2f) * spacing - 56, 394);
             var tier = Tier(score.Final);
             var isBest = score.Final == best && values.Length > 1;
             var shortTags = ShortTags(score.TagText);
             var compactText = $"{(isBest ? "★" : "◆")} {tier}  {score.Final:F0}\n{shortTags}";
+            var tooltip = L($"{score.Name}\n{ScoreExplanation.Breakdown(score)}\n{FullTags(score.TagText)}\n{score.Impact}");
+            var anchor = holderFor?.Invoke(score.Id);
+            if (anchor is { } attached && GodotObject.IsInstanceValid(attached.Holder))
+            {
+                var holder = attached.Holder;
+                var cardBadge = new AttachedBadge
+                {
+                    OwnerScreen = screen, ExpectedModel = attached.Model,
+                    CurrentModel = () => GodotObject.IsInstanceValid(holder) ? CardModelOf(holder) : null,
+                    Place = badge => PlaceAboveCard(badge, holder),
+                    Name = $"BuildAdvisorTier{index}", Text = compactText, Size = new Vector2(148, 58),
+                    ZIndex = 20, ZAsRelative = true, MouseFilter = Control.MouseFilterEnum.Pass,
+                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+                    TooltipText = tooltip
+                };
+                StyleBadge(cardBadge, tier, isBest, 15);
+                holder.AddChild(cardBadge);
+                PlaceAboveCard(cardBadge, holder);
+                continue;
+            }
+            // Fallback when the screen does not expose its holders: the stable centred layout.
+            var width = Math.Max(1280, screen.GetViewport().GetVisibleRect().Size.X);
+            var spacing = values.Length <= 3 ? 350f : 285f;
+            var position = new Vector2(width / 2f + (index - (values.Length - 1) / 2f) * spacing - 56, 394);
             var badge = new Label
             {
                 Name = $"BuildAdvisorTier{index}", Text = compactText,
@@ -479,57 +507,76 @@ public static class AdviceOverlay
         }
     }
 
+    private static object? CardModelOf(Control holder)
+    {
+        var card = ReflectionIds.Member(holder, "CardNode");
+        return (card is null ? null : ReflectionIds.Member(card, "Model")) ?? ReflectionIds.Member(holder, "CardModel");
+    }
+
+    private static void PlaceAboveCard(Label badge, Control holder)
+    {
+        var card = ReflectionIds.Member(holder, "CardNode") as Control;
+        var valid = card is not null && GodotObject.IsInstanceValid(card) && card.Size.Y > 0;
+        var top = AttachedBadges.CardTopCentre(valid ? card!.Position : Vector2.Zero, valid ? card!.Size : new Vector2(300, 422), valid ? card!.Scale : Vector2.One);
+        badge.Position = AttachedBadges.Above(top, badge.Size, 8f);
+    }
+
+    private static void StyleBadge(Label badge, string tier, bool best, int fontSize)
+    {
+        badge.AddThemeFontSizeOverride("font_size", fontSize);
+        var color = TierColor(tier);
+        badge.AddThemeColorOverride("font_color", color);
+        var box = BadgeBox(best ? new Color("f2c94c") : color);
+        box.CornerRadiusTopLeft = box.CornerRadiusTopRight = box.CornerRadiusBottomLeft = box.CornerRadiusBottomRight = 10;
+        badge.AddThemeStyleboxOverride("normal", box);
+    }
+
     private const string OfflineTooltip = "Офлайн-режим: мод не обращается к сети и использует сохранённую статистику и локальную модель. Pick Coach и загрузка картинок отключаются.";
 
     // 6.18: every gain decision also shows the take/skip scale in win-rate percentage points.
     private static string WinLine(OfferScore score) =>
         $"{TakeSkipModel.Format(TakeSkipModel.WinDelta(score))} п.п. к победе · уверенность {TakeSkipModel.Evidence(score)}";
 
+    // Shop badges are children of the sale slots (6.22.6). Global positions with fixed row
+    // heights put the badges of a shop with another layout (the fake merchant, a bought-out row,
+    // relics and potions) in a line at the top of the screen, away from their items. A slot
+    // child moves with the slot's opening animation and sits above the slot's clickable area.
     internal static void RenderShopBadges(Node screen, IEnumerable<(Control Slot, OfferScore Score)> values, Func<OfferScore, string>? note = null)
     {
         ClearShopBadges(screen);
-        var host = GlobalHost(screen);
         var entries = values.Where(x => GodotObject.IsInstanceValid(x.Slot)).ToArray();
         var best = entries.Select(x => x.Score.Final).DefaultIfEmpty(0m).Max();
         for (var index = 0; index < entries.Length; index++)
         {
             var (slot, score) = entries[index];
-            if (slot.Size.X <= 1 || slot.Size.Y <= 1) continue;
             var tier = Tier(score.Final);
-            var compactText = $"{(score.Final == best && entries.Length > 1 ? "★" : "◆")} {tier}  {score.Final:F0}";
-            // L3: price and the gold left after buying, next to the win-rate scale.
-            // The shop animates its slots after Open(). Keep following the slot on the global
-            // unscaled layer instead of taking one early snapshot of an in-flight position.
-            var badge = new ShopBadgeFollower
+            var isBest = score.Final == best && entries.Length > 1;
+            var badge = new AttachedBadge
             {
-                Slot = slot,
-                ShopRow = index < 5 ? 0 : 1,
+                OwnerScreen = screen,
+                Place = label => PlaceAboveSlot(label, slot),
                 Name = ShopTierPrefix + index,
-                Text = compactText,
-                Size = new Vector2(140, 42), ZIndex = 250,
-                MouseFilter = Control.MouseFilterEnum.Stop,
+                Text = $"{(isBest ? "★" : "◆")} {tier}  {score.Final:F0}",
+                Size = new Vector2(120, 34), ZIndex = 30, ZAsRelative = true,
+                MouseFilter = Control.MouseFilterEnum.Pass,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-                TooltipText = L($"{score.Name}\n{ScoreExplanation.Breakdown(score)}{(note?.Invoke(score) is { Length: > 0 } priceLine ? "\n" + priceLine : "")}\n{score.TagText}\n{score.Impact}")
+                // L3: price and the gold left after buying, next to the win-rate scale.
+                TooltipText = L($"{score.Name}\n{ScoreExplanation.Breakdown(score)}{(note?.Invoke(score) is { Length: > 0 } priceLine ? "\n" + priceLine : "")}\n{FullTags(score.TagText)}\n{score.Impact}")
             };
-            badge.AddThemeFontSizeOverride("font_size", 15);
-            badge.AddThemeColorOverride("font_color", TierColor(tier));
-            badge.AddThemeStyleboxOverride("normal", BadgeBox(TierColor(tier)));
-            host.AddChild(badge);
-            badge.RefreshPosition();
-            MakeBadgeExpandable(badge, compactText, L($"{(score.Final == best && entries.Length > 1 ? "★" : "◆")} {tier}  {score.Final:F0}\n{ScoreExplanation.Breakdown(score)}{(note?.Invoke(score) is { Length: > 0 } priceNote ? "\n" + priceNote : "")}\n{FullTags(score.TagText)}"), badge.Position, badge.Size);
+            StyleBadge(badge, tier, isBest, 14);
+            slot.AddChild(badge);
+            PlaceAboveSlot(badge, slot);
         }
     }
 
-    internal static Vector2 ShopBadgePosition(Vector2 slotOrigin, Vector2 viewportSize, float width = 140f, int row = 0)
+    private static void PlaceAboveSlot(Label badge, Control slot)
     {
-        // Merchant slot containers report misleading Y coordinates (the first row often reports
-        // zero although its cards are centred lower on screen). X remains reliable, so follow it
-        // while anchoring the two known card rows to the reference 1920x1080 shop layout.
-        var scaleY = viewportSize.Y / 1080f;
-        var rowY = (row <= 0 ? 180f : 570f) * scaleY;
-        return new Vector2(
-            Math.Clamp(slotOrigin.X - width / 2f, 8f, Math.Max(8f, viewportSize.X - width - 8f)),
-            Math.Clamp(rowY, 8f, Math.Max(8f, viewportSize.Y - 50f)));
+        if (!GodotObject.IsInstanceValid(slot)) return;
+        var area = ReflectionIds.Member(slot, "Hitbox") as Control;
+        if (area is null || !GodotObject.IsInstanceValid(area) || area.Size.X <= 1 || area.Size.Y <= 1) area = slot;
+        // The clickable area's top centre, expressed in the slot's own coordinates.
+        var toSlot = slot.GetGlobalTransformWithCanvas().AffineInverse() * area.GetGlobalTransformWithCanvas();
+        badge.Position = AttachedBadges.Above(toSlot * new Vector2(area.Size.X / 2f, 0f), badge.Size, 6f);
     }
 
     private const string MapBadgePrefix = "BuildAdvisorMapBadge";
@@ -662,31 +709,6 @@ public static class AdviceOverlay
         }
     }
 
-    private sealed class ShopBadgeFollower : Label
-    {
-        public Control? Slot { get; init; }
-        public int ShopRow { get; init; }
-        public bool PauseFollowing { get; set; }
-
-        public override void _Process(double delta)
-        {
-            _ = delta;
-            if (PauseFollowing) return;
-            RefreshPosition();
-        }
-
-        public void RefreshPosition()
-        {
-            if (Slot is null || !GodotObject.IsInstanceValid(Slot) || !Slot.IsInsideTree())
-            {
-                QueueFree();
-                return;
-            }
-            var origin = Slot.GetGlobalTransformWithCanvas() * new Vector2(Slot.Size.X / 2f, 0f);
-            Position = ShopBadgePosition(origin, GetViewportRect().Size, Size.X, ShopRow);
-        }
-    }
-
     private sealed class SelectionBadgeFollower : Label
     {
         public Control? Target { get; init; }
@@ -736,7 +758,6 @@ public static class AdviceOverlay
         badge.MouseEntered += () =>
         {
             if (!GodotObject.IsInstanceValid(badge)) return;
-            if (badge is ShopBadgeFollower follower) follower.PauseFollowing = true;
             if (badge is SelectionBadgeFollower selectionFollower) selectionFollower.PauseFollowing = true;
             var viewportSize = badge.GetViewportRect().Size;
             var wanted = badge.Position - new Vector2((expandedSize.X - compactSize.X) / 2f, expandedSize.Y - compactSize.Y + 8f);
@@ -754,11 +775,6 @@ public static class AdviceOverlay
             badge.Text = compactText;
             badge.Size = compactSize;
             badge.ZIndex = 200;
-            if (badge is ShopBadgeFollower follower)
-            {
-                follower.PauseFollowing = false;
-                follower.RefreshPosition();
-            }
             if (badge is SelectionBadgeFollower selectionFollower)
             {
                 selectionFollower.PauseFollowing = false;

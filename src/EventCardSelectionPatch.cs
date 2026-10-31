@@ -69,7 +69,7 @@ internal static class EventCardAdvisor
                 return;
             }
 
-            var models = Values(ReflectionIds.Member(screen, "_cards")).ToArray();
+            var models = AttachedBadges.Merge(Values(ReflectionIds.Member(screen, "_cards")), DrawnModels(screen)).ToArray();
             if (models.Length == 0) models = CardHolders(screen).Select(x => ReflectionIds.Member(x, "CardModel")).Where(x => x is not null).Cast<object>().ToArray();
             RunContextReader.ObserveCards(models);
             var ids = ReflectionIds.FindIds(models);
@@ -169,7 +169,7 @@ internal static class EventCardAdvisor
         // answers which holder shows a card now: NCardGrid.GetCardHolder(model). The badge sits
         // on the holder's hitbox, the clickable card rectangle.
         var grid = Descendants(screen).OfType<NCardGrid>().FirstOrDefault();
-        var models = Values(ReflectionIds.Member(screen, "_cards")).OfType<CardModel>().ToArray();
+        var models = AttachedBadges.Merge(Values(ReflectionIds.Member(screen, "_cards")).OfType<CardModel>(), DrawnModels(screen).OfType<CardModel>()).ToArray();
         var ids = new Dictionary<CardModel, string?>(ReferenceEqualityComparer.Instance);
         foreach (var model in models) ids[model] = ReflectionIds.FindId(model);
         if (grid is not null && models.Length > 0)
@@ -269,6 +269,13 @@ internal static class EventCardAdvisor
             if (parent is NCard) return true;
         return false;
     }
+
+    // Cards the grid draws now (holder.CardNode.Model). An enchant event showed three cards while
+    // its _cards list named two; the third got no score and no badge.
+    private static IEnumerable<object> DrawnModels(Node screen) =>
+        Descendants(screen).OfType<NGridCardHolder>().Where(GodotObject.IsInstanceValid)
+            .Select(holder => holder.CardNode is { } card && GodotObject.IsInstanceValid(card) ? ReflectionIds.Member(card, "Model") : null)
+            .Where(x => x is not null).Cast<object>();
 
     private static bool IsCombatNode(string value) => Has(value.ToLowerInvariant(), "monster", "elite", "boss", "combat");
     private static bool Valid(Node node) => GodotObject.IsInstanceValid(node) && node.IsInsideTree();

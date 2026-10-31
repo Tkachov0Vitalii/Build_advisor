@@ -40,6 +40,7 @@ internal static class BuildAdvisorRegression
             UpgradePlanRejectsAlreadyUpgradedCards();
             EventCardActionsUseTheCorrectDirection();
             ShopBadgesStayAboveTheirSlots();
+            PooledHolderBadgesLeaveForeignScreens();
             ArchetypeSelectionResetsBetweenRuns();
             ManualArchetypeOverridesGenericPowerAndLateBloat();
             StrongEarlyCardDetectsArchetype();
@@ -572,13 +573,33 @@ internal static class BuildAdvisorRegression
 
     private static void ShopBadgesStayAboveTheirSlots()
     {
-        var top = BuildAdvisor.UI.AdviceOverlay.ShopBadgePosition(new Godot.Vector2(600, 0), new Godot.Vector2(1920, 1080), row: 0);
-        var bottom = BuildAdvisor.UI.AdviceOverlay.ShopBadgePosition(new Godot.Vector2(900, 420), new Godot.Vector2(1920, 1080), row: 1);
-        var scaled = BuildAdvisor.UI.AdviceOverlay.ShopBadgePosition(new Godot.Vector2(600, 0), new Godot.Vector2(1280, 720), row: 0);
-        if (Math.Abs(top.X - 530f) > .01f || Math.Abs(top.Y - 180f) > .01f ||
-            Math.Abs(bottom.X - 830f) > .01f || Math.Abs(bottom.Y - 570f) > .01f ||
-            Math.Abs(scaled.Y - 120f) > .01f)
-            throw new InvalidOperationException($"Shop badge row anchors are unstable: {top}; {bottom}; {scaled}.");
+        // Slot-local placement: centred above the clickable area, whatever row the slot is in.
+        var above = BuildAdvisor.UI.AttachedBadges.Above(new Godot.Vector2(150, 40), new Godot.Vector2(120, 34), 6f);
+        if (Math.Abs(above.X - 90f) > .01f || Math.Abs(above.Y - 0f) > .01f)
+            throw new InvalidOperationException($"Shop badge is not centred above its slot: {above}.");
+        // Reward cards are centred on the holder: the badge clears the scaled card top.
+        var top = BuildAdvisor.UI.AttachedBadges.CardTopCentre(new Godot.Vector2(0, 0), new Godot.Vector2(300, 422), new Godot.Vector2(.8f, .8f));
+        var reward = BuildAdvisor.UI.AttachedBadges.Above(top, new Godot.Vector2(148, 58), 8f);
+        if (Math.Abs(top.Y + 168.8f) > .01f || Math.Abs(reward.X + 74f) > .01f || Math.Abs(reward.Y + 234.8f) > .01f)
+            throw new InvalidOperationException($"Reward badge does not sit above the card: {top}; {reward}.");
+    }
+
+    private static void PooledHolderBadgesLeaveForeignScreens()
+    {
+        var card = new object();
+        var other = new object();
+        if (!BuildAdvisor.UI.AttachedBadges.StillBelongs(true, true, card, card) ||
+            !BuildAdvisor.UI.AttachedBadges.StillBelongs(true, true, null, other))
+            throw new InvalidOperationException("A badge on its own screen and card was removed.");
+        // A pooled holder reused by a combat card choice: the badge is outside its screen.
+        if (BuildAdvisor.UI.AttachedBadges.StillBelongs(true, false, null, null) ||
+            BuildAdvisor.UI.AttachedBadges.StillBelongs(false, false, null, null) ||
+            BuildAdvisor.UI.AttachedBadges.StillBelongs(true, true, card, other))
+            throw new InvalidOperationException("A badge survived on a reused holder or another card.");
+        var a = new object(); var b = new object(); var c = new object();
+        var merged = BuildAdvisor.UI.AttachedBadges.Merge(new[] { a, b }, new[] { b, c, null });
+        if (merged.Count != 3 || !ReferenceEquals(merged[2], c))
+            throw new InvalidOperationException("A drawn card missing from the screen list is not scored.");
     }
 
     private static void ArchetypeSelectionResetsBetweenRuns()
