@@ -416,28 +416,48 @@ public static class AdviceOverlay
     }
 
     private const string MapBadgePrefix = "BuildAdvisorMapBadge";
+    private const string OptionBadgePrefix = "BuildAdvisorOptionBadge";
 
     // H1: small labels under map points: expected damage and HP after the node along the best
-    // path through it; the recommended path gets a gold frame and a star.
-    internal static void RenderMapBadges(Node map, IEnumerable<(Control Point, string Text, string Severity, bool Best, string Tooltip)> values)
+    // path through it; the recommended path gets a gold frame and a star. The map stays in the
+    // scene tree under combat and event rooms, so labels are shown only while isShown() is true.
+    internal static void RenderMapBadges(Node map, Func<bool> isShown, IEnumerable<(Control Point, string Text, string Severity, bool Best, string Tooltip)> values)
     {
         ClearMapBadges(map);
-        var host = GlobalHost(map);
+        RenderTags(map, MapBadgePrefix, TagPlacement.Below, isShown, values.Select(x => (x.Point, (x.Best ? "★ " : "") + (string.IsNullOrWhiteSpace(x.Text) ? "путь" : x.Text), x.Severity, x.Best, x.Tooltip))
+            .Where(x => !x.Item2.Equals("путь", StringComparison.Ordinal)), 104f, 26f, 13);
+    }
+
+    internal static void ClearMapBadges(Node map) => ClearTags(map, MapBadgePrefix);
+
+    // Event options: the community verdict sits inside the right end of each option button.
+    internal static void RenderOptionBadges(Node screen, IEnumerable<(Control Option, string Text, string Severity, bool Best, string Tooltip)> values)
+    {
+        ClearTags(screen, OptionBadgePrefix);
+        RenderTags(screen, OptionBadgePrefix, TagPlacement.RightInside, () => true,
+            values.Where(x => !string.IsNullOrWhiteSpace(x.Text)).Select(x => (x.Option, (x.Best ? "★ " : "") + x.Text, x.Severity, x.Best, x.Tooltip)), 150f, 30f, 15);
+    }
+
+    private enum TagPlacement { Below, RightInside }
+
+    private static void RenderTags(Node screen, string prefix, TagPlacement placement, Func<bool> isShown,
+        IEnumerable<(Control Target, string Text, string Severity, bool Best, string Tooltip)> values, float width, float height, int fontSize)
+    {
+        var host = GlobalHost(screen);
         var index = 0;
-        foreach (var (point, text, severity, best, tooltip) in values)
+        foreach (var (target, text, severity, best, tooltip) in values)
         {
-            if (!GodotObject.IsInstanceValid(point) || (string.IsNullOrWhiteSpace(text) && !best)) continue;
-            var color = severity switch { "high" => new Color("e0484f"), "medium" => new Color("e4b13c"), "rest" => new Color("5fc27e"), _ => new Color("8fd0ff") };
-            var badge = new MapBadgeFollower
+            if (!GodotObject.IsInstanceValid(target)) continue;
+            var color = severity switch { "high" => new Color("e0484f"), "medium" => new Color("e4b13c"), "rest" or "good" => new Color("5fc27e"), _ => new Color("8fd0ff") };
+            var badge = new TagBadgeFollower
             {
-                Target = point, Map = map, Name = MapBadgePrefix + index++,
-                Text = L((best ? "★ " : "") + (string.IsNullOrWhiteSpace(text) ? "путь" : text)),
-                Size = new Vector2(best ? 118 : 104, 26), ZIndex = 240,
+                Target = target, IsShown = isShown, Placement = placement, Name = prefix + index++,
+                Text = L(text), Size = new Vector2(best ? width + 14 : width, height), ZIndex = 240,
                 MouseFilter = Control.MouseFilterEnum.Pass,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                 TooltipText = L(tooltip)
             };
-            badge.AddThemeFontSizeOverride("font_size", 13);
+            badge.AddThemeFontSizeOverride("font_size", fontSize);
             badge.AddThemeColorOverride("font_color", color);
             var box = BadgeBox(best ? new Color("f2c94c") : new Color(color, .7f));
             box.BorderWidthLeft = box.BorderWidthRight = box.BorderWidthTop = box.BorderWidthBottom = best ? 3 : 1;
@@ -448,19 +468,20 @@ public static class AdviceOverlay
         }
     }
 
-    internal static void ClearMapBadges(Node map)
+    private static void ClearTags(Node screen, string prefix)
     {
-        foreach (var child in GlobalHost(map).GetChildren().Where(x => x.Name.ToString().StartsWith(MapBadgePrefix, StringComparison.Ordinal)).ToArray())
+        foreach (var child in GlobalHost(screen).GetChildren().Where(x => x.Name.ToString().StartsWith(prefix, StringComparison.Ordinal)).ToArray())
         {
             child.GetParent()?.RemoveChild(child);
             child.QueueFree();
         }
     }
 
-    private sealed class MapBadgeFollower : Label
+    private sealed class TagBadgeFollower : Label
     {
         public Control? Target { get; init; }
-        public Node? Map { get; init; }
+        public Func<bool> IsShown { get; init; } = () => true;
+        public TagPlacement Placement { get; init; }
 
         public override void _Process(double delta)
         {
@@ -470,16 +491,23 @@ public static class AdviceOverlay
 
         public void RefreshPosition()
         {
-            if (Target is null || !GodotObject.IsInstanceValid(Target) || !Target.IsInsideTree() || Map is null || !GodotObject.IsInstanceValid(Map))
+            if (Target is null || !GodotObject.IsInstanceValid(Target) || !Target.IsInsideTree())
             {
                 QueueFree();
                 return;
             }
-            var open = ReflectionIds.Member(Map, "IsOpen") is not bool isOpen || isOpen;
-            var bottom = Target.GetGlobalTransformWithCanvas() * new Vector2(Target.Size.X / 2f, Target.Size.Y);
+            bool shown;
+            try { shown = IsShown(); } catch { shown = false; }
+            var transform = Target.GetGlobalTransformWithCanvas();
+            var anchor = Placement == TagPlacement.Below
+                ? transform * new Vector2(Target.Size.X / 2f, Target.Size.Y)
+                : transform * new Vector2(Target.Size.X, Target.Size.Y / 2f);
             var viewport = GetViewportRect().Size;
-            Visible = open && Target.IsVisibleInTree() && bottom.Y > 0f && bottom.Y < viewport.Y - Size.Y;
-            if (Visible) Position = new Vector2(bottom.X - Size.X / 2f, bottom.Y + 2f);
+            Visible = shown && Target.IsVisibleInTree() && anchor.Y > 0f && anchor.Y < viewport.Y - Size.Y;
+            if (!Visible) return;
+            Position = Placement == TagPlacement.Below
+                ? new Vector2(anchor.X - Size.X / 2f, anchor.Y + 2f)
+                : new Vector2(anchor.X - Size.X - 18f, anchor.Y - Size.Y / 2f);
         }
     }
 

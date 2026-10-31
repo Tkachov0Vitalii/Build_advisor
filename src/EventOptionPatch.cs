@@ -49,8 +49,13 @@ public static class EventOptionPatch
             try { relics = await relicTask; } catch (Exception error) { GD.Print("Build Advisor relic metrics: " + error.Message); }
             var names = await namesTask;
             if (!GodotObject.IsInstanceValid(screen) || !GodotObject.IsInstanceValid(__instance)) return;
-            AdviceOverlay.Render(screen, header + "\n" + intro + "\n\n" + EventAdvisor.Format(EventAdvisor.Rate(choices, events, relics, names, Hint, context,
-                context is not null && SegmentRiskModel.Assess(context) is { IsAvailable: true } risk ? risk.Probability : null)));
+            var rated = EventAdvisor.Rate(choices, events, relics, names, Hint, context,
+                context is not null && SegmentRiskModel.Assess(context) is { IsAvailable: true } risk ? risk.Probability : null);
+            AdviceOverlay.Render(screen, header + "\n" + intro + "\n\n" + EventAdvisor.Format(rated));
+            // The verdict also sits on each option button, so the panel does not have to be opened.
+            var best = EventAdvisor.Best(rated);
+            AdviceOverlay.RenderOptionBadges(screen, options.Zip(rated).Where(x => x.First is Control && GodotObject.IsInstanceValid(x.First))
+                .Select(x => { var tag = EventAdvisor.Tag(x.Second, best); return ((Control)x.First, tag.Text, tag.Severity, tag.Best, x.Second.Line); }));
         }
         catch (Exception error) { GD.PrintErr("Build Advisor event: " + error.Message); }
         finally { PendingScreens.Remove(screenId); }

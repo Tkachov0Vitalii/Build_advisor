@@ -752,6 +752,13 @@ internal static class BuildAdvisorRegression
         var text = EventAdvisor.Format(rated);
         if (!text.Contains("★ GOOD") || text.Contains("★ DEADLY") || text.Contains("★ THIN"))
             throw new InvalidOperationException("The best mark must skip lethal and low-sample options: " + text);
+        // 6.22.2: the same verdict on the option buttons.
+        var best = EventAdvisor.Best(rated);
+        var tags = rated.Select(x => EventAdvisor.Tag(x, best)).ToArray();
+        if (tags[0] != ("+3.5 п.п.", "good", true) || tags[1] != ("⚠ смерть", "high", false) || tags[2].Best || tags[4].Text != "" ||
+            EventAdvisor.Tag(rated[0] with { Lift = -1m }, best).Severity != "medium" ||
+            HasCyrillic(ModLocalization.Translate(string.Join(" ", tags.Select(x => x.Text)), AdvisorLanguage.English)))
+            throw new InvalidOperationException("Option tags are wrong: " + string.Join(" | ", tags));
         if (!EventAdvisor.Format(EventAdvisor.Rate([Choice("NONE")], events, relics, null, _ => "local")).Contains("Статистики по этому событию нет"))
             throw new InvalidOperationException("An event without data must say so.");
     }

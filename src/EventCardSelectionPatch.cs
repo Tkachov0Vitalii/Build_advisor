@@ -2,6 +2,9 @@ using System.Collections;
 using Godot;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Commands;
+using MegaCrit.Sts2.Core.Models;
+using MegaCrit.Sts2.Core.Nodes.Cards;
+using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
 using MegaCrit.Sts2.Core.Nodes.Screens.CardSelection;
 using BuildAdvisor.Data;
 using BuildAdvisor.UI;
@@ -157,19 +160,36 @@ internal static class EventCardAdvisor
 
     private static void Draw(Node screen, BuildAssessment assessment, EventCardPurpose purpose, EventSelectionIntent intent)
     {
-        // The grid reassigns holders to other cards while scrolling: badges are matched to the card
-        // each holder shows at the moment, not to the holder captured once.
-        // The card drawn in a holder is CardNode.Model; the holder's own CardModel can still name
-        // the card it held before the grid reassigned it (6.21.1 badges showed Strike scores on
-        // other cards). The badge anchors to the drawn card body, so it sits on the card's top edge.
-        IEnumerable<(Control Anchor, string Id)> Holders() => CardHolders(screen).Select(holder =>
+        // The deck grid keeps holders only for visible rows and reassigns them while scrolling;
+        // a holder's own fields can name a card it no longer shows (6.21–6.22 badges showed the
+        // first rows' Strike/Defend scores on other cards and on empty slots). The grid itself
+        // answers which holder shows a card now: NCardGrid.GetCardHolder(model). The badge sits
+        // on the holder's hitbox, the clickable card rectangle.
+        var grid = Descendants(screen).OfType<NCardGrid>().FirstOrDefault();
+        var models = Values(ReflectionIds.Member(screen, "_cards")).OfType<CardModel>().ToArray();
+        var ids = new Dictionary<CardModel, string?>(ReferenceEqualityComparer.Instance);
+        foreach (var model in models) ids[model] = ReflectionIds.FindId(model);
+        IEnumerable<(Control Anchor, string Id)> Holders()
         {
-            var cardNode = ReflectionIds.Member(holder, "CardNode") as Control;
-            var model = (cardNode is null ? null : ReflectionIds.Member(cardNode, "Model")) ?? ReflectionIds.Member(holder, "CardModel");
-            var id = model is null ? null : ReflectionIds.FindId(model);
-            var anchor = (cardNode is null ? null : ReflectionIds.Member(cardNode, "Body") as Control) ?? cardNode ?? holder;
-            return (Anchor: anchor, Id: id);
-        }).Where(x => x.Id is not null).Select(x => (x.Anchor, x.Id!));
+            if (grid is not null && GodotObject.IsInstanceValid(grid) && models.Length > 0)
+                return models.Select(model =>
+                {
+                    NGridCardHolder? holder = null;
+                    try { holder = grid.GetCardHolder(model); } catch { }
+                    return (Holder: holder, Id: ids[model]);
+                })
+                .Where(x => x.Holder is not null && GodotObject.IsInstanceValid(x.Holder) && x.Holder.IsVisibleInTree() && x.Id is not null)
+                .Select(x => ((Control)(x.Holder!.Hitbox is { } hitbox && GodotObject.IsInstanceValid(hitbox) ? hitbox : x.Holder), x.Id!))
+                .ToArray();
+            // Screens without a grid (a few fixed-layout choices) keep their holders.
+            return CardHolders(screen).Select(holder =>
+            {
+                var cardNode = ReflectionIds.Member(holder, "CardNode") as Control;
+                var model = (cardNode is null ? null : ReflectionIds.Member(cardNode, "Model")) ?? ReflectionIds.Member(holder, "CardModel");
+                return (Anchor: (Control)holder, Id: model is null ? null : ReflectionIds.FindId(model));
+            }).Where(x => x.Id is not null).Select(x => (x.Anchor, x.Id!)).ToArray();
+        }
+        GD.Print($"Build Advisor grid badges: grid={(grid is not null)}, cards={models.Length}, shown={Holders().Count()}");
         AdviceOverlay.RenderTrackedSelectionBadges(screen, Holders, assessment.Offers, ActionLabel(purpose));
         AdviceOverlay.Render(screen, Format(assessment.Offers, purpose, intent), null, RunContextReader.TryRead());
     }

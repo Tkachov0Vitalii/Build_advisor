@@ -33,12 +33,24 @@ public static class MapRoutePatch
             var damage = await Damage.GetAsync(context.Act, context.Character);
             var plan = await Task.Run(() => RoutePlanner.Plan(context, graph, damage));
             if (!GodotObject.IsInstanceValid(map) || version != generation) return;
-            AdviceOverlay.RenderMapBadges(map, plan.ByNode.Where(x => nodes.ContainsKey(x.Key)).Select(x =>
+            AdviceOverlay.RenderMapBadges(map, () => GodotObject.IsInstanceValid(map) && map.IsOpen && map.IsVisibleInTree(), plan.ByNode.Where(x => nodes.ContainsKey(x.Key)).Select(x =>
                 ((Control)nodes[x.Key], RoutePlanner.Label(x.Value), RoutePlanner.Severity(x.Value), x.Value.OnBest, Tooltip(x.Value))));
             AdviceOverlay.Render(map, "BUILD ADVISOR · маршрут\n" + RoutePlanner.Format(context, plan) +
                 (SegmentRiskModel.Assess(context) is { IsAvailable: true } risk ? "\n\n" + SegmentRiskModel.Summary(risk) : ""), null, context);
         }
         catch (Exception error) { GD.PrintErr("Build Advisor route: " + error.Message); }
+    }
+
+    // The map stays in the scene under rooms; its labels go when it closes.
+    [HarmonyPatch(typeof(NMapScreen), nameof(NMapScreen.Close))]
+    public static class ClosePatch
+    {
+        [HarmonyPostfix]
+        public static void AfterClose(NMapScreen __instance)
+        {
+            generation++;
+            try { AdviceOverlay.ClearMapBadges(__instance); } catch (Exception error) { GD.PrintErr("Build Advisor route close: " + error.Message); }
+        }
     }
 
     private static string Tooltip(NodeForecast node) => node.Type switch

@@ -116,11 +116,23 @@ internal static class EventAdvisor
         return rated;
     }
 
+    // The best option is marked only among options with data and only if it is not lethal.
+    public static Rated? Best(IReadOnlyList<Rated> rated) =>
+        rated.Where(x => x.Lift is not null && !x.Choice.Lethal && TakeSkipModel.EvidenceLabel(x.Samples) != "низкая")
+            .OrderByDescending(x => x.Lift).FirstOrDefault();
+
+    // Short on-screen verdict for an option button; options without data get none.
+    public static (string Text, string Severity, bool Best) Tag(Rated rated, Rated? best)
+    {
+        if (rated.Choice.Lethal) return ("⚠ смерть", "high", false);
+        if (rated.Lift is not { } lift) return ("", "low", false);
+        var isBest = ReferenceEquals(rated, best);
+        return ($"{TakeSkipModel.Format(lift)} п.п.", isBest ? "good" : lift < 0m ? "medium" : "low", isBest);
+    }
+
     public static string Format(IReadOnlyList<Rated> rated)
     {
-        // The best option is marked only among options with data and only if it is not lethal.
-        var best = rated.Where(x => x.Lift is not null && !x.Choice.Lethal && TakeSkipModel.EvidenceLabel(x.Samples) != "низкая")
-            .OrderByDescending(x => x.Lift).FirstOrDefault();
+        var best = Best(rated);
         var lines = rated.Select((x, index) =>
             $"{index + 1}. {(x.Choice.Lethal ? EventOptionPatch.DeadlyWarning : "")}{(ReferenceEquals(x, best) ? "★ " : "")}{x.Choice.Text} — {x.Line}");
         var withData = rated.Count(x => x.Lift is not null);

@@ -111,6 +111,7 @@ internal static class ModLocalization
         ("высокая", "high"),
         ("средняя", "medium"),
         ("низкая", "low"),
+        ("⚠ смерть", "⚠ lethal"),
         // 6.22.0 archetypes
         ("Архетип сообщества: колода пока не похожа ни на один кластер.", "Community archetype: the deck does not resemble any cluster yet."),
         ("Архетип сообщества (офлайн, по ключевым картам):", "Community archetype (offline, by key cards):"),
