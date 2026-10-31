@@ -44,5 +44,5 @@ public static class BuildAdvisorMod
 
 internal static class ModVersion
 {
-    public const string Current = "6.22.3";
+    public const string Current = "6.22.4";
 }

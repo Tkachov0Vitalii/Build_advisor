@@ -540,12 +540,46 @@ public static class AdviceOverlay
     // scene tree under combat and event rooms, so labels are shown only while isShown() is true.
     internal static void RenderMapBadges(Node map, Func<bool> isShown, IEnumerable<(Control Point, string Text, string Severity, bool Best, string Tooltip)> values)
     {
+        _ = isShown;
         ClearMapBadges(map);
-        RenderTags(map, MapBadgePrefix, TagPlacement.Below, isShown, values.Select(x => (x.Point, (x.Best ? "★ " : "") + (string.IsNullOrWhiteSpace(x.Text) ? "путь" : x.Text), x.Severity, x.Best, x.Tooltip))
-            .Where(x => !x.Item2.Equals("путь", StringComparison.Ordinal)), 104f, 26f, 13);
+        // Labels are children of the map points: they scroll with the map and are drawn in the
+        // map's own layer, so rooms opened over the map cover them (6.22.2 followers in the
+        // global layer stayed put while the map scrolled).
+        var index = 0;
+        foreach (var (point, rawText, severity, best, tooltip) in values)
+        {
+            if (!GodotObject.IsInstanceValid(point)) continue;
+            var text = (best ? "★ " : "") + (string.IsNullOrWhiteSpace(rawText) ? "путь" : rawText);
+            if (string.IsNullOrWhiteSpace(rawText) && !best) continue;
+            var color = severity switch { "high" => new Color("e0484f"), "medium" => new Color("e4b13c"), "rest" => new Color("5fc27e"), _ => new Color("8fd0ff") };
+            var size = new Vector2(best ? 118 : 104, 26);
+            var badge = new Label
+            {
+                Name = MapBadgePrefix + index++, Text = L(text), Size = size, ZIndex = 30, ZAsRelative = true,
+                MouseFilter = Control.MouseFilterEnum.Pass, TooltipText = L(tooltip),
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+                // NMapPoint scales on hover; labels keep their size relative to the point.
+                Position = new Vector2(point.Size.X / 2f - size.X / 2f, point.Size.Y + 2f)
+            };
+            badge.AddThemeFontSizeOverride("font_size", 13);
+            badge.AddThemeColorOverride("font_color", color);
+            var box = BadgeBox(best ? new Color("f2c94c") : new Color(color, .7f));
+            box.BorderWidthLeft = box.BorderWidthRight = box.BorderWidthTop = box.BorderWidthBottom = best ? 3 : 1;
+            box.CornerRadiusTopLeft = box.CornerRadiusTopRight = box.CornerRadiusBottomLeft = box.CornerRadiusBottomRight = 8;
+            badge.AddThemeStyleboxOverride("normal", box);
+            point.AddChild(badge);
+        }
     }
 
-    internal static void ClearMapBadges(Node map) => ClearTags(map, MapBadgePrefix);
+    internal static void ClearMapBadges(Node map)
+    {
+        ClearTags(map, MapBadgePrefix);
+        foreach (var child in Descendants(map).Where(x => x.Name.ToString().StartsWith(MapBadgePrefix, StringComparison.Ordinal)).ToArray())
+        {
+            child.GetParent()?.RemoveChild(child);
+            child.QueueFree();
+        }
+    }
 
     // Event options: the community verdict sits inside the right end of each option button.
     internal static void RenderOptionBadges(Node screen, IEnumerable<(Control Option, string Text, string Severity, bool Best, string Tooltip)> values)

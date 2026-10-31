@@ -59,6 +59,9 @@ internal static class EventCardAdvisor
             // event advisor must never cover combat interaction unless a patched event command
             // explicitly registered the selection.
             if (!intent.Captured && IsCombatNode(context.Route.Current)) return;
+            // Card choices inside a fight (potions, Strategem-like powers, discard/exhaust) are
+            // not deck building: never advise them, whatever command opened the screen.
+            if (InCombat() || screen is NCombatPileCardSelectScreen) return;
 
             if (bundles)
             {
@@ -209,7 +212,18 @@ internal static class EventCardAdvisor
 
     private static EventCardPurpose DetectPurpose(Node screen, IReadOnlyList<string> ids, RunContext context, EventCardPurpose fallback)
     {
-        var text = string.Join(" ", Descendants(screen).OfType<Label>().Select(x => x.Text)).ToLowerInvariant();
+        // The screen type is authoritative; the opening command comes next. Text is the last
+        // resort and only the prompt counts: card descriptions ("Улучшает выбранную карту" on
+        // Armaments) made a transform screen look like an upgrade screen.
+        switch (screen)
+        {
+            case NDeckUpgradeSelectScreen: return EventCardPurpose.Upgrade;
+            case NDeckTransformSelectScreen: return EventCardPurpose.Transform;
+            case NDeckEnchantSelectScreen: return EventCardPurpose.Enchant;
+        }
+        if (fallback != EventCardPurpose.Generic) return fallback;
+        var text = string.Join(" ", Descendants(screen).Where(x => x is Label or RichTextLabel && !InsideCard(x))
+            .Select(x => x is Label label ? label.Text : ((RichTextLabel)x).Text)).ToLowerInvariant();
         if (Has(text, "remove", "delete", "удал")) return EventCardPurpose.Remove;
         if (Has(text, "transform", "replace", "преобраз", "трансформ", "замен")) return EventCardPurpose.Transform;
         if (Has(text, "upgrade", "улучш")) return EventCardPurpose.Upgrade;
@@ -244,6 +258,18 @@ internal static class EventCardAdvisor
     }
 
     private static bool Has(string text, params string[] tokens) => tokens.Any(text.Contains);
+    private static bool InCombat()
+    {
+        try { return MegaCrit.Sts2.Core.Combat.CombatManager.Instance?.IsInProgress == true; } catch { return false; }
+    }
+
+    private static bool InsideCard(Node node)
+    {
+        for (var parent = node.GetParent(); parent is not null; parent = parent.GetParent())
+            if (parent is NCard) return true;
+        return false;
+    }
+
     private static bool IsCombatNode(string value) => Has(value.ToLowerInvariant(), "monster", "elite", "boss", "combat");
     private static bool Valid(Node node) => GodotObject.IsInstanceValid(node) && node.IsInsideTree();
     private static IEnumerable<object> Values(object? value) => value is IEnumerable values && value is not string ? values.Cast<object>() : [];
