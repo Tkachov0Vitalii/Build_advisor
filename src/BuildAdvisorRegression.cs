@@ -54,6 +54,10 @@ internal static class BuildAdvisorRegression
             CharacterMetricsIgnoreOffClassRows();
             ShopPriceNoteShowsRemainingGold();
             NewTextIsTranslated();
+            UpgradeDataIsParsed();
+            UpgradedOfferScoresHigher();
+            UpgradedDeckAndPlannerUseUpgradeValue();
+            TierOverridesApply();
             LastError = "";
             return true;
         }
@@ -622,6 +626,80 @@ internal static class BuildAdvisorRegression
         }
         finally { ArchetypePreferences.Set("regent", previous); }
     }
+
+    // 6.19.0 (M5): catalogue upgrade deltas are parsed; "cost" is absolute, deltas may be strings.
+    private static void UpgradeDataIsParsed()
+    {
+        using var document = System.Text.Json.JsonDocument.Parse("{\"upgrade\":{\"damage\":\"+3\",\"cost\":0,\"cards\":1,\"strengthpower\":\"+1\",\"vulnerable\":\"+1\",\"remove_exhaust\":1}}");
+        var upgrade = CardUpgrades.Parse(document.RootElement);
+        if (upgrade is null || upgrade.Damage != 3 || upgrade.Cost != 0 || upgrade.Draw != 1 || upgrade.Scaling != 1 || upgrade.OtherEffects != 1 || !upgrade.RemovesExhaust)
+            throw new InvalidOperationException("Card upgrade data was not parsed.");
+        var card = Card("UP_CARD", "Attack", cost: 2, damage: 6) with { Upgrade = upgrade };
+        var upgraded = CardUpgrades.Upgraded(card);
+        if (upgraded.Cost != 0 || upgraded.Damage != 9 || upgraded.Draw != 1)
+            throw new InvalidOperationException("Upgraded card numbers are wrong.");
+        // 2 energy cut (14) + 1.8 damage + 5 draw + 5 exhaust + 3 other + 5 strength = 33.8 → capped at 15.
+        if (CardUpgrades.Value(card) != 15m || CardUpgrades.Value(Card("NO_DATA", "Skill")) != 3m)
+            throw new InvalidOperationException("Upgrade value is not bounded.");
+    }
+
+    // 6.19.0 (M5): an upgraded reward card scores above the base card and is shown as "Name+".
+    private static void UpgradedOfferScoresHigher()
+    {
+        var card = Card("UP_OFFER", "Skill", cost: 1, block: 5) with { Upgrade = new CardUpgrade(null, 0, 3, 1, 0, false, false, false, 0) };
+        var catalog = new Dictionary<string, CardDefinition>(StringComparer.OrdinalIgnoreCase) { ["UP_OFFER"] = card };
+        var context = new RunContext("ironclad", [], [], 0, 2, 15, 70, 80, 99, null, 1m, 0, 0, 0, []);
+        var plain = DeckBuildScoring.Evaluate(context, ["UP_OFFER"], catalog, Metrics("UP_OFFER")).Offers[0];
+        var upgraded = DeckBuildScoring.Evaluate(context, ["UP_OFFER"], catalog, Metrics("UP_OFFER"), null, new HashSet<string> { "UP_OFFER" }).Offers[0];
+        if (upgraded.Final <= plain.Final || upgraded.Name != "UP_OFFER+" || !ScoreExplanation.Formula(upgraded).Contains("улучшенная версия", StringComparison.Ordinal))
+            throw new InvalidOperationException($"Upgraded offer was not valued: base {plain.Final}, upgraded {upgraded.Final}.");
+    }
+
+    // 6.19.0 (M5): upgraded deck copies use their upgraded cost; the planner upgrades the card
+    // whose upgrade is worth most (a cost cut beats +2 damage).
+    private static void UpgradedDeckAndPlannerUseUpgradeValue()
+    {
+        var costCut = Card("COST_CUT", "Skill", cost: 2, block: 8) with { Upgrade = new CardUpgrade(1, 0, 0, 0, 0, false, false, false, 0) };
+        var smallBump = Card("SMALL_BUMP", "Attack", cost: 1, damage: 7) with { Upgrade = new CardUpgrade(null, 2, 0, 0, 0, false, false, false, 0) };
+        var catalog = new Dictionary<string, CardDefinition>(StringComparer.OrdinalIgnoreCase) { ["COST_CUT"] = costCut, ["SMALL_BUMP"] = smallBump };
+        // SMALL_BUMP comes first, so a tie would pick it: only the cost-cut value can win.
+        var deck = new[] { "SMALL_BUMP", "COST_CUT" };
+        var plain = new RunContext("ironclad", deck, [], 0, 2, 15, 70, 80, 99, null, 1.5m, 1, 1, 0, []) { CardStates = [new("SMALL_BUMP", 0, 1), new("COST_CUT", 0, 1)] };
+        var upgraded = plain with { CardStates = [new("SMALL_BUMP", 0, 1), new("COST_CUT", 1, 1)] };
+        if (CardUpgrades.Value(costCut) != 7m || CardUpgrades.Value(smallBump) != 2m)
+            throw new InvalidOperationException("One energy of cost reduction must be worth 7 points.");
+        if (DeckBuildScoring.Evaluate(upgraded, [], catalog, Metrics()).AverageCost >= DeckBuildScoring.Evaluate(plain, [], catalog, Metrics()).AverageCost)
+            throw new InvalidOperationException("Upgraded deck copy kept its base cost.");
+        var plan = DeckActionPlanner.Create(plain, new BuildAssessment("", [], [], 1m, 50, []), catalog);
+        if (!plan.Contains("улучшить: COST_CUT", StringComparison.Ordinal))
+            throw new InvalidOperationException("Planner did not pick the most valuable upgrade: " + plan);
+    }
+
+    // 6.19.0 (L5): personal corrections apply, character keys win, values are clamped to ±30.
+    private static void TierOverridesApply()
+    {
+        var parsed = TierOverrides.Parse("// note\n{ \"cards\": { \"OVR_CARD\": 8, \"ironclad:OVR_CARD\": -12, \"big\": 99 }, \"relics\": { \"OVR_RELIC\": 6, } }");
+        try
+        {
+            TierOverrides.TestOverrides = parsed;
+            if (TierOverrides.ForCard("silent", "OVR_CARD") != 8m || TierOverrides.ForCard("ironclad", "ovr card") != -12m ||
+                TierOverrides.ForCard("silent", "BIG") != 30m || TierOverrides.ForRelic("defect", "OVR_RELIC") != 6m || TierOverrides.ForCard("silent", "OTHER") != 0m)
+                throw new InvalidOperationException("Tier override lookup is wrong.");
+            var catalog = new Dictionary<string, CardDefinition>(StringComparer.OrdinalIgnoreCase) { ["OVR_CARD"] = Card("OVR_CARD", "Skill") };
+            var context = new RunContext("ironclad", [], [], 0, 2, 15, 80, 80, 99, null, 1m, 0, 0, 0, []);
+            var score = DeckBuildScoring.Evaluate(context, ["OVR_CARD"], catalog, Metrics("OVR_CARD")).Offers[0];
+            if (score.Adjustments?.Any(x => x.Label == "ваша поправка" && x.Value == -12m) != true || !ScoreExplanation.Formula(score).Contains("(ваша поправка)", StringComparison.Ordinal))
+                throw new InvalidOperationException("Tier override is not visible in the formula: " + ScoreExplanation.Formula(score));
+            var plan = ShopPlanBuilder.Create(context, [], [new ShopItem("OVR_RELIC", 150)], catalog, Metrics(), Metrics("OVR_RELIC"));
+            if (!plan.Contains("ваша поправка +6", StringComparison.Ordinal))
+                throw new InvalidOperationException("Relic override is not visible in the shop plan.");
+            if (HasCyrillic(ModLocalization.Translate(ScoreExplanation.Formula(score) + "\n" + plan, AdvisorLanguage.English)))
+                throw new InvalidOperationException("6.19 text is not fully translated.");
+        }
+        finally { TierOverrides.TestOverrides = null; }
+    }
+
+    private static bool HasCyrillic(string text) => System.Text.RegularExpressions.Regex.IsMatch(text, "[А-Яа-яЁё]");
 
     private static CardDefinition Card(string id, string type, int cost = 1, int damage = 0, int block = 0, int draw = 0, int energy = 0, string rarity = "common") =>
         new(id, id, "test", type, cost, damage, block, draw, energy, rarity, "", new HashSet<string>(), null);

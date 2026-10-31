@@ -95,8 +95,10 @@ internal static class DeckActionPlanner
         .FirstOrDefault();
     }
 
+    // M5: the catalogue says what the upgrade changes. A cost cut or extra draw outranks a +3
+    // damage bump; card role (power, rarity) still breaks ties.
     private static int UpgradePriority(CardDefinition card) =>
-        (card.Type.Contains("power", StringComparison.OrdinalIgnoreCase) ? 5 : 0) +
-        (card.Draw > 0 ? 4 : 0) + (card.Energy > 0 ? 4 : 0) +
-        (CardTaxonomy.RarityName(card.Rarity) == "Редкая" ? 3 : 0) + Math.Min(3, card.Damage / 6 + card.Block / 6);
+        (int)Math.Round(CardUpgrades.Value(card)) +
+        (card.Type.Contains("power", StringComparison.OrdinalIgnoreCase) ? 3 : 0) +
+        (CardTaxonomy.RarityName(card.Rarity) == "Редкая" ? 2 : 0);
 }

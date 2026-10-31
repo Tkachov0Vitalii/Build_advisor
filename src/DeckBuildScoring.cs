@@ -96,10 +96,15 @@ internal static class DeckBuildScoring
 {
     public static BuildAssessment Evaluate(RunContext context, IEnumerable<string> offerIds,
         IReadOnlyDictionary<string, CardDefinition> cards, IReadOnlyDictionary<string, EntityMetric> metrics,
-        IReadOnlyDictionary<string, CoachOffer>? coach = null)
+        IReadOnlyDictionary<string, CoachOffer>? coach = null, IReadOnlySet<string>? upgradedOffers = null)
     {
         CardDefinition? Find(string id) => cards.TryGetValue(SpireCodexMetricsClient.NormalizeId(id), out var card) ? card : null;
-        var deck = context.Cards.Select(Find).Where(x => x is not null).Cast<CardDefinition>().ToArray();
+        // M5: CardStates is read from the same deck objects as Cards and in the same order, so an
+        // upgraded instance is scored with its upgraded numbers (cost, damage, block, draw).
+        var upgradedDeck = context.CardStates.Count == context.Cards.Count;
+        var deck = context.Cards.Select((id, index) =>
+                Find(id) is { } card && upgradedDeck && context.CardStates[index].UpgradeLevel > 0 ? CardUpgrades.Upgraded(card) : Find(id))
+            .Where(x => x is not null).Cast<CardDefinition>().ToArray();
         var averageCost = deck.Where(x => x.Cost >= 0).Select(x => x.Cost).DefaultIfEmpty(0).Average();
         var defense = deck.Count(x => x.Block > 0);
         var attacks = deck.Count(x => x.Type.Contains("attack", StringComparison.OrdinalIgnoreCase));
@@ -132,7 +137,8 @@ internal static class DeckBuildScoring
             return RunHistoryInsights.ChoiceSignal(context.Character, id, context.Act, deck.Length, copies);
         }).ToArray();
         var choiceAdjustments = CenteredChoiceAdjustments(choiceSignals);
-        var offers = offered.Select((id, index) => Score(id, Find(id), context, deck, metrics, coach, needs, archetypes, threat, averageCost, choiceAdjustments[index])).OrderByDescending(x => x.Final).ToArray();
+        var offers = offered.Select((id, index) => Score(id, Find(id), context, deck, metrics, coach, needs, archetypes, threat, averageCost, choiceAdjustments[index],
+            upgradedOffers?.Contains(SpireCodexMetricsClient.NormalizeId(id)) == true)).OrderByDescending(x => x.Final).ToArray();
         var best = offers.FirstOrDefault()?.Final ?? 0;
         var missesCurrentNeed = !needs.SequenceEqual(["синергия/качество"]) && offers.All(x => x.Context <= 0);
         var heuristicSkip = Math.Clamp(20
@@ -159,10 +165,15 @@ internal static class DeckBuildScoring
 
     private static OfferScore Score(string id, CardDefinition? card, RunContext context, IReadOnlyList<CardDefinition> deck,
         IReadOnlyDictionary<string, EntityMetric> metrics, IReadOnlyDictionary<string, CoachOffer>? coach,
-        IReadOnlyList<string> needs, IReadOnlyList<string> archetypes, ThreatAssessment threat, double averageCost, decimal learnedChoiceAdjustment)
+        IReadOnlyList<string> needs, IReadOnlyList<string> archetypes, ThreatAssessment threat, double averageCost, decimal learnedChoiceAdjustment,
+        bool upgraded = false)
     {
         var key = SpireCodexMetricsClient.NormalizeId(id);
-        var name = card?.Name ?? (metrics.TryGetValue(key, out var itemName) ? itemName.Name : id);
+        var name = (card?.Name ?? (metrics.TryGetValue(key, out var itemName) ? itemName.Name : id)) + (upgraded ? "+" : "");
+        // Community metrics describe the base card (rewards are usually offered unupgraded); the
+        // upgraded offer is scored with its real numbers plus the value of the upgrade itself.
+        var upgradeValue = upgraded && card is not null ? CardUpgrades.Value(card) : 0m;
+        if (upgraded && card is not null) card = CardUpgrades.Upgraded(card);
         var hasMetric = metrics.TryGetValue(key, out var metric);
         var confidence = hasMetric ? Math.Clamp((decimal)Math.Sqrt(Math.Clamp(metric!.Samples, 0, 1000) / 1000d), 0m, 1m) : 0m;
         var fallback = hasMetric ? Math.Clamp(50m + (metric!.WinRate - .5m) * 100m, 0m, 100m) : 50m;
@@ -180,6 +191,9 @@ internal static class DeckBuildScoring
         }
         if (card is null) { notes.Add("модель карты не найдена"); return new OfferScore(id, name, community, community, 0, "неизвестно", string.Join(", ", notes), confidence, CommunityLift: metric?.Lift, LiftSamples: metric?.LiftSamples ?? 0); }
         var role = Role(card);
+        if (upgradeValue > 0) Adjust(upgradeValue, "улучшенная версия");
+        var userTier = TierOverrides.ForCard(context.Character, id);
+        if (userTier != 0) Adjust(userTier, "ваша поправка", $"ваша поправка из tier-overrides.json ({userTier:+0;-0})");
         if (needs.Contains("защита") && card.Block > 0) Adjust(25, "нужна защита", $"закрывает дефицит защиты ({card.Block} блока)");
         if (needs.Contains("быстрый урон") && card.Damage > 0 && card.Cost <= 2) Adjust(15, "быстрый урон");
         var selectedArchetype = ArchetypePreferences.Get(context.Character);

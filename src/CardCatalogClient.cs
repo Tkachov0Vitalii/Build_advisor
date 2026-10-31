@@ -5,7 +5,8 @@ namespace BuildAdvisor.Data;
 
 internal sealed record CardDefinition(
     string Id, string Name, string Character, string Type, int Cost, int Damage, int Block,
-    int Draw, int Energy, string Rarity, string Description, IReadOnlySet<string> Tags, string? ImageUrl);
+    int Draw, int Energy, string Rarity, string Description, IReadOnlySet<string> Tags, string? ImageUrl,
+    CardUpgrade? Upgrade = null);
 
 internal static class CardTaxonomy
 {
@@ -130,7 +131,7 @@ internal sealed class CardCatalogClient
                 if (!string.IsNullOrWhiteSpace(imageUrl) && imageUrl.StartsWith('/')) imageUrl = "https://spire-codex.com" + imageUrl;
                 // Prefer the stable API key. Older cached catalogues may only contain the
                 // localized display value, which CardTaxonomy also understands.
-                var definition = new CardDefinition(id, Text(row, "name") ?? id, Text(row, "color") ?? "", Text(row, "type_key", "type") ?? "", Number(row, "cost"), Number(row, "damage"), Number(row, "block"), Number(row, "cards_draw"), Number(row, "energy_gain"), Text(row, "rarity_key", "rarity") ?? "", description, tags, imageUrl);
+                var definition = new CardDefinition(id, Text(row, "name") ?? id, Text(row, "color") ?? "", Text(row, "type_key", "type") ?? "", Number(row, "cost"), Number(row, "damage"), Number(row, "block"), Number(row, "cards_draw"), Number(row, "energy_gain"), Text(row, "rarity_key", "rarity") ?? "", description, tags, imageUrl, CardUpgrades.Parse(row));
                 map[SpireCodexMetricsClient.NormalizeId(id)] = definition;
                 map[SpireCodexMetricsClient.NormalizeId(definition.Name)] = definition;
             }

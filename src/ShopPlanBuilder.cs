@@ -80,6 +80,8 @@ internal static class ShopPlanBuilder
         else if (context.Gold < 100 && RelicKnowledge.HelpsEconomy(item.Id)) { score += 10; reason = "улучшает экономику следующих магазинов"; }
         var displayName = names is not null && names.TryGetValue(key, out var localized) ? localized : metric?.Name ?? item.Id;
         if (metric is not null) reason += BuildAdvisor.UI.AdviceText.Lift(metric);
+        var userTier = TierOverrides.ForRelic(context.Character, item.Id);
+        if (userTier != 0) { score += userTier; reason += $" · ваша поправка {userTier:+0;-0}"; }
         return (displayName, Math.Clamp(score, 0m, 100m), item.Price, reason);
     }
     private static bool IsStarterCard(string id, IReadOnlyDictionary<string, CardDefinition> catalog) =>

@@ -150,10 +150,10 @@ internal static class EventCardAdvisor
         return baseAssessment with { Offers = adjusted };
     }
 
-    private static int UpgradeValue(CardDefinition? card) => card is null ? 0 :
-        (card.Type.Contains("power", StringComparison.OrdinalIgnoreCase) ? 8 : 0) +
-        (card.Draw > 0 ? 7 : 0) + (card.Energy > 0 ? 7 : 0) +
-        (CardTaxonomy.RarityName(card.Rarity) == "Редкая" ? 5 : 0) + Math.Min(5, card.Damage / 5 + card.Block / 5);
+    private static decimal UpgradeValue(CardDefinition? card) => card is null ? 0m :
+        CardUpgrades.Value(card) +
+        (card.Type.Contains("power", StringComparison.OrdinalIgnoreCase) ? 4m : 0m) +
+        (CardTaxonomy.RarityName(card.Rarity) == "Редкая" ? 3m : 0m);
 
     private static void Draw(Node screen, BuildAssessment assessment, EventCardPurpose purpose, EventSelectionIntent intent)
     {

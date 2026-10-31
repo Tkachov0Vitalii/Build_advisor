@@ -147,7 +147,7 @@ internal static class RunContextReader
         return raw switch { "restsite" => "rest_site", "normal" => "monster", "ancient" => "ancient", _ => raw };
     }
 
-    private static DeckCardState? ReadCardState(object card)
+    internal static DeckCardState? ReadCardState(object card)
     {
         var id = ReflectionIds.FindId(card);
         if (string.IsNullOrWhiteSpace(id)) return null;

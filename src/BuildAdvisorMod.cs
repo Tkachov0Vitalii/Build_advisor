@@ -29,6 +29,7 @@ public static class BuildAdvisorMod
             }
         }
         SkippedPatches = skipped;
+        TierOverrides.WriteExampleIfMissing();
 
         // The map HUD patch installs the overlay after Godot has completed its node setup.
         bool passed;
@@ -43,5 +44,5 @@ public static class BuildAdvisorMod
 
 internal static class ModVersion
 {
-    public const string Current = "6.18.0";
+    public const string Current = "6.19.0";
 }

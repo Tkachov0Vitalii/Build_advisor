@@ -72,7 +72,7 @@ public static class AdviceOverlay
 
         // Keep the control and the underlying bitmap at the same size. A TextureButton
         // otherwise draws the source texture at its native 2K resolution.
-        var toggle = new TextureButton { Name = ToggleName, Position = new Vector2(1510, 4), Size = new Vector2(68, 68), CustomMinimumSize = new Vector2(68, 68), IgnoreTextureSize = true, ZIndex = 500, TooltipText = "Build Advisor" };
+        var toggle = new TextureButton { Name = ToggleName, Position = new Vector2(1510, 4), Size = new Vector2(68, 68), CustomMinimumSize = new Vector2(68, 68), IgnoreTextureSize = true, ZIndex = 500, TooltipText = "Build Advisor · F8" };
         var emblem = LoadEmblem();
         if (emblem is not null) toggle.TextureNormal = emblem;
 
@@ -800,11 +800,27 @@ public static class AdviceOverlay
         if (searchPanel?.Visible == true) _ = LoadSearchFromTabAsync(host);
         currentRefresh?.Invoke();
     }
+    // L2: F8 shows and hides the panel. The game itself binds F1-F7, F9, F10 (NInputManager)
+    // and F11 (developer console), and F12 is Steam's screenshot key.
+    internal const Key PanelHotkey = Key.F8;
+
+    internal static void TogglePanel(Node host)
+    {
+        var page = host.GetNodeOrNull<Panel>(PageName);
+        if (page is not null) page.Visible = !page.Visible;
+    }
+
     private sealed class LiveUpdater : Node
     {
         private double elapsed;
+        private bool hotkeyDown;
         public override void _Process(double delta)
         {
+            // Polled once per frame with edge detection: one press toggles once, holding the key
+            // does not flicker, and no input event is consumed from the game.
+            var down = Input.IsKeyPressed(PanelHotkey);
+            if (down && !hotkeyDown && GetParent() is { } host) TogglePanel(host);
+            hotkeyDown = down;
             elapsed += delta;
             if (elapsed < 1) return;
             elapsed = 0;
