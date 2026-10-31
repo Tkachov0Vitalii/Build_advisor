@@ -290,6 +290,123 @@ public static class AdviceOverlay
         }
     }
 
+    // Deck grids (campfire upgrade, remove, transform). A badge positioned from global
+    // coordinates drifted for rows outside the scroll window (6.22.2: badges of the lower rows
+    // stacked at the top of the screen). Here the badge is a child of the card holder, so it
+    // scrolls and clips with the card; the holder → card pairing comes from the grid itself and
+    // a badge is retexted when its holder starts showing another card.
+    internal static void RenderGridBadges(Node screen, Func<IEnumerable<(Control Holder, Control? Card, string Id)>> holders, IReadOnlyList<OfferScore> scores, string actionLabel)
+    {
+        ClearSelectionBadges(screen);
+        var byId = scores.GroupBy(x => Data.SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
+        var sync = new GridBadgeSync
+        {
+            Name = SelectionTierPrefix + "GridSync", Screen = screen, Holders = holders, Scores = byId,
+            Best = scores.Select(x => x.Final).DefaultIfEmpty(0m).Max(), Multiple = scores.Count > 1, ActionLabel = actionLabel
+        };
+        GlobalHost(screen).AddChild(sync);
+        sync.Sync();
+        GD.Print($"Build Advisor grid badges: {scores.Count} scored cards, {holders().Count()} holders shown");
+    }
+
+    internal const string GridBadgeName = "BuildAdvisorGridBadge";
+
+    private sealed class GridBadgeSync : Node
+    {
+        public Node? Screen { get; init; }
+        public Func<IEnumerable<(Control Holder, Control? Card, string Id)>>? Holders { get; init; }
+        public IReadOnlyDictionary<string, OfferScore> Scores { get; init; } = new Dictionary<string, OfferScore>();
+        public decimal Best { get; init; }
+        public bool Multiple { get; init; }
+        public string ActionLabel { get; init; } = "";
+        private readonly Dictionary<Control, (Label Badge, string Id)> badges = new();
+        private double elapsed;
+
+        public override void _Process(double delta)
+        {
+            elapsed += delta;
+            if (elapsed < .1) return;
+            elapsed = 0;
+            Sync();
+        }
+
+        public override void _ExitTree() => FreeAll();
+
+        private void FreeAll()
+        {
+            foreach (var entry in badges.Values)
+                if (GodotObject.IsInstanceValid(entry.Badge)) { entry.Badge.GetParent()?.RemoveChild(entry.Badge); entry.Badge.QueueFree(); }
+            badges.Clear();
+        }
+
+        public void Sync()
+        {
+            if (Screen is null || Holders is null || !GodotObject.IsInstanceValid(Screen) || !Screen.IsInsideTree())
+            {
+                FreeAll();
+                QueueFree();
+                return;
+            }
+            var current = new HashSet<Control>();
+            foreach (var (holder, card, rawId) in Holders())
+            {
+                if (!GodotObject.IsInstanceValid(holder)) continue;
+                current.Add(holder);
+                var id = Data.SpireCodexMetricsClient.NormalizeId(rawId);
+                badges.TryGetValue(holder, out var entry);
+                if (!Scores.TryGetValue(id, out var score))
+                {
+                    if (entry.Badge is not null && GodotObject.IsInstanceValid(entry.Badge)) entry.Badge.Visible = false;
+                    continue;
+                }
+                var badge = entry.Badge is not null && GodotObject.IsInstanceValid(entry.Badge) ? entry.Badge : Create(holder);
+                if (entry.Id != id || !ReferenceEquals(badge, entry.Badge)) Describe(badge, score);
+                badges[holder] = (badge, id);
+                badge.Visible = true;
+                Place(badge, holder, card);
+            }
+            foreach (var gone in badges.Keys.Where(x => !current.Contains(x)).ToArray())
+            {
+                if (GodotObject.IsInstanceValid(badges[gone].Badge)) badges[gone].Badge.Visible = false;
+            }
+        }
+
+        private static Label Create(Control holder)
+        {
+            var badge = new Label
+            {
+                Name = GridBadgeName, Size = new Vector2(132, 34), ZIndex = 20, ZAsRelative = true,
+                MouseFilter = Control.MouseFilterEnum.Pass,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+            };
+            badge.AddThemeFontSizeOverride("font_size", 15);
+            holder.AddChild(badge);
+            return badge;
+        }
+
+        private void Describe(Label badge, OfferScore score)
+        {
+            var tier = Tier(score.Final);
+            var marker = score.Final == Best && Multiple ? "★" : "◆";
+            badge.Text = string.IsNullOrWhiteSpace(ActionLabel) ? $"{marker} {tier}  {score.Final:F0}" : $"{marker} {L(ActionLabel)} {score.Final:F0}";
+            badge.TooltipText = L($"{score.Name}: {score.Final:F0}/100\n{ScoreExplanation.Formula(score)}\n{score.Reason}");
+            var color = TierColor(tier);
+            badge.AddThemeColorOverride("font_color", color);
+            var box = BadgeBox(score.Final == Best && Multiple ? new Color("f2c94c") : color);
+            box.CornerRadiusTopLeft = box.CornerRadiusTopRight = box.CornerRadiusBottomLeft = box.CornerRadiusBottomRight = 10;
+            badge.AddThemeStyleboxOverride("normal", box);
+        }
+
+        // The card node is centred on the holder; the badge sits on the card's bottom rim.
+        private static void Place(Label badge, Control holder, Control? card)
+        {
+            var size = card is not null && GodotObject.IsInstanceValid(card) && card.Size.Y > 0 ? card.Size * card.Scale : new Vector2(300, 422);
+            var centre = card is not null && GodotObject.IsInstanceValid(card) ? card.Position : Vector2.Zero;
+            badge.Position = new Vector2(centre.X - badge.Size.X / 2f, centre.Y + size.Y / 2f - badge.Size.Y * .75f);
+        }
+    }
+
     private static Label AddSelectionBadge(Node host, Node screen, Control anchor, OfferScore score, decimal best, bool multiple, string actionLabel, string name)
     {
         var tier = Tier(score.Final);

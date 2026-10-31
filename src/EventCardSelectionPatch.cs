@@ -169,28 +169,33 @@ internal static class EventCardAdvisor
         var models = Values(ReflectionIds.Member(screen, "_cards")).OfType<CardModel>().ToArray();
         var ids = new Dictionary<CardModel, string?>(ReferenceEqualityComparer.Instance);
         foreach (var model in models) ids[model] = ReflectionIds.FindId(model);
-        IEnumerable<(Control Anchor, string Id)> Holders()
+        if (grid is not null && models.Length > 0)
         {
-            if (grid is not null && GodotObject.IsInstanceValid(grid) && models.Length > 0)
+            IEnumerable<(Control Holder, Control? Card, string Id)> GridHolders()
+            {
+                if (!GodotObject.IsInstanceValid(grid)) return [];
                 return models.Select(model =>
                 {
                     NGridCardHolder? holder = null;
                     try { holder = grid.GetCardHolder(model); } catch { }
                     return (Holder: holder, Id: ids[model]);
                 })
-                .Where(x => x.Holder is not null && GodotObject.IsInstanceValid(x.Holder) && x.Holder.IsVisibleInTree() && x.Id is not null)
-                .Select(x => ((Control)(x.Holder!.Hitbox is { } hitbox && GodotObject.IsInstanceValid(hitbox) ? hitbox : x.Holder), x.Id!))
-                .ToArray();
+                .Where(x => x.Holder is not null && GodotObject.IsInstanceValid(x.Holder) && x.Id is not null)
+                .Select(x => ((Control)x.Holder!, (Control?)x.Holder!.CardNode, x.Id!)).ToArray();
+            }
+            AdviceOverlay.RenderGridBadges(screen, GridHolders, assessment.Offers, ActionLabel(purpose));
+        }
+        else
+        {
             // Screens without a grid (a few fixed-layout choices) keep their holders.
-            return CardHolders(screen).Select(holder =>
+            IEnumerable<(Control Anchor, string Id)> Holders() => CardHolders(screen).Select(holder =>
             {
                 var cardNode = ReflectionIds.Member(holder, "CardNode") as Control;
                 var model = (cardNode is null ? null : ReflectionIds.Member(cardNode, "Model")) ?? ReflectionIds.Member(holder, "CardModel");
                 return (Anchor: (Control)holder, Id: model is null ? null : ReflectionIds.FindId(model));
             }).Where(x => x.Id is not null).Select(x => (x.Anchor, x.Id!)).ToArray();
+            AdviceOverlay.RenderTrackedSelectionBadges(screen, Holders, assessment.Offers, ActionLabel(purpose));
         }
-        GD.Print($"Build Advisor grid badges: grid={(grid is not null)}, cards={models.Length}, shown={Holders().Count()}");
-        AdviceOverlay.RenderTrackedSelectionBadges(screen, Holders, assessment.Offers, ActionLabel(purpose));
         AdviceOverlay.Render(screen, Format(assessment.Offers, purpose, intent), null, RunContextReader.TryRead());
     }
 
