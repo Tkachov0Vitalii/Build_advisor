@@ -5,3 +5,5 @@ tools/obj/
 *.user
 .vs/
 release/
+**/bin/
+**/obj/

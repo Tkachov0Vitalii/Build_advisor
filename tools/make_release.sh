@@ -30,26 +30,7 @@ echo "== Build $version"
 dotnet build "$root/BuildAdvisor.csproj" -c Release -p:Sts2ManagedDir="$managed" -warnaserror -nologo -v quiet
 
 echo "== Regression matrix"
-rm -rf "$work"; mkdir -p "$work/harness"
-cat > "$work/harness/Harness.csproj" <<EOF
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType><TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><LangVersion>latest</LangVersion>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems><StartupObject>RegressionHarness</StartupObject>
-  </PropertyGroup>
-  <ItemGroup>
-    <Compile Include="$root/src/*.cs" />
-    <Compile Include="$root/tools/RegressionHarness.cs" />
-    <None Include="$root/data/*.data" CopyToOutputDirectory="Always" />
-    <Reference Include="sts2"><HintPath>$managed/sts2.dll</HintPath></Reference>
-    <Reference Include="GodotSharp"><HintPath>$managed/GodotSharp.dll</HintPath></Reference>
-    <Reference Include="0Harmony"><HintPath>$managed/0Harmony.dll</HintPath></Reference>
-  </ItemGroup>
-</Project>
-EOF
-dotnet build "$work/harness/Harness.csproj" -c Release -o "$work/harness/out" -nologo -v quiet
-(cd "$work/harness/out" && dotnet Harness.dll)
+dotnet run --project "$root/tools/RegressionRunner" -c Release -p:Sts2ManagedDir="$managed"
 
 echo "== Harmony targets"
 dotnet build "$root/tools/OfflineAdvisorEvaluation.csproj" -c Release -p:Sts2ManagedDir="$managed" -o "$work/offline" -nologo -v quiet

@@ -65,7 +65,9 @@
 
 ## Сборка релиза
 
-`tools/make_release.sh` выполняет весь цикл одной командой (Linux, macOS или Git Bash на Windows, нужен .NET 9 SDK):
+Регрессионная матрица вне игры: `dotnet run --project tools/RegressionRunner -c Release` (должно быть `Regression=True`).
+
+Весь цикл релиза выполняет одна команда — `tools\make_release.ps1` на Windows (`powershell -ExecutionPolicy Bypass -File tools\make_release.ps1`) или `tools/make_release.sh` на Linux, macOS и в Git Bash; нужен .NET 9 SDK:
 
 1. проверяет, что версия совпадает в `build-advisor.json`, `BuildAdvisor.csproj`, `ModVersion.Current`, `README.md` и `CHANGELOG.md`;
 2. собирает мод с `-warnaserror`;
