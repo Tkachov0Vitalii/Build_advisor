@@ -3,7 +3,8 @@ using Godot;
 
 namespace BuildAdvisor.Integration;
 
-// Local-only decision history. No run data is uploaded by Build Advisor.
+// Local-only decision history; the diary itself is never uploaded. (Pick Coach separately sends
+// the current deck, relics and offer to spire-codex.com without a player identifier.)
 internal sealed record PersonalDecision(DateTimeOffset At, string Character, int Act, int Floor, IReadOnlyList<string> Offered, string? Chosen, string? Feedback);
 
 internal static class PersonalRunDiary
