@@ -93,7 +93,10 @@ public static class MerchantPatch
             if (IsCurrent(session, __instance))
             {
                 AdviceOverlay.Render(__instance, "BUILD ADVISOR · магазин · " + bracket.ToUpperInvariant() + "\n" + plan);
-                RenderCardBadges(__instance, cardSlots, DeckBuildScoring.Evaluate(context, cards, catalog, cardMetrics).Offers, context.Gold);
+                // M9: relic slots get the same badges as cards.
+                var relicScores = relics.Select(id => RelicAdvisor.Score(context, id, relicMetrics, relicNames));
+                RenderCardBadges(__instance, cardSlots.Concat(allItems.Where(x => x.Kind == "relic")).ToArray(),
+                    DeckBuildScoring.Evaluate(context, cards, catalog, cardMetrics).Offers.Concat(relicScores).ToArray(), context.Gold);
             }
         }
         catch (Exception error) { if (IsCurrent(session, __instance)) AdviceOverlay.Render(__instance, "BUILD ADVISOR · магазин\n" + local + "\n\nСетевые данные недоступны — показан локальный совет."); GD.PrintErr($"Build Advisor shop: {error}"); }

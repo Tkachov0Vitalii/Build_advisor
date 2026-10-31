@@ -88,13 +88,22 @@ internal static class EventAdvisor
     internal sealed record Rated(EventChoice Choice, decimal? Lift, int Samples, string Source, string Line);
 
     public static IReadOnlyList<Rated> Rate(IReadOnlyList<EventChoice> choices, IReadOnlyDictionary<string, EventOptionMetric> events,
-        IReadOnlyDictionary<string, EntityMetric> relics, IReadOnlyDictionary<string, string>? relicNames, Func<string, string> localHint)
+        IReadOnlyDictionary<string, EntityMetric> relics, IReadOnlyDictionary<string, string>? relicNames, Func<string, string> localHint,
+        RunContext? context = null, decimal? segmentRisk = null)
     {
         var rated = choices.Select(choice =>
         {
             if (choice.RelicId is { } relicId && relics.TryGetValue(SpireCodexMetricsClient.NormalizeId(relicId), out var relic) && relic.Lift is { } relicLift)
             {
                 var name = relicNames is not null && relicNames.TryGetValue(SpireCodexMetricsClient.NormalizeId(relicId), out var localized) ? localized : relic.Name;
+                // M9: with the run known, the relic is scored against the deck (energy, survival, economy).
+                if (context is not null)
+                {
+                    var scored = RelicAdvisor.Score(context, relicId, relics, relicNames, segmentRisk);
+                    var delta = TakeSkipModel.WinDelta(scored);
+                    return new Rated(choice, delta, relic.LiftSamples, "relic",
+                        $"реликвия {name}: {TakeSkipModel.Format(delta)} п.п. к победе · уверенность {TakeSkipModel.EvidenceLabel(relic.LiftSamples)} — {scored.Reason}");
+                }
                 return new Rated(choice, relicLift, relic.LiftSamples, "relic",
                     $"реликвия {name}: {TakeSkipModel.Format(relicLift)} п.п. к победе · уверенность {TakeSkipModel.EvidenceLabel(relic.LiftSamples)}");
             }

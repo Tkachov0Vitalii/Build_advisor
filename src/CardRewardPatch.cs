@@ -79,6 +79,7 @@ public static class CardRewardPatch
             var coachPending = !coachTask.IsCompleted;
             var coachMap = coach?.Offers.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
             var assessment = DeckBuildScoring.Evaluate(context, ids, catalog, metrics, coachMap, currentUpgraded);
+            PersonalRunDiary.RecordAdvice(assessment);
             var text = FormatAdvice(context, assessment, metrics, coach, coachPending) + metricsNote;
             AdviceOverlay.RenderBadges(screen, assessment.Offers, ids);
             AdviceOverlay.Render(screen, text, null, context);
@@ -146,6 +147,7 @@ public static class CardRewardPatch
             catalog = await Catalog.GetAsync(token);
             var coachMap = coach?.Offers.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
             var assessment = DeckBuildScoring.Evaluate(RunContextReader.TryRead() ?? context, ids, catalog, metrics, coachMap, currentUpgraded);
+            PersonalRunDiary.RecordAdvice(assessment);
             AdviceOverlay.RenderBadges(screen, assessment.Offers, ids);
             AdviceOverlay.Render(screen, FormatAdvice(context, assessment, metrics, coach, false), null, context);
             GD.Print("Build Advisor Pick Coach: " + (coach is null ? "no matching build" : $"loaded {coach.Archetype}, {coach.Offers.Count} offers"));

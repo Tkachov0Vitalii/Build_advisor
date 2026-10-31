@@ -55,7 +55,10 @@ Commit messages: imperative subject `X.Y.Z: summary`, body with what changed and
 
 ## Facts already verified (do not re-derive)
 
-- Spire Codex brackets: only `all`, `a10`, `wr30`, `wr50`, `wr75`; `a0`..`a9` return 400 `unknown bracket` (`RunContext.Bracket` maps A<10 to `all`). Relics also take `act=1..3`, cards `include_skip`. Ancient events are not in `events`.
+- Spire Codex brackets: only `all`, `a10`, `wr30`, `wr50`, `wr75`; `a0`..`a9` return 400 `unknown bracket` (`RunContext.Bracket` maps A<10 to `all`). Cards take `include_skip`; relics accept `act` but ignore it. Ancient events are not in `events`.
+- Rest site: `NRestSiteRoom.Options` (`RestSiteOption.OptionId` = HEAL, SMITH, MEND, DIG, LIFT, HATCH, CLONE, COOK, KINDLE — same keys as `/api/runs/metrics/campfires`), `HealRestSiteOption.GetHealAmount(Player)` is public static; `RestSiteOption.Owner` is not public. Campfire lift is survivor-biased (Rest −2 pp, 65 % of rests at low HP): never decide on it.
+- Relic choice: `NChooseARelicSelection` holders are `NRelicBasicHolder.Relic.Model`. `/api/runs/metrics/relics` ignores `act`. Game over: `NGameOverScreen._history` (`RunHistory.Win/Seed/WasAbandoned`), `_runState.TotalFloor`. Card portraits: `ModelDb.AllCards` → `CardModel.Id.Entry`, `HasPortrait`, `PortraitPath`.
+- Localization replaces whole words for keys that start/end with a letter (`ModLocalization.ReplaceWords`).
 - Player HP is on `Player.Creature.CurrentHp/MaxHp`; potions in `Player.PotionSlots` (null = empty), `MaxPotionCount`.
 - Spire Codex: `/api/runs/metrics/{cards|relics|potions}?bracket=a10[&character=ironclad]` → `rows[]` with `score, tier, elo, win_rate, pick_rate, lift, lift_n, use_rate, pick_rate_by_act` (percent). `upgraded` rows exist only for `bracket=all` and have no lift. `/api/runs/metrics/events` → `{event, option, win_rate, lift, lift_n}` for 56 events. `/api/runs/metrics/campfires`, `/shops` exist. Catalogue `/api/cards?lang=eng` has `upgrade` (`cost` absolute, other keys are deltas like `"+2"`, scaling keys `strengthpower`, `dexterity`, `focuspower`).
 - lift ≈ 0.19 × (Codex Score − 27), residual SD 1.9 pp (491 cards, A10).
@@ -65,4 +68,4 @@ Commit messages: imperative subject `X.Y.Z: summary`, body with what changed and
 
 ## Current state
 
-Latest release: see the top of `CHANGELOG.md` (6.20.0: bracket/HP fixes, M2 events, M3 potions, M4 breakdown). Next planned work: `docs/ROADMAP.md`, release 6.21.0 — M6 (campfire advice), M8 (card art from game resources), M9 (Ancient/boss relics). Not yet verified in the running game: 6.17–6.20 UI (offline toggle, shop badges, "Card+", F8, purchase refresh, event ★ lines, rewards-screen potion panel `NRewardsScreen._Ready`, breakdown hover size).
+Latest release: see the top of `CHANGELOG.md` (6.21.0: all medium tasks M1–M9 done). Next planned work: heavy tasks H1–H6 in `docs/ROADMAP.md` (7.0.0). The mod is installed by copying the release ZIP contents into `<game>\mods\build-advisor\` (the owner keeps the nested `build-advisor\build-advisor\` layout from the ZIP; the game loads it). Not yet verified in the running game: 6.17–6.21 UI (offline toggle, shop badges incl. relics, "Card+", F8, purchase refresh, event ★ lines, rewards-screen potion panel, breakdown hover size, campfire panel `NRestSiteRoom._Ready`, relic choice badges, game-over review, game portraits in card search).

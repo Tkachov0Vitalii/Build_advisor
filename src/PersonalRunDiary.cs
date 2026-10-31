@@ -5,7 +5,13 @@ namespace BuildAdvisor.Integration;
 
 // Local-only decision history; the diary itself is never uploaded. (Pick Coach separately sends
 // the current deck, relics and offer to spire-codex.com without a player identifier.)
-internal sealed record PersonalDecision(DateTimeOffset At, string Character, int Act, int Floor, IReadOnlyList<string> Offered, string? Chosen, string? Feedback);
+// M7: Seed ties a decision to its run; Advised is the mod's advice (a card ID or SkipMarker) and
+// Deltas the win-rate value of each offered card against skipping, so a finished run can be
+// reviewed. Files written before 6.21 lack these fields and stay readable.
+internal sealed record PersonalDecision(DateTimeOffset At, string Character, int Act, int Floor, IReadOnlyList<string> Offered, string? Chosen, string? Feedback,
+    string? Seed = null, string? Advised = null, IReadOnlyDictionary<string, decimal>? Deltas = null);
+
+internal sealed record RunOutcome(DateTimeOffset At, string Character, string Seed, bool Win, int Floor, int Ascension);
 
 internal static class PersonalRunDiary
 {
@@ -31,7 +37,7 @@ internal static class PersonalRunDiary
             // A refresh of the same open screen replaces the offer; a previous screen that was
             // already closed and never produced a pick is a skip and is finalised first.
             if (pending?.ClosedAt is not null) closed = pending;
-            pending = new Pending(new PersonalDecision(DateTimeOffset.UtcNow, context.Character, context.Act, context.Floor, offered, null, null), Counts(context.Cards));
+            pending = new Pending(new PersonalDecision(DateTimeOffset.UtcNow, context.Character, context.Act, context.Floor, offered, null, null, context.RunSeed), Counts(context.Cards));
         }
         if (closed is not null) Save(closed.Decision with { Chosen = SkipMarker });
     }
@@ -107,6 +113,59 @@ internal static class PersonalRunDiary
             pending = pending with { Decision = pending.Decision with { Feedback = helpful ? "useful" : "questionable" } };
         }
     }
+    // M7: the advice shown for the pending offer; written together with the pick or skip.
+    public static void RecordAdvice(BuildAssessment assessment)
+    {
+        var verdict = TakeSkipModel.Evaluate(assessment);
+        var deltas = assessment.Offers.GroupBy(x => x.Id, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => TakeSkipModel.WinDelta(x.First()), StringComparer.OrdinalIgnoreCase);
+        var advised = verdict.Take && verdict.Best is not null ? verdict.Best.Id : SkipMarker;
+        lock (Gate)
+        {
+            if (pending is null) return;
+            pending = pending with { Decision = pending.Decision with { Advised = advised, Deltas = deltas } };
+        }
+    }
+
+    public static IReadOnlyList<PersonalDecision> Decisions() { try { return Load(); } catch { return []; } }
+
+    private static readonly string OutcomePath = ModPaths.UserData("personal-runs.json");
+    private static IReadOnlyList<RunOutcome>? outcomes;
+
+    public static IReadOnlyList<RunOutcome> Outcomes()
+    {
+        lock (Gate)
+        {
+            if (outcomes is not null) return outcomes;
+            try { outcomes = File.Exists(OutcomePath) ? JsonSerializer.Deserialize<RunOutcome[]>(File.ReadAllText(OutcomePath)) ?? [] : []; }
+            catch { outcomes = []; }
+            return outcomes;
+        }
+    }
+
+    // One record per run seed; the game-over screen can open more than once for the same run.
+    public static void RecordOutcome(RunOutcome outcome)
+    {
+        if (BuildAdvisorRegression.IsRunning) return;
+        try
+        {
+            var all = Outcomes().Where(x => x.Seed != outcome.Seed).Append(outcome).TakeLast(200).ToArray();
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(OutcomePath)!);
+            File.WriteAllText(OutcomePath + ".tmp", JsonSerializer.Serialize(all));
+            File.Move(OutcomePath + ".tmp", OutcomePath, true);
+            lock (Gate) outcomes = all;
+        }
+        catch { /* never affect the game */ }
+    }
+
+    // The last reward screen of a run may still be pending when the run ends.
+    public static void FlushPending()
+    {
+        Pending? item;
+        lock (Gate) { item = pending; pending = null; }
+        if (item is not null && item.ClosedAt is not null) Save(item.Decision with { Chosen = SkipMarker });
+    }
+
     private static void Save(PersonalDecision decision)
     {
         try

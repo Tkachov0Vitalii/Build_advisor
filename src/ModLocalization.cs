@@ -44,6 +44,128 @@ internal static class ModLocalization
         ("уверенность средняя", "evidence medium"),
         ("уверенность низкая", "evidence low"),
         ("п.п.", "pp"),
+        // 6.21.0 untranslated older texts found by a sweep of every string in src
+        ("выборы в похожих колодах", "picks in similar decks"),
+        ("пока недостаточно данных для общей оценки", "not enough data for an overall score yet"),
+        ("общая оценка", "overall score"),
+        ("реликвия с прямой синергией", "relic with direct synergy"),
+        ("удаление базовой карты, если оно не лишает следующую важную покупку", "removing a starter card if it does not cost the next important purchase"),
+        ("зелье перед элитой/боссом", "a potion before an elite/boss"),
+        ("уже копий:", "copies already:"),
+        ("В похожих билдах результат слабее", "Weaker result in similar builds"),
+        ("ВЫСОКИЙ ПРИОРИТЕТ: дополнительная энергия разгружает дорогую колоду; карты других цветов — осознанный риск", "HIGH PRIORITY: extra energy relieves an expensive deck; off-color cards are a conscious risk"),
+        ("Ветка события", "Event option"),
+        ("Карты не прочитаны.", "Cards were not read."),
+        ("Колода не прочитана — показана общая оценка карт.", "The deck was not read; overall card scores are shown."),
+        ("Контекст колоды:", "Deck context:"),
+        ("навыки/добор", "skills/draw"),
+        ("Локальный анализ магазина: состояние забега не прочитано.", "Local shop analysis: the run state was not read."),
+        ("Локальный анализ реликвий: состояние забега пока не прочитано.", "Local relic analysis: the run state has not been read yet."),
+        ("Локальный анализ: состояние забега пока не прочитано.", "Local analysis: the run state has not been read yet."),
+        ("Локальный совет по вариантам:", "Local advice on the options:"),
+        ("Локальный совет по реликвиям:", "Local relic advice:"),
+        ("Недостаточно похожих ранов", "Not enough similar runs"),
+        ("Нейтральный вариант", "Neutral option"),
+        ("Нет активного забега", "No active run"),
+        ("Ожидание данных забега…", "Waiting for run data…"),
+        ("Поправка с учётом текущей колоды:", "Adjustment for the current deck:"),
+        ("Приоритет покупки: 1) закрыть", "Purchase priority: 1) cover"),
+        ("Проверьте точные HP/золото/проклятия в тексте события: для таких веток общая статистика не является доказательством лучшего выбора.", "Check the exact HP/gold/curses in the event text: for such options general statistics do not prove the best choice."),
+        ("Пропуск: разумен, если ни один вариант не закрывает текущую потребность или только размывает колоду.", "Skip: reasonable if no option covers the current need or it only dilutes the deck."),
+        ("Слабый сигнал — мало выборок", "Weak signal: few samples"),
+        ("Состояние забега не прочитано.", "The run state was not read."),
+        ("признаков", "features"),
+        ("Часто усиливает похожий билд", "Often strengthens a similar build"),
+        ("берите только если награда окупает проклятие и есть способ удалить его", "take only if the reward pays for the curse and you can remove it"),
+        ("высокий приоритет, если в колоде есть дорогие карты; проверьте цену/негативный эффект", "high priority if the deck has expensive cards; check the price/drawback"),
+        ("данных достаточно", "enough data"),
+        ("данных мало", "little data"),
+        ("данных много", "plenty of data"),
+        ("даёт быстрый урон для Act 1 и элит", "gives fast damage for Act 1 and elites"),
+        ("даёт темп, если есть дорогие карты", "gives tempo if there are expensive cards"),
+        ("закрывает дефицит защиты", "covers the defense gap"),
+        ("блока)", "block)"),
+        ("закрывает защиту и снижает риск перед элитами", "covers defense and lowers the risk before elites"),
+        ("золото особенно ценно перед ближайшим магазином", "gold is especially valuable before the next shop"),
+        ("маршрут и ближайшая угроза пока не прочитаны", "route and nearest threat have not been read yet"),
+        ("не распознано", "not recognized"),
+        ("нет данных", "no data"),
+        ("низкий HP: избегайте риска без сильной компенсации", "low HP: avoid risk without strong compensation"),
+        ("оцените немедленную цену и то, закрывает ли награда текущую потребность", "weigh the immediate cost and whether the reward covers the current need"),
+        ("повышает стабильность розыгрыша ключевых карт", "makes key cards more consistent to play"),
+        ("полезна при нехватке блока и низком HP", "useful when short on block and at low HP"),
+        ("помогает с затяжными боями и боссом", "helps in long fights and against the boss"),
+        ("предел", "cap"),
+        ("рекомендуется, если улучшение «Вмятина → Пролом» даёт повторное наложение Уязвимости; особенно ценно при уже собранном направлении Уязвимости", "recommended if the Dent → Breach upgrade reapplies Vulnerable; especially valuable when the deck already builds around Vulnerable"),
+        ("роль не определена по ID — оценивайте текст карты вручную", "role not determined by ID; judge the card text yourself"),
+        ("сильнее до магазина или при ограниченном золоте", "stronger before a shop or when gold is short"),
+        ("синергия/качество", "synergy/quality"),
+        ("ситуативно: повторный выбор награды полезен, когда колода уже ищет конкретные карты; не закрывает дефицит немедленно", "situational: rerolling a reward helps when the deck already looks for specific cards; does not cover a gap right away"),
+        ("смешанный билд", "mixed build"),
+        ("сравните непосредственный эффект с ближайшей проблемой колоды", "compare the immediate effect with the deck's nearest problem"),
+        ("сравните с ближайшей элитой", "compare with the nearest elite"),
+        ("сравните с потерей HP и альтернативной наградой", "compare with the HP loss and the alternative reward"),
+        ("средний приоритет: энергия сильна, но карты других цветов могут размыть уже выбранный архетип", "medium priority: energy is strong, but off-color cards can dilute the chosen archetype"),
+        ("усиливает добор и стабильность ключевых ходов", "improves draw and the consistency of key turns"),
+        ("ценность зависит от синергии и возможной цены", "value depends on synergy and the possible cost"),
+        ("высокая", "high"),
+        ("средняя", "medium"),
+        ("низкая", "low"),
+        // 6.21.0 run review
+        ("— это оценка на момент выбора, а не причина исхода.", "— an estimate at the time of the choice, not the cause of the result."),
+        ("поражений", "losses"),
+        ("Сравнение побед и поражений появится после 3 побед и 3 поражений с записанными советами", "The wins vs losses comparison appears after 3 wins and 3 losses with recorded advice"),
+        ("Выборы не уступали совету по оценке мода.", "No choice fell short of the advice by the mod's estimate."),
+        ("Выборов карт в этом забеге не записано.", "No card choices were recorded for this run."),
+        ("По вашим забегам: совпадение с советом в победах", "Across your runs: agreement with advice in wins"),
+        ("в поражениях", "in losses"),
+        ("Всего по оценке мода:", "Total by the mod's estimate:"),
+        ("Крупнейшие расхождения:", "Largest divergences:"),
+        ("Наград с картами:", "Card rewards:"),
+        ("совпало с советом:", "matched the advice:"),
+        ("Записано забегов:", "Runs recorded:"),
+        ("средний этаж", "average floor"),
+        ("Разбор забега:", "Run review:"),
+        ("BUILD ADVISOR · итог", "BUILD ADVISOR · summary"),
+        ("Разбор забега: поражение", "Run review: defeat"),
+        ("Разбор забега: победа", "Run review: victory"),
+        ("сейчас побед", "now wins"),
+        ("· побед ", "· wins "),
+        ("пропуск вместо", "skip instead of"),
+        ("вместо пропуск (", "instead of skip ("),
+        ("пропусков", "skips"),
+        ("вместо", "instead of"),
+        // 6.21.0 relics
+        ("Лифт реликвий смещён длиной забега (поздние реликвии получают выжившие), но при выборе из нескольких реликвий смещение у всех одинаковое.", "Relic lift is biased by run length (survivors get late relics), but among relics offered together the bias is shared."),
+        ("Статистика сообщества недоступна — оценка по ролям реликвий и колоде.", "Community statistics are unavailable; scores use relic roles and the deck."),
+        ("Разница меньше 0,5 п.п.: выбирайте по плану колоды.", "The difference is under 0.5 pp: choose by your deck plan."),
+        ("в последнем акте осталось мало магазинов", "few shops remain in the last act"),
+        ("защищает перед опасным участком", "protects before a dangerous stretch"),
+        ("к следующей", "over the next one"),
+        ("Разбор лучшей:", "Best relic breakdown:"),
+        ("Реликвии не прочитаны.", "Relics were not read."),
+        ("средняя стоимость", "average cost"),
+        ("выживаемость", "survival"),
+        ("экономика", "economy"),
+        // 6.21.0 campfire
+        ("Отдыхают в основном при низком HP, поэтому его лифт отрицательный; совет выше учитывает ваше HP и риск.", "Players mostly rest at low HP, so resting shows a negative lift; the advice above accounts for your HP and risk."),
+        ("Совет: отдых и улучшение недоступны — сравните особые варианты по описанию.", "Advice: rest and upgrade are unavailable; compare the special options by their text."),
+        ("— HP ниже трети, следующий тяжёлый бой опасен.", "— HP is below a third, the next hard fight is dangerous."),
+        ("Подходящей карты для улучшения не найдено.", "No suitable card to upgrade was found."),
+        ("Лучшее улучшение, если HP хватает:", "Best upgrade if HP allows:"),
+        ("Статистика сообщества (справочно):", "Community statistics (for reference):"),
+        ("балла против", "points vs"),
+        ("у улучшения", "for upgrading"),
+        ("у отдыха", "for resting"),
+        ("Совет: отдых", "Advice: rest"),
+        ("Совет: улучшить", "Advice: upgrade"),
+        ("отдых восстановит", "rest restores"),
+        ("риск следующих узлов", "risk of the next nodes"),
+        ("HP не прочитано", "HP not read"),
+        ("при низком HP", "at low HP"),
+        ("BUILD ADVISOR · костёр", "BUILD ADVISOR · campfire"),
+        ("Отдохнуть", "Rest"), ("Лечить", "Mend"), ("Копать", "Dig"), ("Тренироваться", "Train"), ("Высидеть", "Hatch"),
+        ("Удвоить", "Clone"), ("Приготовить", "Cook"), ("Ковать", "Smith"), ("Раздуть пламя", "Kindle"),
         // 6.20.0 events, potions, score breakdown
         ("Лифт — насколько винрейт забегов, выбравших вариант, выше или ниже среднего по данным Spire Codex. Это корреляция: проверьте цену варианта (HP, золото, проклятия) для своей колоды.", "Lift shows how much higher or lower the win rate of runs that chose this option is, per Spire Codex. It is a correlation: check the option's cost (HP, gold, curses) for your deck."),
         ("Статистики по этому событию нет — показаны локальные подсказки.", "No statistics for this event; local hints are shown."),
@@ -483,8 +605,32 @@ internal static class ModLocalization
         if (!value.Any(IsCyrillic)) return value;
         var result = value;
         foreach (var (ru, en) in EnglishByLength ??= English.OrderByDescending(x => x.Ru.Length).ToArray())
-            if (result.Contains(ru, StringComparison.OrdinalIgnoreCase)) result = result.Replace(ru, en, StringComparison.OrdinalIgnoreCase);
+            if (result.Contains(ru, StringComparison.OrdinalIgnoreCase)) result = ReplaceWords(result, ru, en);
         return result;
+    }
+
+    // A key that starts or ends with a letter matches whole words only: "до" must not turn
+    // "достаточно" into "toстаточно", "Тип" must not cut "архетип". Before 6.21 short keys
+    // replaced fragments inside longer words.
+    internal static string ReplaceWords(string text, string key, string replacement)
+    {
+        var checkStart = char.IsLetter(key[0]);
+        var checkEnd = char.IsLetter(key[^1]);
+        var builder = new System.Text.StringBuilder(text.Length);
+        var position = 0;
+        while (position < text.Length)
+        {
+            var index = text.IndexOf(key, position, StringComparison.OrdinalIgnoreCase);
+            if (index < 0) break;
+            var end = index + key.Length;
+            var boundaryBefore = !checkStart || index == 0 || !char.IsLetter(text[index - 1]);
+            var boundaryAfter = !checkEnd || end >= text.Length || !char.IsLetter(text[end]);
+            builder.Append(text, position, index - position);
+            builder.Append(boundaryBefore && boundaryAfter ? replacement : text.Substring(index, key.Length));
+            position = end;
+        }
+        builder.Append(text, position, text.Length - position);
+        return builder.ToString();
     }
 
     // Sorted once instead of on every call; Translate runs for each render and every second.

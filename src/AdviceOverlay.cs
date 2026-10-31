@@ -507,7 +507,7 @@ public static class AdviceOverlay
                 var details = new Label { Text = L($"{Tier(entry.Score.Final)}  {entry.Score.Final:F0}/100   {entry.Card.Name}\n{TypeName(entry.Card.Type)} · {RarityName(entry.Card.Rarity)} · стоимость {entry.Card.Cost}\n{ScoreExplanation.Formula(entry.Score)}\nМетки: {entry.Score.TagText}\n{entry.Score.Impact}"), AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(1340, 170), VerticalAlignment = VerticalAlignment.Center };
                 details.AddThemeFontSizeOverride("font_size", 18);
                 content.AddChild(preview); content.AddChild(details); row.AddChild(content); results.AddChild(row);
-                _ = CardImageCache.LoadIntoAsync(preview, entry.Card.ImageUrl);
+                _ = CardImageCache.LoadIntoAsync(preview, entry.Card.Id, entry.Card.ImageUrl);
             }
             results.CustomMinimumSize = new Vector2(1550, Math.Max(620, 50 + entries.Length * 190));
         }

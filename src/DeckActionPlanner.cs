@@ -45,12 +45,10 @@ internal static class DeckActionPlanner
             result.Add(new(AdvisorActionKind.Remove, remove, 10m + Math.Min(18m, excess * 2m), "улучшает качество добора"));
         }
         var upgrade = UpgradeCard(context, catalog);
-        if (upgrade is not null) result.Add(new(AdvisorActionKind.Upgrade, upgrade.Name, Math.Clamp(UpgradePriority(upgrade) * 2m, 4m, 24m), "усиливает существующую карту без увеличения колоды"));
-        var missingHp = context.MaxHp <= 0 ? 0m : Math.Max(0m, (decimal)(context.MaxHp - context.Hp) / context.MaxHp);
-        var routePressure = context.Route.Options.Select(x => x.Pressure).DefaultIfEmpty(0).Max();
+        if (upgrade is not null) result.Add(new(AdvisorActionKind.Upgrade, upgrade.Name, UpgradeValue(upgrade), "усиливает существующую карту без увеличения колоды"));
+        // M6: the same rest model as the campfire screen (30% heal weighted by segment risk).
         var segmentRisk = SegmentRiskModel.Assess(context);
-        var learnedRisk = segmentRisk.IsAvailable ? segmentRisk.High * 16m : 0m;
-        result.Add(new(AdvisorActionKind.Rest, "", Math.Clamp(missingHp * 35m + Math.Max(0, routePressure) + learnedRisk, 0m, 40m), "снижает риск ближайшего участка"));
+        result.Add(new(AdvisorActionKind.Rest, "", decimal.Round(CampfireAdvisor.RestValue(context, Math.Round(context.MaxHp * .3m), segmentRisk.IsAvailable ? segmentRisk.Probability : .2m), 0), "снижает риск ближайшего участка"));
         result.Add(new(AdvisorActionKind.SaveGold, "", context.Gold < 150 ? 7m : 3m, "сохраняет будущую гибкость"));
         return result;
     }
@@ -76,6 +74,12 @@ internal static class DeckActionPlanner
         if (defends.Length > 0 && cards.Count(x => x.Block > 0) >= 5) return defends[0].Name;
         return null;
     }
+
+    internal static decimal UpgradeValue(CardDefinition card) => Math.Clamp(UpgradePriority(card) * 2m, 4m, 24m);
+
+    // M6: the campfire screen asks for the best upgrade and its value on the action point scale.
+    internal static (string Name, decimal Value)? BestUpgrade(RunContext context, IReadOnlyDictionary<string, CardDefinition> catalog) =>
+        UpgradeCard(context, catalog) is { } card ? (card.Name, UpgradeValue(card)) : null;
 
     private static string? UpgradeCandidate(RunContext context, IReadOnlyDictionary<string, CardDefinition> catalog)
         => UpgradeCard(context, catalog)?.Name;

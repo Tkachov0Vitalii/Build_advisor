@@ -14,6 +14,55 @@ internal static class CardImageCache
     private static readonly ConcurrentDictionary<string, byte> Unsupported = new(StringComparer.OrdinalIgnoreCase);
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> UrlGates = new(StringComparer.OrdinalIgnoreCase);
 
+    // M8: card portraits come from the game's own resources (offline, no download, matches the
+    // installed game version). The Spire Codex image remains the fallback for unknown IDs.
+    private static Dictionary<string, string>? portraitPaths;
+    private static readonly Dictionary<string, Texture2D?> GameTextures = new(StringComparer.OrdinalIgnoreCase);
+
+    internal static Texture2D? GamePortrait(string? cardId)
+    {
+        if (string.IsNullOrWhiteSpace(cardId)) return null;
+        var key = BuildAdvisor.Data.SpireCodexMetricsClient.NormalizeId(cardId);
+        if (GameTextures.TryGetValue(key, out var known)) return known;
+        Texture2D? texture = null;
+        try
+        {
+            portraitPaths ??= BuildPortraitIndex();
+            if (portraitPaths.TryGetValue(key, out var path) && ResourceLoader.Exists(path))
+                texture = ResourceLoader.Load<Texture2D>(path);
+        }
+        catch (Exception error) { GD.Print("Build Advisor game portrait: " + error.Message); }
+        if (GameTextures.Count >= MemoryLimit * 2) GameTextures.Clear();
+        GameTextures[key] = texture;
+        return texture;
+    }
+
+    private static Dictionary<string, string> BuildPortraitIndex()
+    {
+        var index = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var card in MegaCrit.Sts2.Core.Models.ModelDb.AllCards)
+        {
+            try
+            {
+                if (card is null || !card.HasPortrait || string.IsNullOrWhiteSpace(card.PortraitPath)) continue;
+                index[BuildAdvisor.Data.SpireCodexMetricsClient.NormalizeId(card.Id.Entry)] = card.PortraitPath;
+            }
+            catch { /* one broken model must not hide the other portraits */ }
+        }
+        return index;
+    }
+
+    public static async Task LoadIntoAsync(TextureRect target, string? cardId, string? url)
+    {
+        var portrait = GamePortrait(cardId);
+        if (portrait is not null)
+        {
+            if (GodotObject.IsInstanceValid(target)) target.Texture = portrait;
+            return;
+        }
+        await LoadIntoAsync(target, url);
+    }
+
     public static async Task LoadIntoAsync(TextureRect target, string? url)
     {
         if (string.IsNullOrWhiteSpace(url)) return;

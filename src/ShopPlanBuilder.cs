@@ -75,18 +75,11 @@ internal static class ShopPlanBuilder
 
     private static (string Name, decimal Score, int Price, string Reason) ScoreRelic(ShopItem item, RunContext context, IReadOnlyDictionary<string, EntityMetric> metrics, IReadOnlyDictionary<string, string>? names)
     {
-        var key = SpireCodexMetricsClient.NormalizeId(item.Id);
-        var metric = metrics.TryGetValue(key, out var found) ? found : null;
-        var score = metric is null ? 50m : metric.CodexScore ?? Math.Clamp(50m + (metric.WinRate - .5m) * 100m, 0m, 100m);
-        var reason = "общая ценность по данным сообщества";
-        if (context.AverageCost >= 1.7m && RelicKnowledge.GivesEnergy(item.Id)) { score += 24; reason = "решает дефицит энергии дорогой колоды"; }
-        else if (context.Hp > 0 && context.Hp * 3 < context.MaxHp && RelicKnowledge.HelpsSurvival(item.Id)) { score += 16; reason = "поддерживает выживаемость при низком HP"; }
-        else if (context.Gold < 100 && RelicKnowledge.HelpsEconomy(item.Id)) { score += 10; reason = "улучшает экономику следующих магазинов"; }
-        var displayName = names is not null && names.TryGetValue(key, out var localized) ? localized : metric?.Name ?? item.Id;
-        if (metric is not null) reason += BuildAdvisor.UI.AdviceText.Lift(metric);
-        var userTier = TierOverrides.ForRelic(context.Character, item.Id);
-        if (userTier != 0) { score += userTier; reason += $" · ваша поправка {userTier:+0;-0}"; }
-        return (displayName, Math.Clamp(score, 0m, 100m), item.Price, reason);
+        // M9: one relic score for the shop, the relic choice screen and Ancient event options.
+        var scored = RelicAdvisor.Score(context, item.Id, metrics, names);
+        var reason = scored.Reason;
+        if (metrics.TryGetValue(SpireCodexMetricsClient.NormalizeId(item.Id), out var metric)) reason += BuildAdvisor.UI.AdviceText.Lift(metric);
+        return (scored.Name, scored.Final, item.Price, reason);
     }
     private static bool IsStarterCard(string id, IReadOnlyDictionary<string, CardDefinition> catalog) =>
         catalog.TryGetValue(SpireCodexMetricsClient.NormalizeId(id), out var card)

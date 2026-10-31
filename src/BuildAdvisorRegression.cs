@@ -64,6 +64,10 @@ internal static class BuildAdvisorRegression
             PotionAdviceRespectsSlots();
             ScoreBreakdownGroupsAdjustments();
             Release620TextIsTranslated();
+            CampfireAdviceWeighsHpRiskAndUpgrade();
+            RelicAdviceFollowsDeckNeeds();
+            RunReviewComparesChoicesWithAdvice();
+            TranslationReplacesWholeWords();
             LastError = "";
             return true;
         }
@@ -812,6 +816,132 @@ internal static class BuildAdvisorRegression
             "Статистика сообщества недоступна — оценка по каталогу карт и локальной модели.");
         var english = ModLocalization.Translate(raw, AdvisorLanguage.English);
         if (HasCyrillic(english)) throw new InvalidOperationException("6.20 text is not fully translated: " + english);
+    }
+
+    // 6.21.0 (M6): rest wins at low HP, before a boss and at high risk; a strong upgrade wins at
+    // healthy HP; a full-HP rest is worth nothing; community lift is reference only.
+    private static void CampfireAdviceWeighsHpRiskAndUpgrade()
+    {
+        RunContext At(int hp, string next = "monster") => new("ironclad", [], [], 0, 1, 10, hp, 80, 99, null, 1m, 0, 0, 0, [])
+            { Route = new RouteSnapshot("rest_site", [new RouteOption([next])]) };
+        (string, decimal)? upgrade = ("Bash", 8m);
+        string[] both = ["HEAL", "SMITH"];
+        string? Pick(RunContext context, decimal risk, (string, decimal)? up = null) => CampfireAdvisor.Advise(context, both, 24m, risk, up ?? upgrade).Recommended;
+        if (Pick(At(70), .15m) != "SMITH" || Pick(At(80), .9m) != "SMITH")
+            throw new InvalidOperationException("Healthy HP must upgrade.");
+        if (Pick(At(25), .1m) != "HEAL" || Pick(At(45), .6m) != "HEAL" || Pick(At(55), .2m, ("Bash", 4m)) != "HEAL")
+            throw new InvalidOperationException("Low HP or high risk must rest.");
+        if (Pick(At(60, "boss"), .2m) != "HEAL" || Pick(At(60), .2m) != "SMITH")
+            throw new InvalidOperationException("A boss next must tip a mid-HP campfire to rest.");
+        if (CampfireAdvisor.RestValue(At(80), 24m, 1m) != 0m || CampfireAdvisor.Advise(At(70), ["HEAL"], 24m, .1m, upgrade).Recommended != "HEAL")
+            throw new InvalidOperationException("Full HP rest has no value; a lone rest option is still the advice.");
+        var metrics = CampfireAdvisor.Parse("""{"rows":[{"choice":"HEAL","name":"Rest","share":38.6,"win_rate":40.8,"lift":-2.0,"lift_n":8891209,"low_hp_share":65.5},{"choice":"SMITH","name":"Smith","share":54.6,"lift":14.7,"lift_n":100,"low_hp_share":14.9}]}""");
+        if (metrics.Count != 2 || metrics["HEAL"].Lift != -2m || metrics["SMITH"].LowHpShare != 14.9m)
+            throw new InvalidOperationException("Campfire metrics were not parsed.");
+        var advice = CampfireAdvisor.Advise(At(25), both, 24m, .3m, upgrade, metrics);
+        if (advice.Recommended != "HEAL" || !advice.Text.Contains("Лучшее улучшение, если HP хватает: Bash") || !advice.Text.Contains("справочно"))
+            throw new InvalidOperationException("Campfire text is incomplete: " + advice.Text);
+        var english = ModLocalization.Translate(string.Join("\n", advice.Text, CampfireAdvisor.Advise(At(70), both, 24m, .1m, upgrade).Text,
+            CampfireAdvisor.Advise(At(70), ["SMITH"], null, null, null).Text, CampfireAdvisor.Advise(At(70), ["DIG"], null, null, null).Text,
+            CampfireAdvisor.Advise(new RunContext("ironclad", [], [], 0, 1, 1, 0, 0, 0, null, 1m, 0, 0, 0, []), both, null, null, upgrade).Text, "BUILD ADVISOR · костёр"), AdvisorLanguage.English);
+        if (HasCyrillic(english)) throw new InvalidOperationException("Campfire text is not translated: " + english);
+    }
+
+    // 6.21.0 (M9): relic roles shift the community baseline by deck need; ranking is on the
+    // win-rate scale; Ancient options use the same score when the run is known.
+    private static void RelicAdviceFollowsDeckNeeds()
+    {
+        var metrics = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase)
+        {
+            [SpireCodexMetricsClient.NormalizeId("SOZU")] = new("SOZU", "Sozu", null, 40m, 3000, CodexScore: 50m, Lift: 4.4m, LiftSamples: 3000),
+            [SpireCodexMetricsClient.NormalizeId("TUNGSTEN_ROD")] = new("TUNGSTEN_ROD", "Tungsten Rod", null, 40m, 3000, CodexScore: 55m, Lift: 5.3m, LiftSamples: 3000),
+            [SpireCodexMetricsClient.NormalizeId("MEMBERSHIP_CARD")] = new("MEMBERSHIP_CARD", "Membership Card", null, 40m, 3000, Lift: 3.8m, LiftSamples: 3000),
+        };
+        RunContext Context(decimal cost = 1m, int hp = 70, int act = 1, int gold = 150) => new("ironclad", [], [], 0, act, 5, hp, 80, gold, null, cost, 0, 0, 0, []);
+        decimal Final(RunContext c, string id, decimal? risk = null) => RelicAdvisor.Score(c, id, metrics, null, risk).Final;
+        if (Final(Context(1.8m), "SOZU") != 74m || Final(Context(1m), "SOZU") != 50m)
+            throw new InvalidOperationException("Energy relics must follow deck cost.");
+        if (Final(Context(hp: 20), "TUNGSTEN_ROD") != 71m || Final(Context(), "TUNGSTEN_ROD", .5m) != 63m || Final(Context(), "TUNGSTEN_ROD", .1m) != 55m)
+            throw new InvalidOperationException("Survival relics must follow HP and risk.");
+        var economyBase = TakeSkipModel.ZeroLiftScore + 3.8m / TakeSkipModel.PointsPerScore;
+        if (Final(Context(act: 3, gold: 50), "MEMBERSHIP_CARD") != decimal.Round(economyBase - 8m, 4) && Math.Abs(Final(Context(act: 3, gold: 50), "MEMBERSHIP_CARD") - (economyBase - 8m)) > .01m ||
+            Math.Abs(Final(Context(gold: 50), "MEMBERSHIP_CARD") - (economyBase + 10m)) > .01m || Final(Context(), "UNKNOWN_RELIC") != 50m)
+            throw new InvalidOperationException("Economy relics must lose value in Act 3; unknown relics stay at 50.");
+        var ranked = RelicAdvisor.Rank(Context(1.8m), ["TUNGSTEN_ROD", "SOZU"], metrics);
+        var text = RelicAdvisor.Format(Context(1.8m), ranked);
+        if (ranked[0].Id != "SOZU" || !text.StartsWith("Act 1") || !text.Contains("★ Sozu") || !text.Contains("Совет: Sozu") || !text.Contains("Потребности колоды: +24"))
+            throw new InvalidOperationException("Relic ranking must follow deck needs: " + text);
+        if (RelicAdvisor.Rank(Context(1m), ["TUNGSTEN_ROD", "SOZU"], metrics)[0].Id != "TUNGSTEN_ROD")
+            throw new InvalidOperationException("Without an energy need the higher community relic wins.");
+        var choice = new EventChoice("Take", "ANCIENT", "TAKE", "SOZU", false);
+        var withRun = EventAdvisor.Rate([choice], new Dictionary<string, EventOptionMetric>(), metrics, null, _ => "", Context(1.8m))[0];
+        var without = EventAdvisor.Rate([choice], new Dictionary<string, EventOptionMetric>(), metrics, null, _ => "")[0];
+        if (without.Lift != 4.4m || withRun.Lift <= without.Lift || !withRun.Line.Contains("решает дефицит энергии"))
+            throw new InvalidOperationException("Ancient relic options must use the deck-aware relic score.");
+        var raw = string.Join("\n", text, RelicAdvisor.Format(Context(), RelicAdvisor.Rank(Context(hp: 20, act: 3, gold: 50), ["TUNGSTEN_ROD", "MEMBERSHIP_CARD", "X"], metrics, null, .5m)),
+            RelicAdvisor.Format(Context(), RelicAdvisor.Rank(Context(gold: 50), ["SOZU", "MEMBERSHIP_CARD"], metrics, null, .5m)),
+            RelicAdvisor.Format(Context(), []), RelicAdvisor.Format(Context(), RelicAdvisor.Rank(Context(), ["X", "Y"], metrics)), withRun.Line,
+            "Статистика сообщества недоступна — оценка по ролям реликвий и колоде.", "Sozu: у похожих победных билдов 40%", "BUILD ADVISOR · реликвии\n\nЗагрузка общей статистики…");
+        var english = ModLocalization.Translate(raw, AdvisorLanguage.English);
+        if (HasCyrillic(english)) throw new InvalidOperationException("Relic text is not translated: " + english);
+    }
+
+    // 6.21.0 (M7): the review counts agreement, ranks divergences by the win-rate value given up,
+    // treats a skip as 0 and compares agreement in wins and losses only with enough runs.
+    private static void RunReviewComparesChoicesWithAdvice()
+    {
+        var skip = PersonalRunDiary.SkipMarker;
+        PersonalDecision D(string seed, int floor, string chosen, string advised, params (string Id, decimal Delta)[] deltas) =>
+            new(DateTimeOffset.UnixEpoch, "ironclad", 1, floor, deltas.Select(x => x.Id).ToArray(), chosen, null, seed, advised,
+                deltas.ToDictionary(x => x.Id, x => x.Delta, StringComparer.OrdinalIgnoreCase));
+        var diary = new List<PersonalDecision>
+        {
+            D("RUN", 3, "A", "A", ("A", 3m), ("B", 1m)),
+            D("RUN", 6, "B", "A", ("A", 4m), ("B", 1.5m)),
+            D("RUN", 9, "C", skip, ("C", -1.2m)),
+            D("RUN", 12, skip, "D", ("D", 2m)),
+            D("RUN", 14, "E", "F", ("E", 2m), ("F", 1m)),
+            new(DateTimeOffset.UnixEpoch, "ironclad", 1, 2, ["OLD"], "OLD", null),
+        };
+        if (RunReview.Loss(diary[1]) != 2.5m || RunReview.Loss(diary[2]) != 1.2m || RunReview.Loss(diary[3]) != 2m || RunReview.Loss(diary[4]) != -1m || RunReview.Loss(diary[5]) is not null)
+            throw new InvalidOperationException("Review losses must compare advice and choice on the win-rate scale.");
+        var text = RunReview.Build("RUN", false, 15, diary, [], id => id == "B" ? "Bravo" : id);
+        if (!text.Contains("поражение · этаж 15") || !text.Contains("совпало с советом: 1/5 (20%)") ||
+            text.IndexOf("Bravo вместо A (−2.5", StringComparison.Ordinal) < 0 || text.IndexOf("этаж 6", StringComparison.Ordinal) > text.IndexOf("этаж 12", StringComparison.Ordinal) ||
+            !text.Contains("пропуск вместо D (−2.0") || text.Contains("E вместо F") || !text.Contains("Всего по оценке мода: −5.7"))
+            throw new InvalidOperationException("Run review is wrong: " + text);
+        if (!RunReview.Build("OTHER", true, 50, diary, []).Contains("не записано"))
+            throw new InvalidOperationException("A run without decisions must say so.");
+        var many = new List<PersonalDecision>(diary);
+        var outcomes = new List<RunOutcome>();
+        for (var i = 0; i < 6; i++)
+        {
+            var seed = "S" + i; var win = i < 3;
+            many.Add(D(seed, 5, win ? "A" : "B", "A", ("A", 2m), ("B", 1m)));
+            outcomes.Add(new RunOutcome(DateTimeOffset.UnixEpoch, "ironclad", seed, win, win ? 50 : 20, 0));
+        }
+        var across = RunReview.Build("S0", true, 50, many, outcomes);
+        if (!across.Contains("в победах 100% (3), в поражениях 0% (3)") || !across.Contains("Записано забегов: 6 · побед 3 (50%) · средний этаж 35") ||
+            !RunReview.Build("S0", true, 50, many, outcomes.Take(4).ToArray()).Contains("сейчас побед 3, поражений 1"))
+            throw new InvalidOperationException("Cross-run comparison is wrong: " + across);
+        var english = ModLocalization.Translate(string.Join("\n", text, across, RunReview.Build("OTHER", true, 50, diary, []), RunReview.Build("S0", true, 50, many, outcomes.Take(4).ToArray()),
+            RunReview.Build("S0", true, 50, [D("S0", 1, "A", "A", ("A", 1m))], []), "BUILD ADVISOR · итог"), AdvisorLanguage.English);
+        if (HasCyrillic(english)) throw new InvalidOperationException("Run review is not translated: " + english);
+    }
+
+    // 6.21.0: short dictionary keys used to replace fragments inside longer words
+    // ("достаточно" → "toстаточно", "потребности" → "потребнThorns").
+    private static void TranslationReplacesWholeWords()
+    {
+        if (ModLocalization.ReplaceWords("достаточно до 5", "до", "to") != "достаточно to 5" ||
+            ModLocalization.ReplaceWords("Тип: Атака; архетип", "Тип", "Type") != "Type: Атака; архетип" ||
+            ModLocalization.ReplaceWords("(до)", "до", "to") != "(to)" || ModLocalization.ReplaceWords("x · y", " · ", "/") != "x/y")
+            throw new InvalidOperationException("Dictionary keys must match whole words.");
+        var english = ModLocalization.Translate("Недостаточно похожих ранов · потребности колоды · Локальный совет по реликвиям:", AdvisorLanguage.English);
+        if (english.Contains("to", StringComparison.Ordinal) && english.Contains("toстат", StringComparison.Ordinal) || english.Contains("Thorns") || english.Contains("relicм"))
+            throw new InvalidOperationException("A short key corrupted a word: " + english);
+        if (ModLocalization.Translate("Недостаточно похожих ранов", AdvisorLanguage.English) != "Not enough similar runs")
+            throw new InvalidOperationException("Older texts must be translated.");
     }
 
     private static bool HasCyrillic(string text) => System.Text.RegularExpressions.Regex.IsMatch(text, "[А-Яа-яЁё]");

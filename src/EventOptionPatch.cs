@@ -49,7 +49,8 @@ public static class EventOptionPatch
             try { relics = await relicTask; } catch (Exception error) { GD.Print("Build Advisor relic metrics: " + error.Message); }
             var names = await namesTask;
             if (!GodotObject.IsInstanceValid(screen) || !GodotObject.IsInstanceValid(__instance)) return;
-            AdviceOverlay.Render(screen, header + "\n" + intro + "\n\n" + EventAdvisor.Format(EventAdvisor.Rate(choices, events, relics, names, Hint)));
+            AdviceOverlay.Render(screen, header + "\n" + intro + "\n\n" + EventAdvisor.Format(EventAdvisor.Rate(choices, events, relics, names, Hint, context,
+                context is not null && SegmentRiskModel.Assess(context) is { IsAvailable: true } risk ? risk.Probability : null)));
         }
         catch (Exception error) { GD.PrintErr("Build Advisor event: " + error.Message); }
         finally { PendingScreens.Remove(screenId); }
