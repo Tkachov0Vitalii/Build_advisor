@@ -41,13 +41,15 @@ public static class EventOptionPatch
             AdviceOverlay.Render(screen, header + "\n" + intro + "\n\n" + EventAdvisor.Format(EventAdvisor.Rate(choices, empty, noRelics, null, Hint)));
             var bracket = context?.Bracket ?? "all";
             var eventTask = Events.GetAsync(bracket);
-            var relicTask = choices.Any(x => x.RelicId is not null) ? Relics.GetMetricsAsync("relics", bracket, context?.Character) : Task.FromResult<IReadOnlyDictionary<string, Data.EntityMetric>>(noRelics);
-            var namesTask = choices.Any(x => x.RelicId is not null) ? RelicNames.GetAsync() : Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>());
+            // Relic data is loaded for every event: Ancient options do not always expose their relic.
+            var relicTask = Relics.GetMetricsAsync("relics", bracket, context?.Character);
+            var namesTask = RelicNames.GetAsync();
             IReadOnlyDictionary<string, EventOptionMetric> events = empty;
             IReadOnlyDictionary<string, Data.EntityMetric> relics = noRelics;
             try { events = await eventTask; } catch (Exception error) { GD.Print("Build Advisor event metrics: " + error.Message); }
             try { relics = await relicTask; } catch (Exception error) { GD.Print("Build Advisor relic metrics: " + error.Message); }
-            var names = await namesTask;
+            IReadOnlyDictionary<string, string> names = new Dictionary<string, string>();
+            try { names = await namesTask; } catch (Exception error) { GD.Print("Build Advisor relic names: " + error.Message); }
             if (!GodotObject.IsInstanceValid(screen) || !GodotObject.IsInstanceValid(__instance)) return;
             var rated = EventAdvisor.Rate(choices, events, relics, names, Hint, context,
                 context is not null && SegmentRiskModel.Assess(context) is { IsAvailable: true } risk ? risk.Probability : null);
@@ -67,7 +69,7 @@ public static class EventOptionPatch
         if (option is not NEventOptionButton button || button.Option is not { } model) return new EventChoice(text, null, null, null, false);
         var (eventId, optionId) = EventKeys.Parse(model.TextKey);
         string? relicId = null;
-        try { relicId = model.Relic is { } relic ? ReflectionIds.FindId(relic) : null; } catch { }
+        try { relicId = model.Relic is { } relic ? relic.Id?.Entry ?? ReflectionIds.FindId(relic) : null; } catch { }
         return new EventChoice(text, eventId, optionId, relicId, WillKill(option, player));
     }
 

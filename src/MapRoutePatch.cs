@@ -30,9 +30,23 @@ public static class MapRoutePatch
             if (nodes.Count == 0) return;
             var graph = Graph(nodes, RunContextReader.CurrentMapPoint() as MapPoint, ReflectionIds.Member(map, "_startingPointNode") as NMapPoint);
             if (graph.Starts.Count == 0) { AdviceOverlay.ClearMapBadges(map); return; }
+            // Draw at once from cached or average damage; refine when the statistics arrive.
+            var immediate = EncounterDamageClient.Immediate(context.Act, context.Character);
+            Draw(map, nodes, context, await Task.Run(() => RoutePlanner.Plan(context, graph, immediate)));
             var damage = await Damage.GetAsync(context.Act, context.Character);
+            if (damage == immediate || !GodotObject.IsInstanceValid(map) || version != generation) return;
             var plan = await Task.Run(() => RoutePlanner.Plan(context, graph, damage));
             if (!GodotObject.IsInstanceValid(map) || version != generation) return;
+            Draw(map, nodes, context, plan);
+        }
+        catch (Exception error) { GD.PrintErr("Build Advisor route: " + error.Message); }
+    }
+
+    private static void Draw(NMapScreen map, IReadOnlyDictionary<string, NMapPoint> nodes, RunContext context, RoutePlan plan)
+    {
+        if (!GodotObject.IsInstanceValid(map)) return;
+        try
+        {
             AdviceOverlay.RenderMapBadges(map, () => GodotObject.IsInstanceValid(map) && map.IsOpen && map.IsVisibleInTree(), plan.ByNode.Where(x => nodes.ContainsKey(x.Key)).Select(x =>
                 ((Control)nodes[x.Key], RoutePlanner.Label(x.Value), RoutePlanner.Severity(x.Value), x.Value.OnBest, Tooltip(x.Value))));
             AdviceOverlay.Render(map, "BUILD ADVISOR · маршрут\n" + RoutePlanner.Format(context, plan) +

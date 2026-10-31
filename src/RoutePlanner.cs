@@ -202,9 +202,13 @@ internal static class RoutePlanner
 
 internal sealed class EncounterDamageClient
 {
-    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(30) };
     private static readonly SemaphoreSlim Gate = new(1, 1);
     private static readonly Dictionary<string, RouteDamage> Cache = new(StringComparer.OrdinalIgnoreCase);
+
+    // What the route can use right now: this session's data, else the A10 averages.
+    public static RouteDamage Immediate(int act, string character) =>
+        Cache.TryGetValue($"{act}:{character}", out var cached) ? cached : RoutePlanner.DefaultDamage.GetValueOrDefault(Math.Clamp(act, 1, 3)) ?? RoutePlanner.DefaultDamage[1];
 
     // encounter-stats accepts only the A10 cohorts; "a10" is the closest to every ascension.
     public async Task<RouteDamage> GetAsync(int act, string character, CancellationToken token = default)
@@ -222,12 +226,22 @@ internal sealed class EncounterDamageClient
                 json = await File.ReadAllTextAsync(disk, token);
             if (json is null && !NetworkSettings.Offline)
             {
-                json = await Http.GetStringAsync($"https://spire-codex.com/api/runs/encounter-stats?act={act}&bracket=a10&limit=200", token);
-                var probe = await Task.Run(() => RoutePlanner.ParseDamage(json, character), token);
-                if (probe.Monster <= 0) throw new InvalidDataException("Spire Codex returned no encounter statistics.");
-                Directory.CreateDirectory(Path.GetDirectoryName(disk)!);
-                await File.WriteAllTextAsync(disk + ".tmp", json, token);
-                File.Move(disk + ".tmp", disk, true);
+                try
+                {
+                    var fresh = await Http.GetStringAsync($"https://spire-codex.com/api/runs/encounter-stats?act={act}&bracket=a10&limit=200", token);
+                    var probe = await Task.Run(() => RoutePlanner.ParseDamage(fresh, character), token);
+                    if (probe.Monster <= 0) throw new InvalidDataException("Spire Codex returned no encounter statistics.");
+                    Directory.CreateDirectory(Path.GetDirectoryName(disk)!);
+                    await File.WriteAllTextAsync(disk + ".tmp", fresh, token);
+                    File.Move(disk + ".tmp", disk, true);
+                    json = fresh;
+                }
+                catch (Exception error) when (error is not OperationCanceledException || !token.IsCancellationRequested)
+                {
+                    // A slow or failed request must not cost the route: an old copy or the averages do.
+                    Console.WriteLine("Build Advisor encounter stats: " + error.Message);
+                    if (File.Exists(disk)) json = await File.ReadAllTextAsync(disk, token);
+                }
             }
             if (json is null) return fallback;
             var parsed = await Task.Run(() => RoutePlanner.ParseDamage(json, character), token);

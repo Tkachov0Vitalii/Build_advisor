@@ -752,6 +752,20 @@ internal static class BuildAdvisorRegression
         var text = EventAdvisor.Format(rated);
         if (!text.Contains("★ GOOD") || text.Contains("★ DEADLY") || text.Contains("★ THIN"))
             throw new InvalidOperationException("The best mark must skip lethal and low-sample options: " + text);
+        // 6.22.5: Ancient options that do not expose their relic are matched by option ID or name.
+        var ancientRelics = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase)
+        {
+            [SpireCodexMetricsClient.NormalizeId("SEAL_OF_GOLD")] = new("SEAL_OF_GOLD", "Seal of Gold", null, 40m, 8000, Lift: 14.5m, LiftSamples: 8000),
+            [SpireCodexMetricsClient.NormalizeId("STORYBOOK")] = new("STORYBOOK", "Storybook", null, 40m, 9000, Lift: 17.1m, LiftSamples: 9000),
+        };
+        var ancientNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["STORYBOOK"] = "Сказка", ["SEAL_OF_GOLD"] = "Золотая печать" };
+        var byOption = new EventChoice("Золотая печать Даёт энергию", "TEZCATARA", "SEAL_OF_GOLD", null, false);
+        var byName = new EventChoice("Сказка Получить 1 «Ярчайшее пламя».", "TEZCATARA", "OPTION_2", null, false);
+        var unknown = new EventChoice("Сказочный суп", "TEZCATARA", "SOUP", null, false);
+        if (EventAdvisor.RelicOf(byOption, ancientRelics, null) != "SEAL_OF_GOLD" || EventAdvisor.RelicOf(byName, ancientRelics, ancientNames) != "STORYBOOK" ||
+            EventAdvisor.RelicOf(unknown, ancientRelics, ancientNames) is not null ||
+            EventAdvisor.Rate([byOption, byName, unknown], new Dictionary<string, EventOptionMetric>(), ancientRelics, ancientNames, _ => "local").Select(x => x.Source).SequenceEqual(["relic", "relic", "local"]) != true)
+            throw new InvalidOperationException("Ancient options must find their relic by option ID or name.");
         // 6.22.2: the same verdict on the option buttons.
         var best = EventAdvisor.Best(rated);
         var tags = rated.Select(x => EventAdvisor.Tag(x, best)).ToArray();

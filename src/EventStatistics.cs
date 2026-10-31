@@ -93,7 +93,7 @@ internal static class EventAdvisor
     {
         var rated = choices.Select(choice =>
         {
-            if (choice.RelicId is { } relicId && relics.TryGetValue(SpireCodexMetricsClient.NormalizeId(relicId), out var relic) && relic.Lift is { } relicLift)
+            if (RelicOf(choice, relics, relicNames) is { } relicId && relics.TryGetValue(SpireCodexMetricsClient.NormalizeId(relicId), out var relic) && relic.Lift is { } relicLift)
             {
                 var name = relicNames is not null && relicNames.TryGetValue(SpireCodexMetricsClient.NormalizeId(relicId), out var localized) ? localized : relic.Name;
                 // M9: with the run known, the relic is scored against the deck (energy, survival, economy).
@@ -114,6 +114,20 @@ internal static class EventAdvisor
             return new Rated(choice, null, 0, "local", localHint(choice.Text));
         }).ToArray();
         return rated;
+    }
+
+    // The relic an option grants: the game's EventOption.Relic, else the option ID (Ancient options
+    // are named after their relic: TEZCATARA…options.SEAL_OF_GOLD), else the relic whose localized
+    // name opens the option text. 6.22.4 found none for Tezcatara and showed only local hints.
+    internal static string? RelicOf(EventChoice choice, IReadOnlyDictionary<string, EntityMetric> relics, IReadOnlyDictionary<string, string>? names)
+    {
+        if (choice.RelicId is { Length: > 0 } direct) return direct;
+        if (choice.OptionId is { } option && relics.ContainsKey(SpireCodexMetricsClient.NormalizeId(option))) return option;
+        if (names is null) return null;
+        var text = choice.Text.TrimStart();
+        return names.Where(x => x.Value.Length >= 3 && relics.ContainsKey(SpireCodexMetricsClient.NormalizeId(x.Key)) &&
+                text.StartsWith(x.Value, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(x => x.Value.Length).Select(x => x.Key).FirstOrDefault();
     }
 
     // The best option is marked only among options with data and only if it is not lethal.
