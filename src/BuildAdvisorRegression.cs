@@ -68,6 +68,7 @@ internal static class BuildAdvisorRegression
             RelicAdviceFollowsDeckNeeds();
             RunReviewComparesChoicesWithAdvice();
             TranslationReplacesWholeWords();
+            RecycledGridBadgesFollowCards();
             LastError = "";
             return true;
         }
@@ -942,6 +943,20 @@ internal static class BuildAdvisorRegression
             throw new InvalidOperationException("A short key corrupted a word: " + english);
         if (ModLocalization.Translate("Недостаточно похожих ранов", AdvisorLanguage.English) != "Not enough similar runs")
             throw new InvalidOperationException("Older texts must be translated.");
+    }
+
+    // 6.21.1: the deck grid hands holders to other cards while scrolling; a badge must follow the
+    // card, new rows must get badges and holders that left the grid must lose them.
+    private static void RecycledGridBadgesFollowCards()
+    {
+        var shown = new Dictionary<int, string> { [1] = "BASH", [2] = "STRIKE", [3] = "ANGER" };
+        bool Scored(string id) => id != "CURSE";
+        var (create, remove) = BuildAdvisor.UI.BadgeTracking.Changes(shown, [(1, "BASH"), (2, "INFLAME"), (4, "CLOTHESLINE"), (5, "CURSE"), (2, "INFLAME")], Scored);
+        if (create.Count != 2 || !create.Contains((2, "INFLAME")) || !create.Contains((4, "CLOTHESLINE")) ||
+            remove.Count != 2 || !remove.Contains(2) || !remove.Contains(3))
+            throw new InvalidOperationException("Grid badges must follow the card each holder shows.");
+        var (none, kept) = BuildAdvisor.UI.BadgeTracking.Changes(shown, [(1, "bash"), (2, "STRIKE"), (3, "ANGER")], Scored);
+        if (none.Count != 0 || kept.Count != 0) throw new InvalidOperationException("Unchanged holders must keep their badges.");
     }
 
     private static bool HasCyrillic(string text) => System.Text.RegularExpressions.Regex.IsMatch(text, "[А-Яа-яЁё]");

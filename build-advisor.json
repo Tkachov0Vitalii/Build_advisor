@@ -3,7 +3,7 @@
   "name": "Build Advisor",
   "author": "Build Advisor contributors",
   "description": "Cross-platform RU/EN deck advisor: context-aware card, relic, shop and run analysis.",
-  "version": "6.21.0",
+  "version": "6.21.1",
   "has_pck": false,
   "has_dll": true,
   "affects_gameplay": false

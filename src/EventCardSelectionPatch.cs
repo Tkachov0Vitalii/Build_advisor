@@ -157,14 +157,15 @@ internal static class EventCardAdvisor
 
     private static void Draw(Node screen, BuildAssessment assessment, EventCardPurpose purpose, EventSelectionIntent intent)
     {
-        var byId = assessment.Offers.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
-        var anchors = CardHolders(screen).Select(holder =>
+        // The grid reassigns holders to other cards while scrolling: badges are matched to the card
+        // each holder shows at the moment, not to the holder captured once.
+        IEnumerable<(Control Anchor, string Id)> Holders() => CardHolders(screen).Select(holder =>
         {
             var id = ReflectionIds.FindId(ReflectionIds.Member(holder, "CardModel") ?? holder);
             var visual = ReflectionIds.Member(holder, "CardNode") as Control ?? holder;
-            return id is null ? default : (Anchor: visual, Score: byId.GetValueOrDefault(SpireCodexMetricsClient.NormalizeId(id)));
-        }).Where(x => x.Anchor is not null && x.Score is not null).Select(x => (x.Anchor!, x.Score!)).ToArray();
-        AdviceOverlay.RenderSelectionBadges(screen, anchors, ActionLabel(purpose));
+            return (Anchor: visual, Id: id);
+        }).Where(x => x.Id is not null).Select(x => (x.Anchor, x.Id!));
+        AdviceOverlay.RenderTrackedSelectionBadges(screen, Holders, assessment.Offers, ActionLabel(purpose));
         AdviceOverlay.Render(screen, Format(assessment.Offers, purpose, intent), null, RunContextReader.TryRead());
     }
 

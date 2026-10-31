@@ -224,35 +224,101 @@ public static class AdviceOverlay
         var entries = values.Where(x => GodotObject.IsInstanceValid(x.Anchor)).ToArray();
         var best = entries.Select(x => x.Score.Final).DefaultIfEmpty(0m).Max();
         for (var index = 0; index < entries.Length; index++)
+            AddSelectionBadge(host, screen, entries[index].Anchor, entries[index].Score, best, entries.Length > 1, actionLabel, SelectionTierPrefix + index);
+    }
+
+    // Card grids (deck upgrade/remove/transform, opened from the campfire or an event) keep holders
+    // only for the visible rows and hand them to other cards while scrolling. A badge therefore
+    // follows the card a holder shows now: the set of holders is re-read ten times a second, a
+    // badge is rebuilt when its holder shows another card, and new rows get their badges.
+    internal static void RenderTrackedSelectionBadges(Node screen, Func<IEnumerable<(Control Anchor, string Id)>> holders, IReadOnlyList<OfferScore> scores, string actionLabel = "")
+    {
+        ClearSelectionBadges(screen);
+        var host = GlobalHost(screen);
+        var byId = scores.GroupBy(x => Data.SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
+        var sync = new SelectionBadgeSync
         {
-            var (anchor, score) = entries[index];
-            var tier = Tier(score.Final);
-            var marker = score.Final == best && entries.Length > 1 ? "★" : "◆";
-            // S–D describes intrinsic card quality. For remove/transform/upgrade, the score is
-            // action priority and must not make a weak removal target look like an S-tier card.
-            var compactText = string.IsNullOrWhiteSpace(actionLabel)
-                ? $"{marker} {tier}  {score.Final:F0}"
-                : $"{marker} {actionLabel} {score.Final:F0}";
-            var badge = new SelectionBadgeFollower
-            {
-                Target = anchor,
-                SelectionScreen = screen,
-                Name = SelectionTierPrefix + index,
-                Text = compactText,
-                Size = new Vector2(140, 42), ZIndex = 260,
-                MouseFilter = Control.MouseFilterEnum.Stop,
-                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-                TooltipText = L(string.IsNullOrWhiteSpace(actionLabel) ? $"{score.Name}\n{ScoreExplanation.Breakdown(score)}\n{score.TagText}\n{score.Impact}" : $"{score.Name}: {score.Final:F0}/100\n{ScoreExplanation.Formula(score)}\n{score.TagText}\n{score.Impact}")
-            };
-            badge.AddThemeFontSizeOverride("font_size", 15);
-            badge.AddThemeColorOverride("font_color", TierColor(tier));
-            badge.AddThemeStyleboxOverride("normal", BadgeBox(TierColor(tier)));
-            host.AddChild(badge);
-            badge.RefreshPosition();
-            MakeBadgeExpandable(badge, compactText,
-                L($"{marker} {(string.IsNullOrWhiteSpace(actionLabel) ? tier : actionLabel)}  {score.Final:F0}\n{(string.IsNullOrWhiteSpace(actionLabel) ? ScoreExplanation.Breakdown(score) : ScoreExplanation.Formula(score))}\n{FullTags(score.TagText)}"),
-                badge.Position, badge.Size);
+            Name = SelectionTierPrefix + "Sync", Screen = screen, Host = host, Holders = holders, Scores = byId,
+            Best = scores.Select(x => x.Final).DefaultIfEmpty(0m).Max(), Multiple = scores.Count > 1, ActionLabel = actionLabel
+        };
+        host.AddChild(sync);
+        sync.Sync();
+    }
+
+    private sealed class SelectionBadgeSync : Node
+    {
+        public Node? Screen { get; init; }
+        public Node? Host { get; init; }
+        public Func<IEnumerable<(Control Anchor, string Id)>>? Holders { get; init; }
+        public IReadOnlyDictionary<string, OfferScore> Scores { get; init; } = new Dictionary<string, OfferScore>();
+        public decimal Best { get; init; }
+        public bool Multiple { get; init; }
+        public string ActionLabel { get; init; } = "";
+        private readonly Dictionary<Control, (Label Badge, string Id)> badges = new();
+        private double elapsed;
+        private int counter;
+
+        public override void _Process(double delta)
+        {
+            elapsed += delta;
+            if (elapsed < .1) return;
+            elapsed = 0;
+            Sync();
         }
+
+        public void Sync()
+        {
+            if (Screen is null || Host is null || Holders is null || !GodotObject.IsInstanceValid(Screen) || !Screen.IsInsideTree())
+            {
+                foreach (var entry in badges.Values) if (GodotObject.IsInstanceValid(entry.Badge)) entry.Badge.QueueFree();
+                badges.Clear();
+                QueueFree();
+                return;
+            }
+            var current = Holders().Where(x => GodotObject.IsInstanceValid(x.Anchor))
+                .Select(x => (x.Anchor, Id: Data.SpireCodexMetricsClient.NormalizeId(x.Id))).ToArray();
+            var shown = badges.Where(x => GodotObject.IsInstanceValid(x.Value.Badge)).ToDictionary(x => x.Key, x => x.Value.Id);
+            var (create, remove) = BadgeTracking.Changes(shown, current, Scores.ContainsKey);
+            foreach (var anchor in remove)
+            {
+                if (badges.TryGetValue(anchor, out var old) && GodotObject.IsInstanceValid(old.Badge)) old.Badge.QueueFree();
+                badges.Remove(anchor);
+            }
+            foreach (var (anchor, id) in create)
+                badges[anchor] = (AddSelectionBadge(Host, Screen, anchor, Scores[id], Best, Multiple, ActionLabel, SelectionTierPrefix + "Tracked" + counter++), id);
+        }
+    }
+
+    private static Label AddSelectionBadge(Node host, Node screen, Control anchor, OfferScore score, decimal best, bool multiple, string actionLabel, string name)
+    {
+        var tier = Tier(score.Final);
+        var marker = score.Final == best && multiple ? "★" : "◆";
+        // S–D describes intrinsic card quality. For remove/transform/upgrade, the score is
+        // action priority and must not make a weak removal target look like an S-tier card.
+        var compactText = string.IsNullOrWhiteSpace(actionLabel)
+            ? $"{marker} {tier}  {score.Final:F0}"
+            : $"{marker} {actionLabel} {score.Final:F0}";
+        var badge = new SelectionBadgeFollower
+        {
+            Target = anchor,
+            SelectionScreen = screen,
+            Name = name,
+            Text = compactText,
+            Size = new Vector2(140, 42), ZIndex = 260,
+            MouseFilter = Control.MouseFilterEnum.Stop,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+            TooltipText = L(string.IsNullOrWhiteSpace(actionLabel) ? $"{score.Name}\n{ScoreExplanation.Breakdown(score)}\n{score.TagText}\n{score.Impact}" : $"{score.Name}: {score.Final:F0}/100\n{ScoreExplanation.Formula(score)}\n{score.TagText}\n{score.Impact}")
+        };
+        badge.AddThemeFontSizeOverride("font_size", 15);
+        badge.AddThemeColorOverride("font_color", TierColor(tier));
+        badge.AddThemeStyleboxOverride("normal", BadgeBox(TierColor(tier)));
+        host.AddChild(badge);
+        badge.RefreshPosition();
+        MakeBadgeExpandable(badge, compactText,
+            L($"{marker} {(string.IsNullOrWhiteSpace(actionLabel) ? tier : actionLabel)}  {score.Final:F0}\n{(string.IsNullOrWhiteSpace(actionLabel) ? ScoreExplanation.Breakdown(score) : ScoreExplanation.Formula(score))}\n{FullTags(score.TagText)}"),
+            badge.Position, badge.Size);
+        return badge;
     }
 
     internal static void RenderBadges(Node screen, IEnumerable<OfferScore> scores, IEnumerable<string>? offeredIds = null)
@@ -397,6 +463,8 @@ public static class AdviceOverlay
             if (!Visible) return;
             var topCenter = Target.GetGlobalTransformWithCanvas() * new Vector2(Target.Size.X / 2f, 0f);
             var viewport = GetViewportRect().Size;
+            // A holder scrolled out of view must not leave its badge pinned to the screen edge.
+            if (topCenter.Y < 0f || topCenter.Y > viewport.Y - 24f) { Visible = false; return; }
             Position = new Vector2(
                 Math.Clamp(topCenter.X - Size.X / 2f, 8f, Math.Max(8f, viewport.X - Size.X - 8f)),
                 Math.Clamp(topCenter.Y - Size.Y - 10f, 8f, Math.Max(8f, viewport.Y - Size.Y - 8f)));
