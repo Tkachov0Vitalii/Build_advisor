@@ -4,7 +4,11 @@ using BuildAdvisor.Data;
 namespace BuildAdvisor.Integration;
 
 internal sealed record CoachOffer(string Id, string Name, decimal Score, decimal Support);
-internal sealed record CoachAdvice(string Archetype, decimal WinRate, IReadOnlyList<CoachOffer> Offers);
+internal sealed record CoachAdvice(string Archetype, decimal WinRate, IReadOnlyList<CoachOffer> Offers)
+{
+    // H2: the nearest community clusters with their similarity (build readiness).
+    public IReadOnlyList<ArchetypeCluster> Candidates { get; init; } = [];
+}
 
 internal sealed class PickCoachClient
 {
@@ -41,7 +45,8 @@ internal sealed class PickCoachClient
         var offers = root.TryGetProperty("offers", out var rows) && rows.ValueKind == JsonValueKind.Array
             ? rows.EnumerateArray().Select(row => new CoachOffer(Text(row, "id") ?? "?", Text(row, "name") ?? Text(row, "id") ?? "?", Number(row, "coach_score"), Number(row, "winner_support"))).OrderByDescending(x => x.Score).ToArray()
             : [];
-        var result = new CoachAdvice(archetype, winRate, offers);
+        var candidates = root.TryGetProperty("candidates", out var clusters) ? ArchetypeAdvisor.ParseClusters(clusters) : [];
+        var result = new CoachAdvice(archetype, winRate, offers) { Candidates = candidates };
         lock (Gate) Cache[key] = (DateTimeOffset.UtcNow.AddMinutes(10), result);
         return result;
     }

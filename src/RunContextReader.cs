@@ -104,6 +104,15 @@ internal static class RunContextReader
         };
     }
 
+    // H1: the map point the player stands on (null before the first move of an act).
+    public static object? CurrentMapPoint()
+    {
+        var state = RunManager.Instance is { } manager ? ReflectionIds.Member(manager, "State") : null;
+        return state is null ? null : ReflectionIds.Member(state, "CurrentMapPoint");
+    }
+
+    internal static string MapPointType(object? point) => MapNodeName(point is null ? null : ReflectionIds.Member(point, "PointType"));
+
     // The live Player model of this client (null outside a run).
     public static Player? LocalPlayerModel()
     {

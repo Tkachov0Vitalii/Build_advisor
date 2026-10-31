@@ -16,6 +16,7 @@ public static class CardRewardPatch
     private static readonly SpireCodexMetricsClient Metrics = new();
     private static readonly PickCoachClient Coach = new();
     private static readonly CardCatalogClient Catalog = new();
+    private static readonly ArchetypeCatalogClient Archetypes = new();
     private static CancellationTokenSource? activeRequest;
     private static readonly ConditionalWeakTable<NCardRewardSelectionScreen, object> AutoPicked = new();
     private static readonly object AutoPickedMarker = new();
@@ -36,6 +37,8 @@ public static class CardRewardPatch
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (ids.Count == 0) { AdviceOverlay.Render(screen, "BUILD ADVISOR · карты\nНе удалось прочитать ID предложенных карт. Локальный совет появится, когда игра отдаст модели карт."); return; }
         var context = RunContextReader.TryRead();
+        // H2: the cluster catalogue backs the archetype advice when Pick Coach is unavailable.
+        if (context is not null) _ = Archetypes.GetAsync(context.Character).ContinueWith(task => _ = task.Exception, TaskScheduler.Default);
         PersonalRunDiary.RecordOffer(context, ids);
         var local = LocalDeckAdvisor.ForCards(context, ids);
         AdviceOverlay.Render(screen, "BUILD ADVISOR · карты\nЗагрузка общей статистики карт…\nЕсли сеть недоступна, совет будет рассчитан по локальной модели.", PersonalRunDiary.RecordFeedback, context);
@@ -78,7 +81,7 @@ public static class CardRewardPatch
             var coach = coachTask.IsCompletedSuccessfully ? coachTask.Result : null;
             var coachPending = !coachTask.IsCompleted;
             var coachMap = coach?.Offers.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
-            var assessment = DeckBuildScoring.Evaluate(context, ids, catalog, metrics, coachMap, currentUpgraded);
+            var assessment = DeckBuildScoring.Evaluate(context, ids, catalog, metrics, coachMap, currentUpgraded, ArchetypeAdvisor.Current(context, coach).Direction);
             PersonalRunDiary.RecordAdvice(assessment);
             var text = FormatAdvice(context, assessment, metrics, coach, coachPending) + metricsNote;
             AdviceOverlay.RenderBadges(screen, assessment.Offers, ids);
@@ -93,7 +96,7 @@ public static class CardRewardPatch
                     var liveContext = RunContextReader.TryRead() ?? context;
                     var localizedCatalog = await Catalog.GetAsync();
                     if (!GodotObject.IsInstanceValid(screen)) return;
-                    var refreshed = DeckBuildScoring.Evaluate(liveContext, ids, localizedCatalog, metrics, coachMap, currentUpgraded);
+                    var refreshed = DeckBuildScoring.Evaluate(liveContext, ids, localizedCatalog, metrics, coachMap, currentUpgraded, ArchetypeAdvisor.Current(liveContext, coach).Direction);
                     AdviceOverlay.RenderBadges(screen, refreshed.Offers, ids);
                     AdviceOverlay.Render(screen, FormatAdvice(liveContext, refreshed, metrics, coach, false), null, liveContext);
                     AdviceOverlay.EnableCardSearch(screen, liveContext, () => BuildSearchEntries(RunContextReader.TryRead() ?? liveContext, localizedCatalog, metrics));
@@ -146,7 +149,7 @@ public static class CardRewardPatch
             // The player may have changed language while Pick Coach was in flight.
             catalog = await Catalog.GetAsync(token);
             var coachMap = coach?.Offers.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
-            var assessment = DeckBuildScoring.Evaluate(RunContextReader.TryRead() ?? context, ids, catalog, metrics, coachMap, currentUpgraded);
+            var assessment = DeckBuildScoring.Evaluate(RunContextReader.TryRead() ?? context, ids, catalog, metrics, coachMap, currentUpgraded, ArchetypeAdvisor.Current(RunContextReader.TryRead() ?? context, coach).Direction);
             PersonalRunDiary.RecordAdvice(assessment);
             AdviceOverlay.RenderBadges(screen, assessment.Offers, ids);
             AdviceOverlay.Render(screen, FormatAdvice(context, assessment, metrics, coach, false), null, context);
@@ -184,6 +187,7 @@ public static class CardRewardPatch
                $"\nИгроки в похожих ситуациях пропускали награду в {assessment.SkipScore}% случаев." +
                "\n\n" + DeckActionPlanner.Create(context, assessment, CardRewardPatch.Catalog.TryGetCached()) +
                (coachPending ? "\nПохожие победные колоды ещё проверяются…" : coach is null ? "\nПохожая победная колода не найдена — использована базовая модель." : $"\nНайдена похожая победная колода: {coach.Archetype}; сравнено вариантов: {coach.Offers.Count}.") +
+               "\n\n" + ArchetypeAdvisor.Format(ArchetypeAdvisor.Current(context, coach).Direction, ArchetypeAdvisor.Current(context, coach).Candidates) +
                "\nБаза — общая сила карты по статистике и нашей модели. Поправки в скобках показывают влияние именно на текущую колоду.";
     }
 

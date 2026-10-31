@@ -74,7 +74,7 @@ internal static class ScoreExplanation
     internal static readonly (string Group, string[] Labels)[] Groups =
     [
         ("Потребности колоды", ["нужна защита", "быстрый урон", "нужен добор", "даёт энергию", "дорогая при нехватке энергии", "сложность разыгрывания", "усиление к поздней игре", "выживаемость", "экономика"]),
-        ("Архетип и синергия", ["синергия архетипа", "не подходит выбранному архетипу", "ограничение другого архетипа", "похожие победные колоды"]),
+        ("Архетип и синергия", ["синергия архетипа", "не подходит выбранному архетипу", "ограничение другого архетипа", "похожие победные колоды", "ключевая карта архетипа"]),
         ("Копии и размер колоды", ["копия", "размер колоды", "несколько структурных минусов"]),
         ("Акт и босс", ["ценность в акте", "подготовка к боссу"]),
         ("Улучшение", ["улучшенная версия"]),
@@ -130,7 +130,7 @@ internal static class DeckBuildScoring
 {
     public static BuildAssessment Evaluate(RunContext context, IEnumerable<string> offerIds,
         IReadOnlyDictionary<string, CardDefinition> cards, IReadOnlyDictionary<string, EntityMetric> metrics,
-        IReadOnlyDictionary<string, CoachOffer>? coach = null, IReadOnlySet<string>? upgradedOffers = null)
+        IReadOnlyDictionary<string, CoachOffer>? coach = null, IReadOnlySet<string>? upgradedOffers = null, ArchetypeDirection? direction = null)
     {
         CardDefinition? Find(string id) => cards.TryGetValue(SpireCodexMetricsClient.NormalizeId(id), out var card) ? card : null;
         // M5: CardStates is read from the same deck objects as Cards and in the same order, so an
@@ -172,7 +172,7 @@ internal static class DeckBuildScoring
         }).ToArray();
         var choiceAdjustments = CenteredChoiceAdjustments(choiceSignals);
         var offers = offered.Select((id, index) => Score(id, Find(id), context, deck, metrics, coach, needs, archetypes, threat, averageCost, choiceAdjustments[index],
-            upgradedOffers?.Contains(SpireCodexMetricsClient.NormalizeId(id)) == true)).OrderByDescending(x => x.Final).ToArray();
+            upgradedOffers?.Contains(SpireCodexMetricsClient.NormalizeId(id)) == true, direction)).OrderByDescending(x => x.Final).ToArray();
         var best = offers.FirstOrDefault()?.Final ?? 0;
         var missesCurrentNeed = !needs.SequenceEqual(["синергия/качество"]) && offers.All(x => x.Context <= 0);
         var heuristicSkip = Math.Clamp(20
@@ -200,7 +200,7 @@ internal static class DeckBuildScoring
     private static OfferScore Score(string id, CardDefinition? card, RunContext context, IReadOnlyList<CardDefinition> deck,
         IReadOnlyDictionary<string, EntityMetric> metrics, IReadOnlyDictionary<string, CoachOffer>? coach,
         IReadOnlyList<string> needs, IReadOnlyList<string> archetypes, ThreatAssessment threat, double averageCost, decimal learnedChoiceAdjustment,
-        bool upgraded = false)
+        bool upgraded = false, ArchetypeDirection? direction = null)
     {
         var key = SpireCodexMetricsClient.NormalizeId(id);
         var name = (card?.Name ?? (metrics.TryGetValue(key, out var itemName) ? itemName.Name : id)) + (upgraded ? "+" : "");
@@ -260,6 +260,9 @@ internal static class DeckBuildScoring
             var coachBonus = competing.Length > 0 ? Math.Min(0m, suggested.Score) : Math.Clamp(suggested.Score, -12m, 12m);
             Adjust(coachBonus, "похожие победные колоды");
         }
+        // H2: a missing defining card of the community archetype the deck is building towards.
+        var keyCard = competing.Length > 0 ? 0m : ArchetypeAdvisor.Bonus(direction, id, context.Cards);
+        if (keyCard != 0) Adjust(keyCard, "ключевая карта архетипа", $"ключевая карта архетипа {direction!.Name}");
         var personal = PersonalRunDiary.PreferenceBonus(context.Character, id);
         if (personal != 0) Adjust(personal, "ваша история выборов");
         var copies = deck.Count(x => SpireCodexMetricsClient.NormalizeId(x.Id) == key);

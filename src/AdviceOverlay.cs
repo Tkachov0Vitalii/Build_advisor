@@ -415,6 +415,74 @@ public static class AdviceOverlay
             Math.Clamp(rowY, 8f, Math.Max(8f, viewportSize.Y - 50f)));
     }
 
+    private const string MapBadgePrefix = "BuildAdvisorMapBadge";
+
+    // H1: small labels under map points: expected damage and HP after the node along the best
+    // path through it; the recommended path gets a gold frame and a star.
+    internal static void RenderMapBadges(Node map, IEnumerable<(Control Point, string Text, string Severity, bool Best, string Tooltip)> values)
+    {
+        ClearMapBadges(map);
+        var host = GlobalHost(map);
+        var index = 0;
+        foreach (var (point, text, severity, best, tooltip) in values)
+        {
+            if (!GodotObject.IsInstanceValid(point) || (string.IsNullOrWhiteSpace(text) && !best)) continue;
+            var color = severity switch { "high" => new Color("e0484f"), "medium" => new Color("e4b13c"), "rest" => new Color("5fc27e"), _ => new Color("8fd0ff") };
+            var badge = new MapBadgeFollower
+            {
+                Target = point, Map = map, Name = MapBadgePrefix + index++,
+                Text = L((best ? "★ " : "") + (string.IsNullOrWhiteSpace(text) ? "путь" : text)),
+                Size = new Vector2(best ? 118 : 104, 26), ZIndex = 240,
+                MouseFilter = Control.MouseFilterEnum.Pass,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+                TooltipText = L(tooltip)
+            };
+            badge.AddThemeFontSizeOverride("font_size", 13);
+            badge.AddThemeColorOverride("font_color", color);
+            var box = BadgeBox(best ? new Color("f2c94c") : new Color(color, .7f));
+            box.BorderWidthLeft = box.BorderWidthRight = box.BorderWidthTop = box.BorderWidthBottom = best ? 3 : 1;
+            box.CornerRadiusTopLeft = box.CornerRadiusTopRight = box.CornerRadiusBottomLeft = box.CornerRadiusBottomRight = 8;
+            badge.AddThemeStyleboxOverride("normal", box);
+            host.AddChild(badge);
+            badge.RefreshPosition();
+        }
+    }
+
+    internal static void ClearMapBadges(Node map)
+    {
+        foreach (var child in GlobalHost(map).GetChildren().Where(x => x.Name.ToString().StartsWith(MapBadgePrefix, StringComparison.Ordinal)).ToArray())
+        {
+            child.GetParent()?.RemoveChild(child);
+            child.QueueFree();
+        }
+    }
+
+    private sealed class MapBadgeFollower : Label
+    {
+        public Control? Target { get; init; }
+        public Node? Map { get; init; }
+
+        public override void _Process(double delta)
+        {
+            _ = delta;
+            RefreshPosition();
+        }
+
+        public void RefreshPosition()
+        {
+            if (Target is null || !GodotObject.IsInstanceValid(Target) || !Target.IsInsideTree() || Map is null || !GodotObject.IsInstanceValid(Map))
+            {
+                QueueFree();
+                return;
+            }
+            var open = ReflectionIds.Member(Map, "IsOpen") is not bool isOpen || isOpen;
+            var bottom = Target.GetGlobalTransformWithCanvas() * new Vector2(Target.Size.X / 2f, Target.Size.Y);
+            var viewport = GetViewportRect().Size;
+            Visible = open && Target.IsVisibleInTree() && bottom.Y > 0f && bottom.Y < viewport.Y - Size.Y;
+            if (Visible) Position = new Vector2(bottom.X - Size.X / 2f, bottom.Y + 2f);
+        }
+    }
+
     private sealed class ShopBadgeFollower : Label
     {
         public Control? Slot { get; init; }
@@ -806,6 +874,7 @@ public static class AdviceOverlay
         label.Text = L($"АНАЛИЗ ЗАБЕГА · {overall:F0}/100\n\n" +
                      $"Выживаемость  {Meter(survival)} {survival:F0}\nТемп           {Meter(tempo)} {tempo:F0}\nМасштабирование {Meter(scaling)} {scaling:F0}\nСтабильность   {Meter(consistency)} {consistency:F0}\nЭкономика      {Meter(economy)} {economy:F0}\n\n" +
                      LocalDeckAdvisor.Snapshot(context) + "\n\n" + RunHistoryInsights.Summary(context.Character, context.Floor) + "\n" + PersonalRunDiary.Summary(context.Character) +
+                     "\n\n" + ArchetypeAdvisor.Format(ArchetypeAdvisor.Current(context, null).Direction, ArchetypeAdvisor.Current(context, null).Candidates) +
                      "\n\nПоследние изменения:\n" + history +
                      "\n\nОценки — диагностические ориентиры, а не гарантия исхода боя. Низкий показатель показывает, что именно стоит исправлять следующей наградой или покупкой.");
         label.CustomMinimumSize = new Vector2(1580, HeightFor(label.Text));

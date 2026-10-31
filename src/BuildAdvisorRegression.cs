@@ -69,6 +69,8 @@ internal static class BuildAdvisorRegression
             RunReviewComparesChoicesWithAdvice();
             TranslationReplacesWholeWords();
             RecycledGridBadgesFollowCards();
+            RoutePlannerWeighsRewardsAgainstHp();
+            ArchetypeDirectionUsesCommunityClusters();
             LastError = "";
             return true;
         }
@@ -957,6 +959,110 @@ internal static class BuildAdvisorRegression
             throw new InvalidOperationException("Grid badges must follow the card each holder shows.");
         var (none, kept) = BuildAdvisor.UI.BadgeTracking.Changes(shown, [(1, "bash"), (2, "STRIKE"), (3, "ANGER")], Scored);
         if (none.Count != 0 || kept.Count != 0) throw new InvalidOperationException("Unchanged holders must keep their badges.");
+    }
+
+    // 6.22.0 (H1): an elite is worth it at healthy HP and avoided when the expected damage would
+    // kill; a rest heals when HP is low; each node carries the forecast of its best path.
+    private static void RoutePlannerWeighsRewardsAgainstHp()
+    {
+        RouteNode N(string id, string type, params string[] children) => new(id, type, children);
+        var graph = new RouteGraph(["E", "M"], new Dictionary<string, RouteNode>
+        {
+            ["E"] = N("E", "elite", "R"), ["M"] = N("M", "monster", "R"),
+            ["R"] = N("R", "rest_site", "B"), ["B"] = N("B", "boss"),
+        });
+        var damage = new RouteDamage(10m, 28m, 46m);
+        RunContext At(int hp) => new("ironclad", [], [], 0, 1, 5, hp, 80, 100, null, 1m, 0, 0, 0, []);
+        var healthy = RoutePlanner.Plan(At(80), graph, damage);
+        if (healthy.PathCount != 2 || healthy.Best?.Nodes[0].Id != "E" || !healthy.ByNode["E"].OnBest || healthy.ByNode["M"].OnBest)
+            throw new InvalidOperationException("At full HP the elite path must win.");
+        var low = RoutePlanner.Plan(At(27), graph, damage with { Boss = 30m });
+        if (low.Best?.Nodes[0].Id != "M" || !low.Top.Any(x => x.Lethal && x.Nodes[0].Id == "E"))
+            throw new InvalidOperationException("An elite that kills on average damage must be avoided.");
+        var rest = low.Best!.Nodes.First(x => x.Type == "rest_site");
+        if (!rest.Rest || rest.Heal != 24m || rest.HpAfter != 41m || low.Best.HpAtBoss != 41m || low.Best.Lethal)
+            throw new InvalidOperationException("Low HP must rest before the boss: " + rest);
+        var nearFull = RoutePlanner.Plan(At(80), new RouteGraph(["M"], new Dictionary<string, RouteNode> { ["M"] = N("M", "monster", "R"), ["R"] = N("R", "rest_site", "B"), ["B"] = N("B", "boss") }), damage with { Monster = 4m });
+        if (nearFull.ByNode["R"].Rest || !healthy.ByNode["R"].Rest)
+            throw new InvalidOperationException("The campfire must upgrade near full HP and rest at 52/80 before the boss.");
+        // Penalty 30 × (share − 0.15)², doubled for the boss: elite 28/80 → 1.2; boss 46/76 → 12.4.
+        if (healthy.Best.Penalty != 13.6m || RoutePlanner.Severity(healthy.ByNode["B"]) != "high")
+            throw new InvalidOperationException("Danger penalty or severity is wrong: " + healthy.Best.Penalty);
+        var elite = healthy.ByNode["E"];
+        if (RoutePlanner.Label(elite) != "−28 → 52" || RoutePlanner.Severity(elite) != "medium" || RoutePlanner.Severity(low.ByNode["E"]) != "high" ||
+            RoutePlanner.Label(rest) != "+24 HP" || RoutePlanner.Label(nearFull.ByNode["R"]) != "улучш.")
+            throw new InvalidOperationException("Map labels are wrong.");
+        // Cycles and missing children must not hang or crash the walk.
+        var odd = new RouteGraph(["A"], new Dictionary<string, RouteNode> { ["A"] = N("A", "monster", "C", "X"), ["C"] = N("C", "unknown", "A") });
+        if (RoutePlanner.Plan(At(80), odd, damage).PathCount != 1)
+            throw new InvalidOperationException("Route walk must stop at cycles.");
+        var json = """{"encounters":[{"room_type":"monster","total":1000,"fatal":10,"avg_damage":10,"characters":[{"character":"IRONCLAD","total":600,"fatal":3,"avg_damage":12}]},{"room_type":"monster","total":1000,"fatal":10,"avg_damage":8,"characters":[{"character":"IRONCLAD","total":100,"avg_damage":50}]},{"room_type":"elite","total":500,"fatal":40,"avg_damage":30}]}""";
+        var parsed = RoutePlanner.ParseDamage(json, "CHARACTER.IRONCLAD");
+        if (parsed.Monster != decimal.Round((12m * 600 + 8m * 1000) / 1600m, 1) || parsed.Elite != 30m || parsed.Boss != 0m)
+            throw new InvalidOperationException("Encounter damage must weight fights and use large character rows only: " + parsed);
+        var english = ModLocalization.Translate(string.Join("\n", RoutePlanner.Format(At(80), healthy), RoutePlanner.Format(At(27), low),
+            RoutePlanner.Format(At(26), RoutePlanner.Plan(At(26), new RouteGraph([], new Dictionary<string, RouteNode>()), damage)),
+            RoutePlanner.Label(nearFull.ByNode["R"]), "BUILD ADVISOR · маршрут", "★ путь",
+            "Костёр: отдых +24 HP (HP 26 → 50).", "Костёр: HP 70 хватает — улучшение карты.",
+            "Ожидаемый урон 28 (среднее Spire Codex для этого акта) · HP 80 → 52 · 35% текущего HP.", "Без боя."), AdvisorLanguage.English);
+        if (HasCyrillic(english)) throw new InvalidOperationException("Route text is not translated: " + english);
+    }
+
+    // 6.22.0 (H2): the target is the closest developed community cluster, two close developed
+    // clusters form a hybrid, readiness is the similarity, missing defining cards get a bonus.
+    private static void ArchetypeDirectionUsesCommunityClusters()
+    {
+        ArchetypeEntity E(string id) => new(id, id.ToLowerInvariant());
+        ArchetypeCluster C(string key, decimal similarity, decimal winRate, params string[] cards) =>
+            new(key, key, similarity, 10m, winRate, cards.Select(E).ToArray(), [E("RELIC_" + key)]);
+        var context = new RunContext("ironclad", ["STRIKE_IRONCLAD", "SHRUG_IT_OFF", "BODY_SLAM"], ["RELIC_BLOCK"], 0, 1, 6, 70, 80, 99, null, 1m, 0, 0, 0, []);
+        var raw = C("RAW", 85m, .4m, "SHRUG_IT_OFF", "BODY_SLAM", "IRON_WAVE");
+        var block = C("BLOCK", 78m, 46m, "BODY_SLAM", "BARRICADE", "ENTRENCH");
+        var strength = C("STRENGTH", 74m, 50m, "INFLAME", "HEAVY_BLADE", "SPOT_WEAKNESS");
+        var far = C("FAR", 60m, 70m, "DEMON_FORM", "LIMIT_BREAK", "REAPER");
+        var direction = ArchetypeAdvisor.Choose(context, [raw, block, strength, far], true)!;
+        if (direction.Primary.Key != "BLOCK" || direction.Secondary?.Key != "STRENGTH" || !direction.Name.Contains("×"))
+            throw new InvalidOperationException("The closest developed cluster must win and a close developed one must form a hybrid.");
+        if (direction.Missing.Any(x => x.Id == "BODY_SLAM") || !direction.Missing.Any(x => x.Id == "BARRICADE") || !direction.KeyCards.Contains("INFLAME"))
+            throw new InvalidOperationException("Missing defining cards are wrong.");
+        if (ArchetypeAdvisor.Choose(context, [raw, block, strength with { Similarity = 70m }], true)!.Secondary is not null ||
+            ArchetypeAdvisor.Choose(context, [raw, far], true)!.Primary.Key != "RAW" || ArchetypeAdvisor.Choose(context, [raw, far], true)!.Target?.Key != "FAR" ||
+            ArchetypeAdvisor.Choose(context, [raw, far with { Similarity = 45m }], true)!.Target is not null || ArchetypeAdvisor.Choose(context, [], true) is not null)
+            throw new InvalidOperationException("Hybrids need a close partner; a far developed cluster must not replace the closest one.");
+        var aimed = ArchetypeAdvisor.Choose(context, [raw, far], true)!;
+        if (ArchetypeAdvisor.Bonus(aimed, "DEMON_FORM", context.Cards) != ArchetypeAdvisor.KeyCardBonus || aimed.KeyCards.Contains("IRON_WAVE") ||
+            !ArchetypeAdvisor.Format(aimed, [raw, far]).Contains("Цель — ближайшее развитое направление: FAR"))
+            throw new InvalidOperationException("An undeveloped closest cluster must aim at the closest developed one.");
+        if (ArchetypeAdvisor.Bonus(ArchetypeAdvisor.Choose(context, [far with { Similarity = 40m }], true), "DEMON_FORM", context.Cards) != 0m)
+            throw new InvalidOperationException("A distant target must not push its key cards.");
+        if (ArchetypeAdvisor.Choose(context, [block with { Similarity = 57m }, strength with { Similarity = 55m }], true)!.Secondary is not null)
+            throw new InvalidOperationException("A hybrid needs both clusters above the readiness minimum.");
+        if (ArchetypeAdvisor.Bonus(direction, "BARRICADE", context.Cards) != ArchetypeAdvisor.KeyCardBonus || ArchetypeAdvisor.Bonus(direction, "BODY_SLAM", context.Cards) != 0m ||
+            ArchetypeAdvisor.Bonus(direction, "ANGER", context.Cards) != 0m || ArchetypeAdvisor.Bonus(ArchetypeAdvisor.Choose(context, [raw], true), "IRON_WAVE", context.Cards) != 0m)
+            throw new InvalidOperationException("Key card bonus must go only to missing defining cards of a developed target.");
+        var local = ArchetypeAdvisor.LocalCandidates(context, [block, strength, C("BLOCK2", 0m, 30m, "SHRUG_IT_OFF", "BODY_SLAM", "X") with { Relics = [E("RELIC_BLOCK")] }]);
+        if (local.Count != 2 || local[0].Key != "BLOCK2" || local[0].Similarity != 73.3m || local[1].Similarity != 46.7m)
+            throw new InvalidOperationException("Local readiness must weigh defining cards 80% and relics 20%: " + string.Join(", ", local.Select(x => x.Key + " " + x.Similarity)));
+        var catalog = new Dictionary<string, CardDefinition>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["BARRICADE"] = Card("BARRICADE", "Power", cost: 3, block: 0, rarity: "rare"),
+            ["ANGER"] = Card("ANGER", "Attack", cost: 0, damage: 6, rarity: "common"),
+        };
+        var scored = DeckBuildScoring.Evaluate(context, ["BARRICADE", "ANGER"], catalog, new Dictionary<string, EntityMetric>(), null, null, direction).Offers;
+        if (scored.First(x => x.Id == "BARRICADE").Adjustments?.Any(x => x.Label == "ключевая карта архетипа") != true ||
+            scored.First(x => x.Id == "ANGER").Adjustments?.Any(x => x.Label == "ключевая карта архетипа") == true)
+            throw new InvalidOperationException("Scoring must apply the key card bonus.");
+        using (var doc = System.Text.Json.JsonDocument.Parse("""[{"key":"A+B","name":"A + B","similarity":83.0,"share":11.8,"win_rate":0.4,"defining_cards":[{"id":"A","name":"a"},{"id":"B","name":"b"}],"defining_relics":[{"id":"R","name":"r"}]},{"name":"empty","defining_cards":[]}]"""))
+        {
+            var parsed = ArchetypeAdvisor.ParseClusters(doc.RootElement);
+            if (parsed.Count != 1 || parsed[0].Similarity != 83m || parsed[0].WinRate != .4m || parsed[0].Cards.Count != 2 || parsed[0].Relics[0].Id != "R")
+                throw new InvalidOperationException("Cluster JSON was not parsed.");
+        }
+        if (ArchetypeAdvisor.ParseCatalog("""{"characters":{"IRONCLAD":[{"name":"X","defining_cards":[{"id":"A"}]}]}}""", "CHARACTER.IRONCLAD").Count != 1)
+            throw new InvalidOperationException("Archetype catalogue was not parsed.");
+        var english = ModLocalization.Translate(string.Join("\n", ArchetypeAdvisor.Format(direction, [raw, block, strength, far]),
+            ArchetypeAdvisor.Format(ArchetypeAdvisor.Choose(context, [raw], false), [raw]), ArchetypeAdvisor.Format(aimed, [raw, far]), ArchetypeAdvisor.Format(null, [])), AdvisorLanguage.English);
+        if (HasCyrillic(english.Replace("shrug_it_off", "").Replace("body_slam", ""))) throw new InvalidOperationException("Archetype text is not translated: " + english);
     }
 
     private static bool HasCyrillic(string text) => System.Text.RegularExpressions.Regex.IsMatch(text, "[А-Яа-яЁё]");
