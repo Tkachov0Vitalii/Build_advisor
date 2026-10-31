@@ -55,6 +55,8 @@ Commit messages: imperative subject `X.Y.Z: summary`, body with what changed and
 
 ## Facts already verified (do not re-derive)
 
+- Spire Codex brackets: only `all`, `a10`, `wr30`, `wr50`, `wr75`; `a0`..`a9` return 400 `unknown bracket` (`RunContext.Bracket` maps A<10 to `all`). Relics also take `act=1..3`, cards `include_skip`. Ancient events are not in `events`.
+- Player HP is on `Player.Creature.CurrentHp/MaxHp`; potions in `Player.PotionSlots` (null = empty), `MaxPotionCount`.
 - Spire Codex: `/api/runs/metrics/{cards|relics|potions}?bracket=a10[&character=ironclad]` → `rows[]` with `score, tier, elo, win_rate, pick_rate, lift, lift_n, use_rate, pick_rate_by_act` (percent). `upgraded` rows exist only for `bracket=all` and have no lift. `/api/runs/metrics/events` → `{event, option, win_rate, lift, lift_n}` for 56 events. `/api/runs/metrics/campfires`, `/shops` exist. Catalogue `/api/cards?lang=eng` has `upgrade` (`cost` absolute, other keys are deltas like `"+2"`, scaling keys `strengthpower`, `dexterity`, `focuspower`).
 - lift ≈ 0.19 × (Codex Score − 27), residual SD 1.9 pp (491 cards, A10).
 - Character rows: own cards hold 88–100 % of global samples, colorless 14–41 %, other classes ≤ 6 % (survivor-biased). Merge rule: ≥ 200 samples and ≥ 10 % share.
@@ -63,4 +65,4 @@ Commit messages: imperative subject `X.Y.Z: summary`, body with what changed and
 
 ## Current state
 
-Latest release: see the top of `CHANGELOG.md` (6.19.0 at hand-off). Next planned work: `docs/ROADMAP.md`, release 6.20.0 — M2 (event options by real `events` metrics, matched by `EventOption.TextKey`), M3 (potions), M4 (score breakdown tooltip), M6 (campfire advice), M8 (card art from game resources), M9 (Ancient/boss relics). Nothing in 6.17–6.19 has been verified inside the running game yet: UI layout (offline toggle in the header, shop badges, "Card+"), F8 and the purchase refresh need an in-game check.
+Latest release: see the top of `CHANGELOG.md` (6.20.0: bracket/HP fixes, M2 events, M3 potions, M4 breakdown). Next planned work: `docs/ROADMAP.md`, release 6.21.0 — M6 (campfire advice), M8 (card art from game resources), M9 (Ancient/boss relics). Not yet verified in the running game: 6.17–6.20 UI (offline toggle, shop badges, "Card+", F8, purchase refresh, event ★ lines, rewards-screen potion panel `NRewardsScreen._Ready`, breakdown hover size).

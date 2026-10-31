@@ -8,7 +8,8 @@ internal static class ShopPlanBuilder
 {
     public static string Create(RunContext context, IReadOnlyList<ShopItem> cards, IReadOnlyList<ShopItem> relics,
         IReadOnlyDictionary<string, CardDefinition> catalog, IReadOnlyDictionary<string, EntityMetric> cardMetrics,
-        IReadOnlyDictionary<string, EntityMetric> relicMetrics, IReadOnlyDictionary<string, string>? relicNames = null)
+        IReadOnlyDictionary<string, EntityMetric> relicMetrics, IReadOnlyDictionary<string, string>? relicNames = null,
+        IReadOnlyList<ShopItem>? potions = null, IReadOnlyDictionary<string, EntityMetric>? potionMetrics = null, IReadOnlyDictionary<string, string>? potionNames = null)
     {
         var cardAssessment = DeckBuildScoring.Evaluate(context, cards.Select(x => x.Id), catalog, cardMetrics);
         var alternatives = DeckActionPlanner.Evaluate(context, cardAssessment, catalog);
@@ -33,7 +34,10 @@ internal static class ShopPlanBuilder
         return "План магазина\n" + budget + "\n" + removal + "\n" + basket + "\nСравнение действий: " + actionComparison +
                "\n\nКарты (лучшее соотношение пользы и цены):\n" + string.Join("\n", cardLines) +
                "\n\nРеликвии:\n" + string.Join("\n", relicLines) +
-               "\n\nЗелья: берите перед элитой/боссом, если они закрывают текущий риск; иначе сохраните золото на ключевую покупку.";
+               "\n\n" + (potions is { Count: > 0 }
+                   ? PotionAdvisor.Format(context, PotionAdvisor.Rate(context, potions.Select(x => (x.Id, x.Price)).ToArray(),
+                       potionMetrics ?? new Dictionary<string, EntityMetric>(), potionNames, SegmentRiskModel.Assess(context) is { IsAvailable: true } risk ? risk.Probability : null))
+                   : "Зелья: берите перед элитой/боссом, если они закрывают текущий риск; иначе сохраните золото на ключевую покупку.");
     }
 
     private static string ActionLabel(PlannedAction action) => action.Kind switch

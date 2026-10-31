@@ -44,7 +44,7 @@ public sealed class SpireCodexMetricsClient
         var global = await GetMetricsAsync(entityType, bracket, cancellationToken);
         if (string.IsNullOrWhiteSpace(character) || character is "test" or "regression") return global;
         IReadOnlyDictionary<string, EntityMetric> specific;
-        try { specific = await FetchAsync(entityType, bracket, character.Trim().ToLowerInvariant(), cancellationToken); }
+        try { specific = await FetchAsync(entityType, global.Count > 0 && bracket != "all" ? bracket : "all", character.Trim().ToLowerInvariant(), cancellationToken); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception error)
         {
@@ -68,8 +68,16 @@ public sealed class SpireCodexMetricsClient
         return merged;
     }
 
-    public Task<IReadOnlyDictionary<string, EntityMetric>> GetMetricsAsync(string entityType, string bracket = "a10", CancellationToken cancellationToken = default) =>
-        FetchAsync(entityType, bracket, null, cancellationToken);
+    public async Task<IReadOnlyDictionary<string, EntityMetric>> GetMetricsAsync(string entityType, string bracket = "a10", CancellationToken cancellationToken = default)
+    {
+        try { return await FetchAsync(entityType, bracket, null, cancellationToken); }
+        catch (HttpRequestException error) when (bracket != "all" && error.StatusCode == System.Net.HttpStatusCode.BadRequest)
+        {
+            // An unknown bracket must degrade to all runs, never to "no statistics".
+            GD.Print($"Build Advisor metrics: bracket {bracket} rejected by Spire Codex; using all runs.");
+            return await FetchAsync(entityType, "all", null, cancellationToken);
+        }
+    }
 
     private async Task<IReadOnlyDictionary<string, EntityMetric>> FetchAsync(string entityType, string bracket, string? character, CancellationToken cancellationToken)
     {

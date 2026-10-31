@@ -1,4 +1,4 @@
-# Установка Build Advisor 6.19.0
+# Установка Build Advisor 6.20.0
 
 Build Advisor использует один пакет на Windows, Linux и macOS. Архив не содержит файлов игры.
 

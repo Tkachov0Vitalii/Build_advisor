@@ -161,7 +161,7 @@ internal static class LocalDeckAdvisor
         if (Has(x, "DRAW", "BAG", "LANTERN", "TOY", "BELL", "CONSIST")) return "consistency";
         return "other";
     }
-    private static string EventHint(string text, RunContext? c)
+    internal static string EventHint(string text, RunContext? c)
     {
         var x = text.ToUpperInvariant();
         // The three Ancient artefacts are an explicit strategic choice, not a generic event.

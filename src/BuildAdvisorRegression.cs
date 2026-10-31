@@ -58,6 +58,12 @@ internal static class BuildAdvisorRegression
             UpgradedOfferScoresHigher();
             UpgradedDeckAndPlannerUseUpgradeValue();
             TierOverridesApply();
+            BracketMapsToSupportedValues();
+            EventKeysAndMetricsParse();
+            EventAdviceUsesCommunityLift();
+            PotionAdviceRespectsSlots();
+            ScoreBreakdownGroupsAdjustments();
+            Release620TextIsTranslated();
             LastError = "";
             return true;
         }
@@ -697,6 +703,115 @@ internal static class BuildAdvisorRegression
                 throw new InvalidOperationException("6.19 text is not fully translated.");
         }
         finally { TierOverrides.TestOverrides = null; }
+    }
+
+    // 6.20.0: Spire Codex rejects a0..a9 (400 "unknown bracket"), which hid all advice below A10.
+    private static void BracketMapsToSupportedValues()
+    {
+        RunContext At(int ascension) => new("ironclad", [], [], ascension, 1, 2, 80, 80, 99, null, 1m, 0, 0, 0, []);
+        if (At(0).Bracket != "all" || At(2).Bracket != "all" || At(9).Bracket != "all" || At(10).Bracket != "a10" || At(20).Bracket != "a10")
+            throw new InvalidOperationException("Run brackets must map to all/a10.");
+    }
+
+    private static void EventKeysAndMetricsParse()
+    {
+        var (eventId, optionId) = EventKeys.Parse("SELF_HELP_BOOK.pages.INITIAL.options.READ_ENTIRE_BOOK");
+        if (eventId != SpireCodexMetricsClient.NormalizeId("SELF_HELP_BOOK") || optionId != SpireCodexMetricsClient.NormalizeId("READ_ENTIRE_BOOK"))
+            throw new InvalidOperationException("Event text key was not split: " + eventId + "/" + optionId);
+        if (EventKeys.Parse("NO_OPTIONS_HERE").Option is not null || EventKeys.Parse(null).Event is not null)
+            throw new InvalidOperationException("Keys without options must not produce an option id.");
+        var parsed = EventMetricsClient.Parse("""{"rows":[{"event":"SELF_HELP_BOOK","option":"READ_ENTIRE_BOOK","share":40.5,"win_rate":12.3,"lift":2.4,"lift_n":900},{"event":"X","share":1}]}""");
+        if (parsed.Count != 1 || !parsed.TryGetValue(EventMetricsClient.Key("SELF_HELP_BOOK", "READ_ENTIRE_BOOK"), out var row) || row.Lift != 2.4m || row.LiftSamples != 900 || row.Share != 40.5m)
+            throw new InvalidOperationException("Event metrics were not parsed.");
+    }
+
+    private static void EventAdviceUsesCommunityLift()
+    {
+        var events = new Dictionary<string, EventOptionMetric>(StringComparer.OrdinalIgnoreCase)
+        {
+            [EventMetricsClient.Key("EV", "GOOD")] = new("EV", "GOOD", 30m, 15m, 3.5m, 4000),
+            [EventMetricsClient.Key("EV", "DEADLY")] = new("EV", "DEADLY", 10m, 20m, 9m, 4000),
+            [EventMetricsClient.Key("EV", "THIN")] = new("EV", "THIN", 5m, 10m, 6m, EventAdvisor.MinimumSamples - 1),
+        };
+        var relics = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase)
+        {
+            [SpireCodexMetricsClient.NormalizeId("ANCIENT_RELIC")] = new("ANCIENT_RELIC", "Ancient Relic", null, 40m, 2000, Lift: 1.2m, LiftSamples: 2000)
+        };
+        EventChoice Choice(string option, bool lethal = false, string? relic = null) => new(option, "EV", option, relic, lethal);
+        var rated = EventAdvisor.Rate([Choice("GOOD"), Choice("DEADLY", lethal: true), Choice("THIN"), Choice("RELIC", relic: "ANCIENT_RELIC"), Choice("NONE")],
+            events, relics, null, _ => "local");
+        if (rated[0].Source != "event" || rated[0].Lift != 3.5m || rated[2].Source != "local" || rated[3].Source != "relic" || rated[3].Lift != 1.2m || rated[4].Line != "local")
+            throw new InvalidOperationException("Event options must use event lift, relic lift, or the local hint.");
+        var text = EventAdvisor.Format(rated);
+        if (!text.Contains("★ GOOD") || text.Contains("★ DEADLY") || text.Contains("★ THIN"))
+            throw new InvalidOperationException("The best mark must skip lethal and low-sample options: " + text);
+        if (!EventAdvisor.Format(EventAdvisor.Rate([Choice("NONE")], events, relics, null, _ => "local")).Contains("Статистики по этому событию нет"))
+            throw new InvalidOperationException("An event without data must say so.");
+    }
+
+    private static void PotionAdviceRespectsSlots()
+    {
+        var metrics = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase)
+        {
+            [SpireCodexMetricsClient.NormalizeId("STRONG")] = new("STRONG", "Strong", null, 40m, 3000, Lift: 3m, LiftSamples: 3000, UseRate: .8m),
+            [SpireCodexMetricsClient.NormalizeId("WEAK")] = new("WEAK", "Weak", null, 40m, 3000, Lift: -1m, LiftSamples: 3000),
+            [SpireCodexMetricsClient.NormalizeId("HELD")] = new("HELD", "Held", null, 40m, 3000, Lift: .5m, LiftSamples: 3000),
+        };
+        RunContext Context(params string[] held) => new("ironclad", [], [], 0, 1, 5, 80, 80, 99, null, 1m, 0, 0, 0, []) { Potions = held, PotionSlots = 2 };
+        string Verdict(RunContext context, string id, decimal? risk = null) => PotionAdvisor.Rate(context, [(id, 0)], metrics, null, risk)[0].Verdict;
+        if (!Verdict(Context("HELD"), "STRONG").StartsWith("брать: есть свободный слот") ||
+            !Verdict(Context("HELD"), "WEAK").StartsWith("можно пропустить") ||
+            !Verdict(Context("HELD"), "WEAK", .5m).StartsWith("брать: впереди опасный участок") ||
+            !Verdict(Context("HELD", "HELD"), "STRONG").StartsWith("заменить Held") ||
+            !Verdict(Context("HELD", "HELD"), "WEAK").StartsWith("слоты заняты"))
+            throw new InvalidOperationException("Potion verdicts do not follow slots, lift and risk.");
+        if (!PotionAdvisor.Format(Context("HELD"), []).Contains("Слоты зелий: 1/2"))
+            throw new InvalidOperationException("Potion slots must be shown.");
+    }
+
+    private static void ScoreBreakdownGroupsAdjustments()
+    {
+        var score = new OfferScore("X", "X", 71m, 50m, 0m, "", "", .9m,
+            Adjustments: [new(15m, "нужна защита"), new(4m, "нужен добор"), new(-6m, "копия 3"), new(8m, "синергия архетипа"), new(.2m, "граница шкалы")],
+            CommunityLift: 2m, LiftSamples: 800);
+        var text = ScoreExplanation.Breakdown(score);
+        if (!text.Contains("База (статистика сообщества): 50") || !text.Contains("Потребности колоды: +19 (нужна защита, нужен добор)") ||
+            !text.Contains("Копии и размер колоды: -6") || !text.Contains("Архетип и синергия: +8") || !text.Contains("Итог: 71/100") ||
+            text.Contains("Граница шкалы") || !text.Contains("Лифт сообщества: +2.0 п.п. по 800 выборам"))
+            throw new InvalidOperationException("Score breakdown is wrong: " + text);
+        if (text.IndexOf("Потребности колоды", StringComparison.Ordinal) > text.IndexOf("Копии и размер колоды", StringComparison.Ordinal))
+            throw new InvalidOperationException("Breakdown groups must keep their order.");
+        var clamped = ScoreExplanation.Breakdown(score with { Final = 65m });
+        if (!clamped.Contains("Граница шкалы и округление: -6") || ScoreExplanation.GroupOf("что-то новое") != "Прочее")
+            throw new InvalidOperationException("Breakdown must show the clamp remainder: " + clamped);
+    }
+
+    private static void Release620TextIsTranslated()
+    {
+        var metrics = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase)
+        {
+            [SpireCodexMetricsClient.NormalizeId("HELD")] = new("HELD", "Held", null, 40m, 3000, Lift: .5m, LiftSamples: 3000, UseRate: .5m),
+            [SpireCodexMetricsClient.NormalizeId("WEAK")] = new("WEAK", "Weak", null, 40m, 3000, Lift: -1m, LiftSamples: 3000),
+        };
+        var open = new RunContext("ironclad", [], [], 0, 1, 5, 80, 80, 99, null, 1m, 0, 0, 0, []) { Potions = ["HELD"], PotionSlots = 2 };
+        var full = open with { Potions = ["WEAK", "WEAK"] };
+        var unread = open with { PotionSlots = 0 };
+        var events = new Dictionary<string, EventOptionMetric>(StringComparer.OrdinalIgnoreCase) { [EventMetricsClient.Key("EV", "A")] = new("EV", "A", 30m, 15m, 3.5m, 4000) };
+        var relics = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase) { ["R"] = new("R", "Relic", null, 40m, 900, Lift: 1m, LiftSamples: 900) };
+        var score = new OfferScore("X", "X", 66m, 50m, 0m, "", "", .9m, Adjustments: [new(15m, "нужна защита"), new(-6m, "копия 2"), new(4m, "синергия архетипа"),
+            new(2m, "ценность в акте 1"), new(3m, "улучшенная версия"), new(2m, "ваша история выборов"), new(1m, "X")], CommunityLift: 1m, LiftSamples: 400);
+        var raw = string.Join("\n",
+            "BUILD ADVISOR · награды",
+            PotionAdvisor.Format(open, PotionAdvisor.Rate(open, [("HELD", 50), ("WEAK", 0), ("NEW", 500)], metrics, null)),
+            PotionAdvisor.Format(open, PotionAdvisor.Rate(open, [("WEAK", 0)], metrics, null, .5m)),
+            PotionAdvisor.Format(full, PotionAdvisor.Rate(full, [("HELD", 0), ("WEAK", 0)], metrics, null)),
+            PotionAdvisor.Format(unread, []),
+            EventAdvisor.Format(EventAdvisor.Rate([new("A", "EV", "A", null, false), new("B", "EV", "B", "R", false), new("C", "EV", "C", null, true)], events, relics, null, _ => "")),
+            EventAdvisor.Format(EventAdvisor.Rate([new("C", "EV", "C", null, false)], events, relics, null, _ => "")),
+            ScoreExplanation.Breakdown(score), ScoreExplanation.Breakdown(score with { Final = 100m }),
+            "Статистика сообщества недоступна — оценка по каталогу карт и локальной модели.");
+        var english = ModLocalization.Translate(raw, AdvisorLanguage.English);
+        if (HasCyrillic(english)) throw new InvalidOperationException("6.20 text is not fully translated: " + english);
     }
 
     private static bool HasCyrillic(string text) => System.Text.RegularExpressions.Regex.IsMatch(text, "[А-Яа-яЁё]");

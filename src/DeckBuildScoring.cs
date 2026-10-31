@@ -69,6 +69,40 @@ internal static class RelicKnowledge
 
 internal static class ScoreExplanation
 {
+    // M4 (StsCompanion shows a five-factor breakdown on hover): adjustments grouped by meaning,
+    // each group summed, then the result on the 0-100 scale and on the win-rate scale.
+    internal static readonly (string Group, string[] Labels)[] Groups =
+    [
+        ("Потребности колоды", ["нужна защита", "быстрый урон", "нужен добор", "даёт энергию", "дорогая при нехватке энергии", "сложность разыгрывания", "усиление к поздней игре"]),
+        ("Архетип и синергия", ["синергия архетипа", "не подходит выбранному архетипу", "ограничение другого архетипа", "похожие победные колоды"]),
+        ("Копии и размер колоды", ["копия", "размер колоды", "несколько структурных минусов"]),
+        ("Акт и босс", ["ценность в акте", "подготовка к боссу"]),
+        ("Улучшение", ["улучшенная версия"]),
+        ("Личное и похожие ситуации", ["ваша поправка", "ваша история выборов", "похожие ситуации"]),
+    ];
+
+    internal static string GroupOf(string label) =>
+        Groups.FirstOrDefault(g => g.Labels.Any(prefix => label.StartsWith(prefix, StringComparison.Ordinal))).Group ?? "Прочее";
+
+    public static string Breakdown(OfferScore score)
+    {
+        var baseline = (int)Math.Round(score.Community, MidpointRounding.AwayFromZero);
+        var target = (int)Math.Round(score.Final, MidpointRounding.AwayFromZero);
+        var groups = (score.Adjustments ?? []).Where(x => x.Label != "граница шкалы")
+            .GroupBy(x => GroupOf(x.Label))
+            .Select(g => (Group: g.Key, Value: g.Sum(x => x.Value), Detail: string.Join(", ", g.Select(x => x.Label).Distinct())))
+            .Where(x => Math.Abs(x.Value) >= .5m)
+            .OrderBy(x => Array.FindIndex(Groups, g => g.Group == x.Group) is var index && index < 0 ? 99 : index)
+            .ToList();
+        var lines = new List<string> { $"База (статистика сообщества): {baseline}" };
+        lines.AddRange(groups.Select(x => $"{x.Group}: {(int)Math.Round(x.Value, MidpointRounding.AwayFromZero):+#;-#;0} ({x.Detail})"));
+        var shown = baseline + groups.Sum(x => (int)Math.Round(x.Value, MidpointRounding.AwayFromZero));
+        if (shown != target) lines.Add($"Граница шкалы и округление: {target - shown:+#;-#;0}");
+        lines.Add($"Итог: {target}/100 · {TakeSkipModel.Format(TakeSkipModel.WinDelta(score))} п.п. к победе против пропуска · уверенность {TakeSkipModel.Evidence(score)}");
+        if (score.CommunityLift is { } lift) lines.Add($"Лифт сообщества: {TakeSkipModel.Format(lift)} п.п. по {score.LiftSamples} выборам");
+        return string.Join("\n", lines);
+    }
+
     public static string Formula(OfferScore score)
     {
         var baseline = (int)Math.Round(score.Community, MidpointRounding.AwayFromZero);

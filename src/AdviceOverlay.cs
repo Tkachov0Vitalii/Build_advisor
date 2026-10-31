@@ -242,7 +242,7 @@ public static class AdviceOverlay
                 Size = new Vector2(140, 42), ZIndex = 260,
                 MouseFilter = Control.MouseFilterEnum.Stop,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-                TooltipText = L($"{score.Name}: {score.Final:F0}/100\n{(string.IsNullOrWhiteSpace(actionLabel) ? WinLine(score) + "\n" : "")}{ScoreExplanation.Formula(score)}\n{score.TagText}\n{score.Impact}")
+                TooltipText = L(string.IsNullOrWhiteSpace(actionLabel) ? $"{score.Name}\n{ScoreExplanation.Breakdown(score)}\n{score.TagText}\n{score.Impact}" : $"{score.Name}: {score.Final:F0}/100\n{ScoreExplanation.Formula(score)}\n{score.TagText}\n{score.Impact}")
             };
             badge.AddThemeFontSizeOverride("font_size", 15);
             badge.AddThemeColorOverride("font_color", TierColor(tier));
@@ -250,7 +250,7 @@ public static class AdviceOverlay
             host.AddChild(badge);
             badge.RefreshPosition();
             MakeBadgeExpandable(badge, compactText,
-                L($"{marker} {(string.IsNullOrWhiteSpace(actionLabel) ? tier : actionLabel)}  {score.Final:F0}\n{(string.IsNullOrWhiteSpace(actionLabel) ? WinLine(score) + "\n" : "")}{ScoreExplanation.Formula(score)}\n{FullTags(score.TagText)}"),
+                L($"{marker} {(string.IsNullOrWhiteSpace(actionLabel) ? tier : actionLabel)}  {score.Final:F0}\n{(string.IsNullOrWhiteSpace(actionLabel) ? ScoreExplanation.Breakdown(score) : ScoreExplanation.Formula(score))}\n{FullTags(score.TagText)}"),
                 badge.Position, badge.Size);
         }
     }
@@ -286,13 +286,13 @@ public static class AdviceOverlay
                 Position = position - new Vector2(18, 0), Size = new Vector2(148, 58), ZIndex = 200,
                 MouseFilter = Control.MouseFilterEnum.Stop,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-                TooltipText = L($"{score.Name}: {score.Final:F0}/100\n{WinLine(score)}\n{ScoreExplanation.Formula(score)}\n{score.TagText}\n{score.Impact}")
+                TooltipText = L($"{score.Name}\n{ScoreExplanation.Breakdown(score)}\n{score.TagText}\n{score.Impact}")
             };
             badge.AddThemeFontSizeOverride("font_size", 15);
             badge.AddThemeColorOverride("font_color", TierColor(tier));
             badge.AddThemeStyleboxOverride("normal", BadgeBox(TierColor(tier)));
             host.AddChild(badge);
-            MakeBadgeExpandable(badge, compactText, L($"{(isBest ? "★" : "◆")} {tier}  {score.Final:F0}\n{WinLine(score)}\n{ScoreExplanation.Formula(score)}\n{FullTags(score.TagText)}"), badge.Position, badge.Size);
+            MakeBadgeExpandable(badge, compactText, L($"{(isBest ? "★" : "◆")} {tier}  {score.Final:F0}\n{ScoreExplanation.Breakdown(score)}\n{FullTags(score.TagText)}"), badge.Position, badge.Size);
         }
     }
 
@@ -315,7 +315,6 @@ public static class AdviceOverlay
             var tier = Tier(score.Final);
             var compactText = $"{(score.Final == best && entries.Length > 1 ? "★" : "◆")} {tier}  {score.Final:F0}";
             // L3: price and the gold left after buying, next to the win-rate scale.
-            var details = WinLine(score) + (note?.Invoke(score) is { Length: > 0 } extra ? "\n" + extra : "");
             // The shop animates its slots after Open(). Keep following the slot on the global
             // unscaled layer instead of taking one early snapshot of an in-flight position.
             var badge = new ShopBadgeFollower
@@ -327,14 +326,14 @@ public static class AdviceOverlay
                 Size = new Vector2(140, 42), ZIndex = 250,
                 MouseFilter = Control.MouseFilterEnum.Stop,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-                TooltipText = L($"{score.Name}: {score.Final:F0}/100\n{details}\n{ScoreExplanation.Formula(score)}\n{score.TagText}\n{score.Impact}")
+                TooltipText = L($"{score.Name}\n{ScoreExplanation.Breakdown(score)}{(note?.Invoke(score) is { Length: > 0 } priceLine ? "\n" + priceLine : "")}\n{score.TagText}\n{score.Impact}")
             };
             badge.AddThemeFontSizeOverride("font_size", 15);
             badge.AddThemeColorOverride("font_color", TierColor(tier));
             badge.AddThemeStyleboxOverride("normal", BadgeBox(TierColor(tier)));
             host.AddChild(badge);
             badge.RefreshPosition();
-            MakeBadgeExpandable(badge, compactText, L($"{(score.Final == best && entries.Length > 1 ? "★" : "◆")} {tier}  {score.Final:F0}\n{details}\n{ScoreExplanation.Formula(score)}\n{FullTags(score.TagText)}"), badge.Position, badge.Size);
+            MakeBadgeExpandable(badge, compactText, L($"{(score.Final == best && entries.Length > 1 ? "★" : "◆")} {tier}  {score.Final:F0}\n{ScoreExplanation.Breakdown(score)}{(note?.Invoke(score) is { Length: > 0 } priceNote ? "\n" + priceNote : "")}\n{FullTags(score.TagText)}"), badge.Position, badge.Size);
         }
     }
 
@@ -414,7 +413,10 @@ public static class AdviceOverlay
 
     private static void MakeBadgeExpandable(Label badge, string compactText, string expandedText, Vector2 compactPosition, Vector2 compactSize)
     {
-        var expandedSize = new Vector2(620, 178);
+        // M4: the breakdown has one line per factor group; size the hover card to its text
+        // (about 22 px per wrapped line at font 15) instead of a fixed 178 px box.
+        var wrappedLines = expandedText.Split('\n').Sum(line => Math.Max(1, (int)Math.Ceiling(line.Length / 68d)));
+        var expandedSize = new Vector2(660, Math.Clamp(wrappedLines * 22 + 20, 178, 460));
         badge.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         badge.MouseEntered += () =>
         {

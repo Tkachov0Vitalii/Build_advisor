@@ -7,11 +7,17 @@ namespace BuildAdvisor.Integration;
 
 internal sealed record RunContext(string Character, IReadOnlyList<string> Cards, IReadOnlyList<string> Relics, int Ascension, int Act, int Floor, int Hp, int MaxHp, int Gold, string? Boss, decimal AverageCost, int AttackCards, int SkillCards, int PowerCards, IReadOnlyList<string> History)
 {
-    public string Bracket => "a" + Math.Clamp(Ascension, 0, 10);
+    // Spire Codex accepts only "all", "a10" and the A10 win-rate cohorts; "a0".."a9" return
+    // 400 "unknown bracket", which made every lower-ascension run fall back to local advice.
+    public string Bracket => Ascension >= 10 ? "a10" : "all";
     public IReadOnlyList<DeckCardState> CardStates { get; init; } = [];
     public RouteSnapshot Route { get; init; } = RouteSnapshot.Empty;
     public int PlayerCount { get; init; } = 1;
     public string? RunSeed { get; init; }
+    // M3: held potions (IDs) and the number of potion slots.
+    public IReadOnlyList<string> Potions { get; init; } = [];
+    public int PotionSlots { get; init; }
+    public bool HasOpenPotionSlot => PotionSlots <= 0 || Potions.Count < PotionSlots;
     public bool IsMultiplayer => PlayerCount > 1;
 }
 
@@ -63,8 +69,11 @@ internal static class RunContextReader
         var ascension = Number(ReflectionIds.Member(state, "AscensionLevel"));
         var act = Number(ReflectionIds.Member(state, "CurrentActIndex")) + 1;
         var floor = Number(ReflectionIds.Member(state, "TotalFloor"));
-        var hp = Number(First(player, "CurrentHp", "Hp", "Health", "CurrentHealth"));
-        var maxHp = Number(First(player, "MaxHp", "MaxHealth", "MaximumHp"));
+        // HP lives on Player.Creature (CurrentHp/MaxHp); the player object itself has none, which
+        // made every run read as HP 0/1 and inflated the segment-risk model.
+        var creature = ReflectionIds.Member(player, "Creature");
+        var hp = Number(First(player, "CurrentHp", "Hp", "Health", "CurrentHealth") ?? (creature is null ? null : First(creature, "CurrentHp", "Hp")));
+        var maxHp = Number(First(player, "MaxHp", "MaxHealth", "MaximumHp") ?? (creature is null ? null : First(creature, "MaxHp", "MaxHealth")));
         var gold = Number(First(player, "Gold", "GoldAmount", "Money"));
         var actModel = ReflectionIds.Member(state, "Act");
         var bossValue = First(state, "ActBoss", "Boss", "BossId", "UpcomingBoss") ??
@@ -88,7 +97,10 @@ internal static class RunContextReader
             CardStates = cardStates,
             Route = route,
             PlayerCount = Math.Max(1, players.Length),
-            RunSeed = ReflectionIds.Member(ReflectionIds.Member(state, "Rng") ?? new object(), "StringSeed")?.ToString()
+            RunSeed = ReflectionIds.Member(ReflectionIds.Member(state, "Rng") ?? new object(), "StringSeed")?.ToString(),
+            // PotionSlots holds one entry per slot, null for an empty slot.
+            Potions = ReflectionIds.FindIds(Values(ReflectionIds.Member(player, "PotionSlots")).Where(x => x is not null)),
+            PotionSlots = Math.Max(Number(ReflectionIds.Member(player, "MaxPotionCount")), Values(ReflectionIds.Member(player, "PotionSlots")).Count())
         };
     }
 

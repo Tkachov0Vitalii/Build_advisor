@@ -56,8 +56,17 @@ public static class CardRewardPatch
             if (context is not null) _ = PopulateSearchWhenReady(screen, context, ids, catalogTask);
             var metricsTask = Metrics.GetMetricsAsync("cards", context?.Bracket ?? "a10", context?.Character, token);
             var coachTask = context is null ? Task.FromResult<CoachAdvice?>(null) : Coach.GetAsync(context, ids, token);
-            await Task.WhenAll(catalogTask, metricsTask);
-            var metrics = await metricsTask;
+            // Community metrics are enrichment. Their failure (offline, server error, unknown
+            // bracket) must not hide badges and the full local evaluation from the catalogue.
+            IReadOnlyDictionary<string, EntityMetric> metrics;
+            var metricsNote = "";
+            try { metrics = await metricsTask; }
+            catch (Exception error) when (error is not OperationCanceledException)
+            {
+                metrics = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase);
+                metricsNote = "\n\nСтатистика сообщества недоступна — оценка по каталогу карт и локальной модели.";
+                GD.PrintErr("Build Advisor metrics: " + error.Message);
+            }
             if (!GodotObject.IsInstanceValid(screen)) return;
             if (context is null)
             {
@@ -70,7 +79,7 @@ public static class CardRewardPatch
             var coachPending = !coachTask.IsCompleted;
             var coachMap = coach?.Offers.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
             var assessment = DeckBuildScoring.Evaluate(context, ids, catalog, metrics, coachMap, currentUpgraded);
-            var text = FormatAdvice(context, assessment, metrics, coach, coachPending);
+            var text = FormatAdvice(context, assessment, metrics, coach, coachPending) + metricsNote;
             AdviceOverlay.RenderBadges(screen, assessment.Offers, ids);
             AdviceOverlay.Render(screen, text, null, context);
             AdviceOverlay.SetRefreshAction(async () =>

@@ -12,6 +12,14 @@ public static class MerchantPatch
     private static readonly SpireCodexMetricsClient Metrics = new();
     private static readonly CardCatalogClient Catalog = new();
     private static readonly RelicCatalogClient RelicCatalog = new();
+    private static readonly RelicCatalogClient PotionCatalog = new("potions");
+
+    // Community statistics are enrichment: a failed request yields no metrics, not a lost plan.
+    private static async Task<IReadOnlyDictionary<string, EntityMetric>> OrEmpty(Task<IReadOnlyDictionary<string, EntityMetric>> task, string what)
+    {
+        try { return await task; }
+        catch (Exception error) { GD.PrintErr($"Build Advisor shop {what} metrics: {error.Message}"); return new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase); }
+    }
     private static long openSession;
 
     internal static void Invalidate() => Interlocked.Increment(ref openSession);
@@ -40,6 +48,7 @@ public static class MerchantPatch
         var cardSlots = allItems.Where(x => x.Kind == "card").ToArray();
         var cardItems = cardSlots.Select(x => x.Item).ToArray();
         var relicItems = allItems.Where(x => x.Kind == "relic").Select(x => x.Item).ToArray();
+        var potionItems = allItems.Where(x => x.Kind == "potion").Select(x => x.Item).ToArray();
         var cards = cardItems.Select(x => x.Id).ToArray();
         var relics = relicItems.Select(x => x.Id).ToArray();
         if (cards.Length == 0 && relics.Length == 0) { AdviceOverlay.Render(__instance, "BUILD ADVISOR · магазин\nТовары ещё загружаются — откройте совет через мгновение."); return; }
@@ -64,6 +73,9 @@ public static class MerchantPatch
             }
             var cardMetricsTask = Metrics.GetMetricsAsync("cards", bracket, context.Character);
             var relicMetricsTask = Metrics.GetMetricsAsync("relics", bracket, context.Character);
+            var potionMetricsTask = potionItems.Length == 0 ? Task.FromResult<IReadOnlyDictionary<string, EntityMetric>>(new Dictionary<string, EntityMetric>())
+                : Metrics.GetMetricsAsync("potions", bracket, context.Character);
+            var potionNamesTask = potionItems.Length == 0 ? Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>()) : PotionCatalog.GetAsync();
             var catalogTask = Catalog.GetAsync();
             var relicCatalogTask = RelicCatalog.GetAsync();
             // Card badges do not depend on the slower relic/metrics requests. Display a
@@ -71,11 +83,13 @@ public static class MerchantPatch
             var catalog = await catalogTask;
             if (IsCurrent(session, __instance))
                 RenderCardBadges(__instance, cardSlots, DeckBuildScoring.Evaluate(context, cards, catalog, new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase)).Offers, context.Gold);
-            await Task.WhenAll(cardMetricsTask, relicMetricsTask, relicCatalogTask);
+            var cardMetrics = await OrEmpty(cardMetricsTask, "card");
+            var relicMetrics = await OrEmpty(relicMetricsTask, "relic");
+            var potionMetrics = await OrEmpty(potionMetricsTask, "potion");
+            var relicNames = await relicCatalogTask;
+            var potionNames = await potionNamesTask;
             if (!IsCurrent(session, __instance)) return;
-            var cardMetrics = await cardMetricsTask;
-            var relicMetrics = await relicMetricsTask;
-            var plan = ShopPlanBuilder.Create(context, cardItems, relicItems, catalog, cardMetrics, relicMetrics, await relicCatalogTask);
+            var plan = ShopPlanBuilder.Create(context, cardItems, relicItems, catalog, cardMetrics, relicMetrics, relicNames, potionItems, potionMetrics, potionNames);
             if (IsCurrent(session, __instance))
             {
                 AdviceOverlay.Render(__instance, "BUILD ADVISOR · магазин · " + bracket.ToUpperInvariant() + "\n" + plan);
@@ -109,7 +123,9 @@ public static class MerchantPatch
             // its Entry (MerchantCardEntry / MerchantRelicEntry), not on the slot.
             var entry = ReflectionIds.Member(slot, "Entry");
             var type = entry?.GetType().Name ?? string.Empty;
-            var kind = type.Contains("MerchantCardEntry", StringComparison.Ordinal) ? "card" : type.Contains("MerchantRelicEntry", StringComparison.Ordinal) ? "relic" : null;
+            var kind = type.Contains("MerchantCardEntry", StringComparison.Ordinal) ? "card"
+                : type.Contains("MerchantRelicEntry", StringComparison.Ordinal) ? "relic"
+                : type.Contains("MerchantPotionEntry", StringComparison.Ordinal) ? "potion" : null;
             if (kind is null) continue;
             var visual = ReflectionIds.Member(slot, "Visual");
             var id = visual is null ? ReflectionIds.FindId(entry!) : ReflectionIds.FindId(visual) ?? ReflectionIds.FindId(entry!);

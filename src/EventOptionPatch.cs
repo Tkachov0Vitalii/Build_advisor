@@ -12,6 +12,9 @@ public static class EventOptionPatch
     // Every option button runs _Ready, so one event page used to be analysed and rendered once
     // per option. Buttons of the same page share one pending render.
     private static readonly HashSet<ulong> PendingScreens = new();
+    private static readonly EventMetricsClient Events = new();
+    private static readonly Data.SpireCodexMetricsClient Relics = new();
+    private static readonly Data.RelicCatalogClient RelicNames = new();
 
     [HarmonyPostfix]
     public static async void AfterReady(Node __instance)
@@ -28,13 +31,40 @@ public static class EventOptionPatch
             if (options.Length == 0) return;
             var context = RunContextReader.TryRead();
             var player = RunContextReader.LocalPlayerModel();
-            var choices = options.Select(option => (WillKill(option, player) ? DeadlyWarning : "") + Clean(OptionText(option) ?? "Ветка события")).ToArray();
+            var choices = options.Select(option => Choice(option, player)).ToArray();
             var header = "BUILD ADVISOR · событие" + (context is null ? "" : $" · {context.Bracket.ToUpperInvariant()} · Act {context.Act}");
-            AdviceOverlay.Render(screen, header + "\n" + LocalDeckAdvisor.ForEvent(context, choices));
+            var intro = context is null ? "Состояние забега не прочитано." : LocalDeckAdvisor.Snapshot(context);
+            string Hint(string text) => LocalDeckAdvisor.EventHint(text, context);
+            var empty = new Dictionary<string, EventOptionMetric>();
+            var noRelics = new Dictionary<string, Data.EntityMetric>();
+            // Local hints first, so the panel is never empty while statistics load.
+            AdviceOverlay.Render(screen, header + "\n" + intro + "\n\n" + EventAdvisor.Format(EventAdvisor.Rate(choices, empty, noRelics, null, Hint)));
+            var bracket = context?.Bracket ?? "all";
+            var eventTask = Events.GetAsync(bracket);
+            var relicTask = choices.Any(x => x.RelicId is not null) ? Relics.GetMetricsAsync("relics", bracket, context?.Character) : Task.FromResult<IReadOnlyDictionary<string, Data.EntityMetric>>(noRelics);
+            var namesTask = choices.Any(x => x.RelicId is not null) ? RelicNames.GetAsync() : Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>());
+            IReadOnlyDictionary<string, EventOptionMetric> events = empty;
+            IReadOnlyDictionary<string, Data.EntityMetric> relics = noRelics;
+            try { events = await eventTask; } catch (Exception error) { GD.Print("Build Advisor event metrics: " + error.Message); }
+            try { relics = await relicTask; } catch (Exception error) { GD.Print("Build Advisor relic metrics: " + error.Message); }
+            var names = await namesTask;
+            if (!GodotObject.IsInstanceValid(screen) || !GodotObject.IsInstanceValid(__instance)) return;
+            AdviceOverlay.Render(screen, header + "\n" + intro + "\n\n" + EventAdvisor.Format(EventAdvisor.Rate(choices, events, relics, names, Hint)));
         }
         catch (Exception error) { GD.PrintErr("Build Advisor event: " + error.Message); }
         finally { PendingScreens.Remove(screenId); }
     }
+    // Event and option IDs come from EventOption.TextKey; an Ancient option exposes its relic.
+    private static EventChoice Choice(Node option, MegaCrit.Sts2.Core.Entities.Players.Player? player)
+    {
+        var text = Clean(OptionText(option) ?? "Ветка события");
+        if (option is not NEventOptionButton button || button.Option is not { } model) return new EventChoice(text, null, null, null, false);
+        var (eventId, optionId) = EventKeys.Parse(model.TextKey);
+        string? relicId = null;
+        try { relicId = model.Relic is { } relic ? ReflectionIds.FindId(relic) : null; } catch { }
+        return new EventChoice(text, eventId, optionId, relicId, WillKill(option, player));
+    }
+
     internal const string DeadlyWarning = "⚠ СМЕРТЕЛЬНО — этот вариант убьёт персонажа: ";
 
     // L8: the game itself knows when an option is lethal for the current HP (WillKillPlayer).
