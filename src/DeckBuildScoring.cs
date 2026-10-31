@@ -5,7 +5,8 @@ namespace BuildAdvisor.Integration;
 internal sealed record ScoreAdjustment(decimal Value, string Label);
 internal sealed record OfferScore(string Id, string Name, decimal Final, decimal Community, decimal Context, string Role, string Reason,
     decimal Confidence = 0m, decimal Personal = 0m, string Impact = "", string TagText = "",
-    IReadOnlyList<ScoreAdjustment>? Adjustments = null, decimal? CommunityLift = null, int LiftSamples = 0);
+    IReadOnlyList<ScoreAdjustment>? Adjustments = null, decimal? CommunityLift = null, int LiftSamples = 0,
+    IReadOnlyList<ScoreAdjustment>? RawAdjustments = null);
 internal sealed record BuildAssessment(string Summary, IReadOnlyList<string> Needs, IReadOnlyList<string> Archetypes, decimal AverageCost, int SkipScore, IReadOnlyList<OfferScore> Offers);
 
 // The Regent's Colorless route is a creation engine, not a blanket bonus to every gray card.
@@ -216,9 +217,13 @@ internal static class DeckBuildScoring
         var community = metric?.CodexScore is { }
             ? CalibratedCommunity(metric, metrics)
             : 50m + (fallback - 50m) * confidence;
-        var contextScore = 0m; var notes = new List<string>(); var adjustments = new List<ScoreAdjustment>();
+        var contextScore = 0m; var notes = new List<string>(); var adjustments = new List<ScoreAdjustment>(); var raw = new List<ScoreAdjustment>();
         void Adjust(decimal value, string label, string? detail = null)
         {
+            // H3: the hand value times its corpus-fitted weight; the raw value feeds calibration.
+            raw.Add(new ScoreAdjustment(value, label));
+            value *= ScoreWeights.For(label);
+            if (value == 0m) return;
             contextScore += value;
             adjustments.Add(new ScoreAdjustment(value, label));
             notes.Add($"{value:+#.#;-#.#;0} {detail ?? label}");
@@ -313,8 +318,9 @@ internal static class DeckBuildScoring
         if (Math.Abs(clampDifference) >= .05m) appliedAdjustments.Add(new ScoreAdjustment(clampDifference, "граница шкалы"));
         if (learnedChoiceAdjustment != 0m)
         {
+            raw.Add(new ScoreAdjustment(learnedChoiceAdjustment, "похожие ситуации"));
             var beforeLearned = final;
-            final = Math.Clamp(final + learnedChoiceAdjustment, 0m, 100m);
+            final = Math.Clamp(final + learnedChoiceAdjustment * ScoreWeights.For("похожие ситуации"), 0m, 100m);
             var applied = final - beforeLearned;
             if (Math.Abs(applied) >= .05m)
             {
@@ -334,7 +340,7 @@ internal static class DeckBuildScoring
         }
         var impact = Impact(card, deck, needs, averageCost);
         var tagText = CardSemanticTags.Describe(card, context, final, contextScore, deck, archetypes);
-        return new OfferScore(id, name, final, community, contextScore, role, string.Join("; ", notes), confidence, personal, impact, tagText, appliedAdjustments, metric?.Lift, metric?.LiftSamples ?? 0);
+        return new OfferScore(id, name, final, community, contextScore, role, string.Join("; ", notes), confidence, personal, impact, tagText, appliedAdjustments, metric?.Lift, metric?.LiftSamples ?? 0, raw);
     }
 
     internal static decimal[] CenteredChoiceAdjustments(IReadOnlyList<decimal?> signals)

@@ -114,7 +114,7 @@ internal sealed class CardCatalogClient
         finally { Gate.Release(); }
     }
 
-    private static IReadOnlyDictionary<string, CardDefinition> Parse(string json)
+    internal static IReadOnlyDictionary<string, CardDefinition> Parse(string json)
     {
         using var doc = JsonDocument.Parse(json);
             var map = new Dictionary<string, CardDefinition>(StringComparer.OrdinalIgnoreCase);

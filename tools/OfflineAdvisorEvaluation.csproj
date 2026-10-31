@@ -13,8 +13,10 @@
   <ItemGroup>
     <Compile Include="..\src\*.cs" />
     <Compile Include="OfflineAdvisorEvaluation.cs" />
+    <Compile Include="CalibrationFeatures.cs" />
     <None Include="..\data\build-advisor-run-priors.data" Link="build-advisor-run-priors.data" CopyToOutputDirectory="Always" />
     <None Include="..\data\segment-risk-v1.data" Link="segment-risk-v1.data" CopyToOutputDirectory="Always" />
+    <None Include="..\data\score-weights-v1.data" Link="score-weights-v1.data" CopyToOutputDirectory="Always" Condition="Exists('..\data\score-weights-v1.data')" />
     <Reference Include="sts2"><HintPath>$(Sts2ManagedDir)\sts2.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="GodotSharp"><HintPath>$(Sts2ManagedDir)\GodotSharp.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="0Harmony"><HintPath>$(Sts2ManagedDir)\0Harmony.dll</HintPath><Private>true</Private></Reference>

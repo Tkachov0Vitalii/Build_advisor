@@ -89,6 +89,8 @@ internal static class OfflineAdvisorEvaluation
             Console.WriteLine(JsonSerializer.Serialize(new { Regression = passed, BuildAdvisorRegression.LastError }));
             return passed ? 0 : 1;
         }
+        if (args is ["--features", var extractDir, var splitsPath, var catalogFile, var metricsDir, var featuresOut])
+            return CalibrationFeatures.Export(extractDir, splitsPath, catalogFile, metricsDir, featuresOut);
         if (args.Length < 6)
         {
             Console.Error.WriteLine("usage: corpus manifest catalog metrics model-report output");

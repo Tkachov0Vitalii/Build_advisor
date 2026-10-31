@@ -42,6 +42,7 @@ internal static class BuildAdvisorRegression
             ShopBadgesStayAboveTheirSlots();
             PooledHolderBadgesLeaveForeignScreens();
             FrameTasksAndHoverCardsWithoutGodotVirtuals();
+            CalibratedWeightsScaleHandAdjustments();
             ArchetypeSelectionResetsBetweenRuns();
             ManualArchetypeOverridesGenericPowerAndLateBloat();
             StrongEarlyCardDetectsArchetype();
@@ -429,6 +430,41 @@ internal static class BuildAdvisorRegression
         var context = new RunContext("ironclad", ["STRIKE", "DEFEND"], [], 0, 2, 10, 40, 80, 99, null, 1m, 1, 1, 0, []);
         var advice = DeckBuildScoring.Evaluate(context, ["BLOOD_WALL", "HEAVY_BLOW"], catalog, Metrics("BLOOD_WALL", "HEAVY_BLOW"));
         if (advice.Offers[0].Id != "BLOOD_WALL") throw new InvalidOperationException("Defense ranking snapshot failed.");
+    }
+
+    private static void CalibratedWeightsScaleHandAdjustments()
+    {
+        var parsed = ScoreWeights.Parse("{\"contract\":\"score-weights-v1\",\"weights\":{\"нужна защита\":0.5,\"копия\":4,\"чужой ключ\":2,\"синергия архетипа\":1.4}}");
+        if (parsed.Count != 2 || parsed["нужна защита"] != .5m || parsed["синергия архетипа"] != 1.4m)
+            throw new InvalidOperationException("Score weights accepted an out-of-range or unknown weight: " + string.Join(", ", parsed));
+        if (ScoreWeights.Parse("{\"contract\":\"other\",\"weights\":{\"нужна защита\":0.5}}").Count != 0)
+            throw new InvalidOperationException("Score weights ignored the contract.");
+        if (ScoreWeights.KeyOf("копия 3") != "копия" || ScoreWeights.KeyOf("ценность в акте 2") != "ценность в акте" || ScoreWeights.KeyOf("ваша поправка") is not null)
+            throw new InvalidOperationException("Adjustment labels map to the wrong weight keys.");
+        // The shipped file, when present, must parse completely and stay within bounds.
+        var bundled = ScoreWeights.BundledWeights;
+        if (bundled.Count != 0 && (bundled.Count != ScoreWeights.Keys.Length || bundled.Values.Any(x => x < ScoreWeights.Minimum || x > ScoreWeights.Maximum)))
+            throw new InvalidOperationException("Bundled score weights are incomplete or out of bounds.");
+
+        var catalog = Cards(("STRIKE", "Удар", "Attack", 1, 6, 0, 0, 0), ("DEFEND", "Оборона", "Skill", 1, 0, 5, 0, 0), ("BLOOD_WALL", "Стена крови", "Skill", 2, 0, 14, 0, 0));
+        var context = new RunContext("ironclad", ["STRIKE", "DEFEND"], [], 0, 2, 10, 40, 80, 99, null, 1m, 1, 1, 0, []);
+        decimal Need(OfferScore score, bool raw) => (raw ? score.RawAdjustments! : score.Adjustments!).Where(x => x.Label == "нужна защита").Sum(x => x.Value);
+        try
+        {
+            ScoreWeights.Override = new Dictionary<string, decimal> { ["нужна защита"] = .5m };
+            var halved = DeckBuildScoring.Evaluate(context, ["BLOOD_WALL"], catalog, Metrics("BLOOD_WALL")).Offers[0];
+            ScoreWeights.Override = new Dictionary<string, decimal> { ["нужна защита"] = 0m };
+            var removed = DeckBuildScoring.Evaluate(context, ["BLOOD_WALL"], catalog, Metrics("BLOOD_WALL")).Offers[0];
+            ScoreWeights.Override = null;
+            var hand = DeckBuildScoring.Evaluate(context, ["BLOOD_WALL"], catalog, Metrics("BLOOD_WALL")).Offers[0];
+            if (Need(halved, true) != 25m || Need(hand, true) != 25m)
+                throw new InvalidOperationException("Raw adjustments must keep the hand value for calibration.");
+            if (Math.Abs(halved.Context - (hand.Context - 12.5m)) > .001m || removed.Adjustments!.Any(x => x.Label == "нужна защита"))
+                throw new InvalidOperationException($"Weights did not scale the adjustment: hand {hand.Context}, halved {halved.Context}.");
+            if (!(hand.Final > halved.Final && halved.Final > removed.Final))
+                throw new InvalidOperationException("A smaller weight must lower the final score.");
+        }
+        finally { ScoreWeights.Override = null; }
     }
 
     private static void ExpensiveDeckValuesEnergy()
