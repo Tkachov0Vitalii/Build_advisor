@@ -15,7 +15,12 @@ public sealed record EntityMetric(
     decimal? Elo = null,
     int Offered = 0,
     int Picked = 0,
-    IReadOnlyList<decimal?>? PickRateByAct = null);
+    IReadOnlyList<decimal?>? PickRateByAct = null,
+    // Win-rate difference in percentage points between runs that took the entity when it was
+    // offered and runs that did not (Spire Codex "lift"); LiftSamples is its "lift_n".
+    decimal? Lift = null,
+    int LiftSamples = 0,
+    decimal? UseRate = null);
 
 public sealed class SpireCodexMetricsClient
 {
@@ -23,9 +28,52 @@ public sealed class SpireCodexMetricsClient
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> Gates = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, (DateTimeOffset until, IReadOnlyDictionary<string, EntityMetric> data)> Cache = [];
 
-    public async Task<IReadOnlyDictionary<string, EntityMetric>> GetMetricsAsync(string entityType, string bracket = "a10", CancellationToken cancellationToken = default)
+    // Minimum evidence before a character-specific row replaces the all-character row.
+    internal const int CharacterMinimumSamples = 200;
+    // Share of the global sample a character row must hold. On 2026-10-30 data the character's
+    // own cards held 88-100% of all observations, colorless cards 14-41%, and other classes'
+    // cards at most 6%: those few runs (Prismatic Gem, transforms) are strongly survivor-biased
+    // (MOMENTUM_STRIKE: +15.6 for Ironclad on 514 picks vs −1.7 globally on 26,007).
+    internal const decimal CharacterMinimumShare = .10m;
+
+    // Character-specific metrics are more accurate (a colorless card or a relic plays very
+    // differently per character) but thinner, so each row falls back to the global value
+    // until it has enough samples. Any failure of the character request keeps global data.
+    public async Task<IReadOnlyDictionary<string, EntityMetric>> GetMetricsAsync(string entityType, string bracket, string? character, CancellationToken cancellationToken = default)
     {
-        var cacheKey = entityType + ":" + bracket;
+        var global = await GetMetricsAsync(entityType, bracket, cancellationToken);
+        if (string.IsNullOrWhiteSpace(character) || character is "test" or "regression") return global;
+        IReadOnlyDictionary<string, EntityMetric> specific;
+        try { specific = await FetchAsync(entityType, bracket, character.Trim().ToLowerInvariant(), cancellationToken); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception error)
+        {
+            GD.Print($"Build Advisor metrics: character data for {character} unavailable ({error.Message}); using all characters.");
+            return global;
+        }
+        return Merge(global, specific);
+    }
+
+    internal static IReadOnlyDictionary<string, EntityMetric> Merge(IReadOnlyDictionary<string, EntityMetric> global, IReadOnlyDictionary<string, EntityMetric> specific)
+    {
+        var merged = new Dictionary<string, EntityMetric>(global, StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, metric) in specific)
+        {
+            var samples = Math.Max(metric.Samples, metric.LiftSamples);
+            if (!global.TryGetValue(key, out var all)) { merged[key] = metric; continue; }
+            var globalSamples = Math.Max(all.Samples, all.LiftSamples);
+            if (samples >= CharacterMinimumSamples && (globalSamples == 0 || (decimal)samples / globalSamples >= CharacterMinimumShare))
+                merged[key] = metric;
+        }
+        return merged;
+    }
+
+    public Task<IReadOnlyDictionary<string, EntityMetric>> GetMetricsAsync(string entityType, string bracket = "a10", CancellationToken cancellationToken = default) =>
+        FetchAsync(entityType, bracket, null, cancellationToken);
+
+    private async Task<IReadOnlyDictionary<string, EntityMetric>> FetchAsync(string entityType, string bracket, string? character, CancellationToken cancellationToken)
+    {
+        var cacheKey = entityType + ":" + bracket + (character is null ? "" : ":" + character);
         lock (Cache) if (Cache.TryGetValue(cacheKey, out var cached) && cached.until > DateTimeOffset.UtcNow) return cached.data;
         var gate = Gates.GetOrAdd(cacheKey, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(cancellationToken);
@@ -41,7 +89,10 @@ public sealed class SpireCodexMetricsClient
             }
             try
             {
-                using var response = await Http.GetAsync($"https://spire-codex.com/api/runs/metrics/{entityType}?bracket={Uri.EscapeDataString(bracket)}", cancellationToken);
+                NetworkSettings.ThrowIfOffline();
+                var url = $"https://spire-codex.com/api/runs/metrics/{entityType}?bracket={Uri.EscapeDataString(bracket)}" +
+                          (character is null ? "" : "&character=" + Uri.EscapeDataString(character));
+                using var response = await Http.GetAsync(url, cancellationToken);
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync(cancellationToken);
                 var data = await Task.Run(() => ParseJson(json, entityType), cancellationToken);
@@ -89,6 +140,7 @@ public sealed class SpireCodexMetricsClient
         var pickPercent = UsesPercent(rows, "pick_rate", "take_rate");
         var winPercent = UsesPercent(rows, "win_rate", "winrate");
         var actPercent = UsesPercentArray(rows, "pick_rate_by_act") ?? pickPercent;
+        var usePercent = UsesPercent(rows, "use_rate");
         foreach (var row in rows)
         {
             // Card metrics contain separate base and upgraded rows with the same id.
@@ -112,7 +164,10 @@ public sealed class SpireCodexMetricsClient
                 NullableNumber(row, "elo", "codex_elo"),
                 offered,
                 picked,
-                DecimalArray(row, "pick_rate_by_act", actPercent));
+                DecimalArray(row, "pick_rate_by_act", actPercent),
+                NullableNumber(row, "lift"),
+                (int)Number(row, "lift_n"),
+                RatioOrNull(row, usePercent, "use_rate"));
         }
         return result;
     }

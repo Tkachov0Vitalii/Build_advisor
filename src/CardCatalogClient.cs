@@ -82,6 +82,7 @@ internal sealed class CardCatalogClient
             }
             try
             {
+                NetworkSettings.ThrowIfOffline();
                 using var response = await Http.GetAsync("https://spire-codex.com/api/cards?lang=" + language, token);
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync(token);

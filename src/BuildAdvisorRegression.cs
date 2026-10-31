@@ -49,6 +49,11 @@ internal static class BuildAdvisorRegression
             StarterStrikesDoNotSatisfyEarlyDamage();
             LowPercentMetricsStayLow();
             EventHintsMatchWholeWords();
+            LiftFieldsAreParsed();
+            TakeSkipUsesOneScale();
+            CharacterMetricsIgnoreOffClassRows();
+            ShopPriceNoteShowsRemainingGold();
+            NewTextIsTranslated();
             LastError = "";
             return true;
         }
@@ -110,6 +115,82 @@ internal static class BuildAdvisorRegression
         var advice = LocalDeckAdvisor.ForEvent(context, ["Deal 10 damage to all enemies"]);
         if (advice.Contains("повторный выбор награды", StringComparison.Ordinal))
             throw new InvalidOperationException("Event hint matched DAM inside DAMAGE.");
+    }
+
+    // 6.18.0: lift, lift_n and use_rate come from the API.
+    private static void LiftFieldsAreParsed()
+    {
+        using var document = System.Text.Json.JsonDocument.Parse("{\"rows\":[{\"id\":\"A\",\"win_rate\":48.3,\"pick_rate\":22.1,\"lift\":12.4,\"lift_n\":15735,\"picks\":15735},{\"id\":\"P\",\"win_rate\":37.3,\"lift\":-1.5,\"lift_n\":900,\"use_rate\":63.8}]}");
+        var parsed = SpireCodexMetricsClient.ParseMetrics(document.RootElement, "potions");
+        if (parsed["A"].Lift != 12.4m || parsed["A"].LiftSamples != 15735 || parsed["P"].Lift != -1.5m || parsed["P"].UseRate != .638m)
+            throw new InvalidOperationException("Lift fields were not parsed.");
+    }
+
+    // 6.18.0: take/skip on one win-rate scale, skip = 0 (M1).
+    private static void TakeSkipUsesOneScale()
+    {
+        OfferScore Offer(string id, decimal final, decimal community, decimal? lift, int samples) =>
+            new(id, id, final, community, final - community, "", "", .9m, CommunityLift: lift, LiftSamples: samples);
+        var strong = new BuildAssessment("", [], [], 1m, 30, [Offer("STRONG", 70m, 70m, 6m, 5000), Offer("WEAK", 30m, 30m, 0.2m, 5000)]);
+        var verdict = TakeSkipModel.Evaluate(strong);
+        if (!verdict.Take || verdict.Best?.Id != "STRONG" || verdict.WinDelta != 6m)
+            throw new InvalidOperationException("Take/skip did not take a clearly positive card.");
+        // A bloated deck turns a decent card negative: the deck adjustment uses the same scale.
+        var bloated = new BuildAssessment("", [], [], 1m, 30, [Offer("STRONG", 40m, 70m, 6m, 5000)]);
+        if (TakeSkipModel.Evaluate(bloated).Take || TakeSkipModel.WinDelta(bloated.Offers[0]) != .3m)
+            throw new InvalidOperationException("Deck penalties must be able to make skipping better.");
+        // Little evidence needs a 2-point margin instead of half a point.
+        var thin = new BuildAssessment("", [], [], 1m, 30, [Offer("THIN", 50m, 50m, 1.5m, 120)]);
+        if (TakeSkipModel.Evaluate(thin).Take || TakeSkipModel.EvidenceLabel(120) != "низкая" || TakeSkipModel.EvidenceLabel(1000) != "высокая")
+            throw new InvalidOperationException("Low-evidence lift must not be enough to take a card.");
+        // Without an API lift the Codex-score fit is used: score 27 is the zero point.
+        if (TakeSkipModel.WinDelta(Offer("NOLIFT", 27m, 27m, null, 0)) != 0m)
+            throw new InvalidOperationException("Score-to-lift conversion changed its zero point.");
+    }
+
+    // 6.18.0: per-character rows replace global rows only with a real share of the sample.
+    private static void CharacterMetricsIgnoreOffClassRows()
+    {
+        var global = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["OWN"] = new("OWN", "Own", .3m, .40m, 10000, Lift: 4m, LiftSamples: 10000),
+            ["OFFCLASS"] = new("OFFCLASS", "Off", .2m, .30m, 26000, Lift: -1.7m, LiftSamples: 26000),
+            ["COLORLESS"] = new("COLORLESS", "Colorless", .2m, .35m, 8000, Lift: 2m, LiftSamples: 8000)
+        };
+        var specific = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["OWN"] = new("OWN", "Own", .3m, .41m, 9700, Lift: 4.5m, LiftSamples: 9700),
+            ["OFFCLASS"] = new("OFFCLASS", "Off", .2m, .50m, 514, Lift: 15.6m, LiftSamples: 514),
+            ["COLORLESS"] = new("COLORLESS", "Colorless", .2m, .37m, 2000, Lift: 3m, LiftSamples: 2000),
+            ["ONLY_HERE"] = new("ONLY_HERE", "Only", .2m, .37m, 50, Lift: 1m, LiftSamples: 50)
+        };
+        var merged = SpireCodexMetricsClient.Merge(global, specific);
+        if (merged["OWN"].Lift != 4.5m || merged["COLORLESS"].Lift != 3m || merged["OFFCLASS"].Lift != -1.7m || !merged.ContainsKey("ONLY_HERE"))
+            throw new InvalidOperationException("Character metric merge kept a survivor-biased off-class row or dropped a valid one.");
+    }
+
+    // 6.18.0: shop badges show what is left after buying (L3).
+    private static void ShopPriceNoteShowsRemainingGold()
+    {
+        if (MerchantPatch.PriceNote(75, 120) != "цена 75 · после покупки останется 45 золота" ||
+            MerchantPatch.PriceNote(150, 120) != "цена 150 · не хватает 30 золота" || MerchantPatch.PriceNote(0, 120) != "")
+            throw new InvalidOperationException("Shop price note is wrong.");
+    }
+
+    // 6.18.0: every new user-facing line has an English translation.
+    private static void NewTextIsTranslated()
+    {
+        OfferScore Offer(decimal final, decimal? lift, int samples) => new("X", "Card", final, final, 0m, "", "", .9m, CommunityLift: lift, LiftSamples: samples);
+        var take = TakeSkipModel.Evaluate(new BuildAssessment("", [], [], 1m, 20, [Offer(70m, 6m, 5000)])).Text;
+        var skip = TakeSkipModel.Evaluate(new BuildAssessment("", [], [], 1m, 20, [Offer(30m, .1m, 120)])).Text;
+        var metric = new EntityMetric("R", "Relic", null, .4m, 900, Lift: 4.1m, LiftSamples: 900);
+        var raw = string.Join("\n", take, skip, MerchantPatch.PriceNote(75, 120), MerchantPatch.PriceNote(150, 120),
+            BuildAdvisor.UI.AdviceText.Lift(metric), EventOptionPatch.DeadlyWarning,
+            "Взять или пропустить: " + take + ".", "Игроки в похожих ситуациях пропускали награду в 30% случаев.",
+            "Card: 70/100 · +6.0 п.п. · уверенность высокая", "Автовыбор", "Офлайн");
+        var english = ModLocalization.Translate(raw, AdvisorLanguage.English);
+        if (System.Text.RegularExpressions.Regex.IsMatch(english, "[А-Яа-яЁё]"))
+            throw new InvalidOperationException("6.18 text is not fully translated: " + english);
     }
 
     private static void EventAdviceIsBilingual()

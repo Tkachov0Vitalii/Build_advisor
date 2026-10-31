@@ -7,6 +7,7 @@ internal sealed class DeckAdvisorClient
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(8) };
     public async Task<IReadOnlyDictionary<string, decimal>> GetRelicSupportAsync(RunContext context, CancellationToken token = default)
     {
+        if (NetworkSettings.Offline) return new Dictionary<string, decimal>();
         var url = $"https://spire-codex.com/api/runs/deck-advisor?character={Uri.EscapeDataString(context.Character)}&cards={Uri.EscapeDataString(string.Join(',', context.Cards))}&relics={Uri.EscapeDataString(string.Join(',', context.Relics))}";
         using var response = await Http.GetAsync(url, token); response.EnsureSuccessStatusCode();
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStreamAsync(token));

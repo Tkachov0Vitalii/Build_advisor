@@ -48,7 +48,7 @@ public static class CardRewardPatch
             // Populate search as soon as the catalogue arrives; community metrics can continue
             // downloading in the background and refine scores afterwards.
             if (context is not null) _ = PopulateSearchWhenReady(screen, context, ids, catalogTask);
-            var metricsTask = Metrics.GetMetricsAsync("cards", context?.Bracket ?? "a10", token);
+            var metricsTask = Metrics.GetMetricsAsync("cards", context?.Bracket ?? "a10", context?.Character, token);
             var coachTask = context is null ? Task.FromResult<CoachAdvice?>(null) : Coach.GetAsync(context, ids, token);
             await Task.WhenAll(catalogTask, metricsTask);
             var metrics = await metricsTask;
@@ -156,14 +156,15 @@ public static class CardRewardPatch
         var lines = assessment.Offers.Select(x =>
         {
             var personal = PersonalRunDiary.ChoiceCount(x.Id);
-            return $"{x.Name} [{x.Role}]: {x.Final:F0}/100" +
+            return $"{x.Name} [{x.Role}]: {x.Final:F0}/100 · {TakeSkipModel.Format(TakeSkipModel.WinDelta(x))} п.п. · уверенность {TakeSkipModel.Evidence(x)}" +
                    (personal > 0 ? $" · брали раньше: {personal}" : "") +
                    $"\n  {ScoreExplanation.Formula(x)}\n  Метки: {x.TagText}\n  {x.Impact}";
         });
         _ = metrics;
         return "BUILD ADVISOR · карты\n" + assessment.Summary +
                "\n\nОценка вариантов:\n" + string.Join("\n", lines) +
-               $"\n\nВероятность пропуска: {assessment.SkipScore}% — " + (assessment.SkipScore >= RunHistoryInsights.SkipThreshold * 100m ? "похожие решения чаще указывают на пропуск." : "похожие решения чаще указывают на выбор карты.") +
+               "\n\nВзять или пропустить: " + TakeSkipModel.Evaluate(assessment).Text + "." +
+               $"\nИгроки в похожих ситуациях пропускали награду в {assessment.SkipScore}% случаев." +
                "\n\n" + DeckActionPlanner.Create(context, assessment, CardRewardPatch.Catalog.TryGetCached()) +
                (coachPending ? "\nПохожие победные колоды ещё проверяются…" : coach is null ? "\nПохожая победная колода не найдена — использована базовая модель." : $"\nНайдена похожая победная колода: {coach.Archetype}; сравнено вариантов: {coach.Offers.Count}.") +
                "\nБаза — общая сила карты по статистике и нашей модели. Поправки в скобках показывают влияние именно на текущую колоду.";

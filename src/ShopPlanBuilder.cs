@@ -15,10 +15,10 @@ internal static class ShopPlanBuilder
         var scoredCards = cardAssessment.Offers.Select(score =>
         {
             var item = cards.First(x => SpireCodexMetricsClient.NormalizeId(x.Id) == SpireCodexMetricsClient.NormalizeId(score.Id));
-            return (Id: score.Id, score.Name, Score: score.Final, item.Price, Formula: ScoreExplanation.Formula(score), score.Impact);
+            return (Id: score.Id, score.Name, Score: score.Final, item.Price, Formula: ScoreExplanation.Formula(score), score.Impact, WinDelta: TakeSkipModel.WinDelta(score));
         }).ToArray();
         var cardLines = scoredCards.OrderByDescending(x => Value(x.Score, x.Price)).Take(3).Select(x =>
-            $"{x.Name}: {x.Score:F0}/100 · Δ{x.Score - cardAssessment.SkipScore:+0;-0;0}" + (x.Price > 0 ? $" · {x.Price} золота" : " · цена не прочитана") + $"\n  {x.Formula}\n  {x.Impact}");
+            $"{x.Name}: {x.Score:F0}/100 · {TakeSkipModel.Format(x.WinDelta)} п.п. к победе" + (x.Price > 0 ? $" · {x.Price} золота" : " · цена не прочитана") + $"\n  {x.Formula}\n  {x.Impact}");
         var scoredRelics = relics.Select(item => ScoreRelic(item, context, relicMetrics, relicNames)).ToArray();
         var relicLines = scoredRelics.OrderByDescending(x => Value(x.Score, x.Price)).Take(3).Select(x =>
             $"{x.Name}: {x.Score:F0}/100" + (x.Price > 0 ? $" · {x.Price} золота" : " · цена не прочитана") + $" — {x.Reason}");
@@ -79,6 +79,7 @@ internal static class ShopPlanBuilder
         else if (context.Hp > 0 && context.Hp * 3 < context.MaxHp && RelicKnowledge.HelpsSurvival(item.Id)) { score += 16; reason = "поддерживает выживаемость при низком HP"; }
         else if (context.Gold < 100 && RelicKnowledge.HelpsEconomy(item.Id)) { score += 10; reason = "улучшает экономику следующих магазинов"; }
         var displayName = names is not null && names.TryGetValue(key, out var localized) ? localized : metric?.Name ?? item.Id;
+        if (metric is not null) reason += BuildAdvisor.UI.AdviceText.Lift(metric);
         return (displayName, Math.Clamp(score, 0m, 100m), item.Price, reason);
     }
     private static bool IsStarterCard(string id, IReadOnlyDictionary<string, CardDefinition> catalog) =>

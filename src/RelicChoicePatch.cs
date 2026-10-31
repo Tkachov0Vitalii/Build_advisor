@@ -20,7 +20,7 @@ public static class RelicChoicePatch
         AdviceOverlay.Render(__instance, "BUILD ADVISOR · реликвии\nЗагрузка общей статистики…\nЕсли сеть недоступна, совет будет рассчитан локально.");
         try
         {
-            var metrics = await Metrics.GetMetricsAsync("relics", context?.Bracket ?? "a10");
+            var metrics = await Metrics.GetMetricsAsync("relics", context?.Bracket ?? "a10", context?.Character);
             if (!GodotObject.IsInstanceValid(__instance)) return;
             var text = "BUILD ADVISOR · реликвии\n" + AdviceText.ForMetrics($"Статистика сообщества · {(context?.Bracket ?? "a10").ToUpperInvariant()}", ids, metrics);
             if (context is not null)

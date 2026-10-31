@@ -14,8 +14,7 @@ internal static class DeckActionPlanner
         var actions = Evaluate(context, assessment, catalog);
         var best = assessment.Offers.OrderByDescending(x => x.Final).FirstOrDefault();
         var confidence = DecisionConfidenceModel.Evaluate(assessment);
-        var reward = best is null ? "награда не прочитана" :
-            best.Final >= assessment.SkipScore + 8m ? $"взять {best.Name} ({best.Final:F0})" : $"пропустить ({assessment.SkipScore})";
+        var reward = TakeSkipModel.Evaluate(assessment).Text;
         var remove = RemovalCandidate(context.Cards, catalog);
         var upgrade = UpgradeCandidate(context, catalog);
         var gold = remove is not null && context.Gold < 150
@@ -34,9 +33,11 @@ internal static class DeckActionPlanner
     internal static IReadOnlyList<PlannedAction> Evaluate(RunContext context, BuildAssessment assessment, IReadOnlyDictionary<string, CardDefinition> catalog)
     {
         var result = new List<PlannedAction>();
-        var best = assessment.Offers.OrderByDescending(x => x.Final).FirstOrDefault();
+        var verdict = TakeSkipModel.Evaluate(assessment);
         result.Add(new(AdvisorActionKind.Skip, "", 0m, "не меняет колоду"));
-        if (best is not null) result.Add(new(AdvisorActionKind.Take, best.Name, best.Final - assessment.SkipScore, "ценность карты относительно пропуска"));
+        // The other actions are scored in 0-100 points, so the take value (percentage points of
+        // win rate) is converted back with the same slope that produced it.
+        if (verdict.Best is not null) result.Add(new(AdvisorActionKind.Take, verdict.Best.Name, decimal.Round(verdict.WinDelta / TakeSkipModel.PointsPerScore, 0), "ценность карты относительно пропуска"));
         var remove = RemovalCandidate(context.Cards, catalog);
         if (remove is not null)
         {

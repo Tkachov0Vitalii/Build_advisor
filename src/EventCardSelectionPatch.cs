@@ -78,7 +78,7 @@ internal static class EventCardAdvisor
             }
 
             var catalogTask = Catalog.GetAsync();
-            var metricsTask = Metrics.GetMetricsAsync("cards", context.Bracket);
+            var metricsTask = Metrics.GetMetricsAsync("cards", context.Bracket, context.Character);
             await Task.WhenAll(catalogTask, metricsTask);
             if (!Valid(screen)) return;
             var assessment = Evaluate(RunContextReader.TryRead() ?? context, ids, await catalogTask, await metricsTask, purpose);
@@ -93,7 +93,7 @@ internal static class EventCardAdvisor
         if (rawBundles.Length == 0) return;
         var ids = rawBundles.SelectMany(x => ReflectionIds.FindIds(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         var catalogTask = Catalog.GetAsync();
-        var metricsTask = Metrics.GetMetricsAsync("cards", context.Bracket);
+        var metricsTask = Metrics.GetMetricsAsync("cards", context.Bracket, context.Character);
         await Task.WhenAll(catalogTask, metricsTask);
         if (!Valid(screen)) return;
         var all = DeckBuildScoring.Evaluate(context, ids, await catalogTask, await metricsTask).Offers

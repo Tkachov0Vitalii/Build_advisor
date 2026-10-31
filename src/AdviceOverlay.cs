@@ -20,6 +20,7 @@ public static class AdviceOverlay
     private const string LanguageChooserName = "BuildAdvisorLanguageChooser";
     private const string RefreshName = "BuildAdvisorRefresh";
     private const string AutoPickName = "BuildAdvisorAutoPick";
+    private const string OfflineName = "BuildAdvisorOffline";
     private const string CloseName = "BuildAdvisorClose";
     private const string ShopTierPrefix = "BuildAdvisorShopTier";
     private const string SelectionTierPrefix = "BuildAdvisorSelectionTier";
@@ -135,13 +136,23 @@ public static class AdviceOverlay
         refreshLive.Pressed += () => RefreshAdvice(host);
         var autoPick = new CheckButton
         {
-            Name = AutoPickName, Text = L("Автовыбор лучшей карты"),
+            Name = AutoPickName, Text = L("Автовыбор"),
             ButtonPressed = AutoPickSettings.Enabled,
             Position = new Vector2(1060, 72),
-            Size = new Vector2(340, 38),
+            Size = new Vector2(190, 38),
             TooltipText = L("Автоматически берёт карту только при высокой уверенности, явном преимуществе и когда пропуск хуже. Не выбирает спорные варианты.")
         };
         autoPick.Toggled += enabled => AutoPickSettings.Enabled = enabled;
+        // L1: offline mode. Cached and local data only; the choice persists between sessions.
+        var offline = new CheckButton
+        {
+            Name = OfflineName, Text = L("Офлайн"),
+            ButtonPressed = NetworkSettings.Offline,
+            Position = new Vector2(1256, 72),
+            Size = new Vector2(144, 38),
+            TooltipText = L(OfflineTooltip)
+        };
+        offline.Toggled += enabled => { NetworkSettings.Offline = enabled; RefreshAdvice(host); };
         var language = new OptionButton
         {
             Name = LanguageChooserName, Position = new Vector2(1406, 72), Size = new Vector2(100, 38),
@@ -160,7 +171,7 @@ public static class AdviceOverlay
             var bad = new Button { Text = "⚑", Position = new Vector2(1578, 72), Size = new Vector2(54, 38), TooltipText = L("Совет сомнителен") };
             useful.Pressed += () => feedback(true); bad.Pressed += () => feedback(false); page.AddChild(useful); page.AddChild(bad);
         }
-        page.AddChild(title); page.AddChild(live); page.AddChild(adviceTab); page.AddChild(searchTab); page.AddChild(runTab); page.AddChild(tagsTab); page.AddChild(chooser); page.AddChild(refreshLive); page.AddChild(autoPick); page.AddChild(language); page.AddChild(close); page.AddChild(body); page.AddChild(search); page.AddChild(run); page.AddChild(tagsPanel);
+        page.AddChild(title); page.AddChild(live); page.AddChild(adviceTab); page.AddChild(searchTab); page.AddChild(runTab); page.AddChild(tagsTab); page.AddChild(chooser); page.AddChild(refreshLive); page.AddChild(autoPick); page.AddChild(offline); page.AddChild(language); page.AddChild(close); page.AddChild(body); page.AddChild(search); page.AddChild(run); page.AddChild(tagsPanel);
         host.AddChild(toggle); host.AddChild(page);
         toggle.Pressed += () => page.Visible = !page.Visible;
         close.Pressed += () => page.Hide();
@@ -231,7 +242,7 @@ public static class AdviceOverlay
                 Size = new Vector2(140, 42), ZIndex = 260,
                 MouseFilter = Control.MouseFilterEnum.Stop,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-                TooltipText = L($"{score.Name}: {score.Final:F0}/100\n{ScoreExplanation.Formula(score)}\n{score.TagText}\n{score.Impact}")
+                TooltipText = L($"{score.Name}: {score.Final:F0}/100\n{(string.IsNullOrWhiteSpace(actionLabel) ? WinLine(score) + "\n" : "")}{ScoreExplanation.Formula(score)}\n{score.TagText}\n{score.Impact}")
             };
             badge.AddThemeFontSizeOverride("font_size", 15);
             badge.AddThemeColorOverride("font_color", TierColor(tier));
@@ -239,7 +250,7 @@ public static class AdviceOverlay
             host.AddChild(badge);
             badge.RefreshPosition();
             MakeBadgeExpandable(badge, compactText,
-                L($"{marker} {(string.IsNullOrWhiteSpace(actionLabel) ? tier : actionLabel)}  {score.Final:F0}\n{ScoreExplanation.Formula(score)}\n{FullTags(score.TagText)}"),
+                L($"{marker} {(string.IsNullOrWhiteSpace(actionLabel) ? tier : actionLabel)}  {score.Final:F0}\n{(string.IsNullOrWhiteSpace(actionLabel) ? WinLine(score) + "\n" : "")}{ScoreExplanation.Formula(score)}\n{FullTags(score.TagText)}"),
                 badge.Position, badge.Size);
         }
     }
@@ -275,17 +286,23 @@ public static class AdviceOverlay
                 Position = position - new Vector2(18, 0), Size = new Vector2(148, 58), ZIndex = 200,
                 MouseFilter = Control.MouseFilterEnum.Stop,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-                TooltipText = L($"{score.Name}: {score.Final:F0}/100\n{ScoreExplanation.Formula(score)}\n{score.TagText}\n{score.Impact}")
+                TooltipText = L($"{score.Name}: {score.Final:F0}/100\n{WinLine(score)}\n{ScoreExplanation.Formula(score)}\n{score.TagText}\n{score.Impact}")
             };
             badge.AddThemeFontSizeOverride("font_size", 15);
             badge.AddThemeColorOverride("font_color", TierColor(tier));
             badge.AddThemeStyleboxOverride("normal", BadgeBox(TierColor(tier)));
             host.AddChild(badge);
-            MakeBadgeExpandable(badge, compactText, L($"{(isBest ? "★" : "◆")} {tier}  {score.Final:F0}\n{ScoreExplanation.Formula(score)}\n{FullTags(score.TagText)}"), badge.Position, badge.Size);
+            MakeBadgeExpandable(badge, compactText, L($"{(isBest ? "★" : "◆")} {tier}  {score.Final:F0}\n{WinLine(score)}\n{ScoreExplanation.Formula(score)}\n{FullTags(score.TagText)}"), badge.Position, badge.Size);
         }
     }
 
-    internal static void RenderShopBadges(Node screen, IEnumerable<(Control Slot, OfferScore Score)> values)
+    private const string OfflineTooltip = "Офлайн-режим: мод не обращается к сети и использует сохранённую статистику и локальную модель. Pick Coach и загрузка картинок отключаются.";
+
+    // 6.18: every gain decision also shows the take/skip scale in win-rate percentage points.
+    private static string WinLine(OfferScore score) =>
+        $"{TakeSkipModel.Format(TakeSkipModel.WinDelta(score))} п.п. к победе · уверенность {TakeSkipModel.Evidence(score)}";
+
+    internal static void RenderShopBadges(Node screen, IEnumerable<(Control Slot, OfferScore Score)> values, Func<OfferScore, string>? note = null)
     {
         ClearShopBadges(screen);
         var host = GlobalHost(screen);
@@ -297,6 +314,8 @@ public static class AdviceOverlay
             if (slot.Size.X <= 1 || slot.Size.Y <= 1) continue;
             var tier = Tier(score.Final);
             var compactText = $"{(score.Final == best && entries.Length > 1 ? "★" : "◆")} {tier}  {score.Final:F0}";
+            // L3: price and the gold left after buying, next to the win-rate scale.
+            var details = WinLine(score) + (note?.Invoke(score) is { Length: > 0 } extra ? "\n" + extra : "");
             // The shop animates its slots after Open(). Keep following the slot on the global
             // unscaled layer instead of taking one early snapshot of an in-flight position.
             var badge = new ShopBadgeFollower
@@ -308,14 +327,14 @@ public static class AdviceOverlay
                 Size = new Vector2(140, 42), ZIndex = 250,
                 MouseFilter = Control.MouseFilterEnum.Stop,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-                TooltipText = L($"{score.Name}: {score.Final:F0}/100\n{ScoreExplanation.Formula(score)}\n{score.TagText}\n{score.Impact}")
+                TooltipText = L($"{score.Name}: {score.Final:F0}/100\n{details}\n{ScoreExplanation.Formula(score)}\n{score.TagText}\n{score.Impact}")
             };
             badge.AddThemeFontSizeOverride("font_size", 15);
             badge.AddThemeColorOverride("font_color", TierColor(tier));
             badge.AddThemeStyleboxOverride("normal", BadgeBox(TierColor(tier)));
             host.AddChild(badge);
             badge.RefreshPosition();
-            MakeBadgeExpandable(badge, compactText, L($"{(score.Final == best && entries.Length > 1 ? "★" : "◆")} {tier}  {score.Final:F0}\n{ScoreExplanation.Formula(score)}\n{FullTags(score.TagText)}"), badge.Position, badge.Size);
+            MakeBadgeExpandable(badge, compactText, L($"{(score.Final == best && entries.Length > 1 ? "★" : "◆")} {tier}  {score.Final:F0}\n{details}\n{ScoreExplanation.Formula(score)}\n{FullTags(score.TagText)}"), badge.Position, badge.Size);
         }
     }
 
@@ -545,7 +564,7 @@ public static class AdviceOverlay
     {
         try
         {
-            var loaded = await SearchMetrics.GetMetricsAsync("cards", context.Bracket);
+            var loaded = await SearchMetrics.GetMetricsAsync("cards", context.Bracket, context.Character);
             foreach (var pair in loaded) target[pair.Key] = pair.Value;
             if (string.Equals(searchCharacter, context.Character, StringComparison.OrdinalIgnoreCase)) searchRefresh?.Invoke();
         }
@@ -765,9 +784,11 @@ public static class AdviceOverlay
         var autoPick = Find<CheckButton>(host, AutoPickName);
         if (autoPick is not null)
         {
-            autoPick.Text = L("Автовыбор лучшей карты");
+            autoPick.Text = L("Автовыбор");
             autoPick.TooltipText = L("Автоматически берёт карту только при высокой уверенности, явном преимуществе и когда пропуск хуже. Не выбирает спорные варианты.");
         }
+        var offline = Find<CheckButton>(host, OfflineName);
+        if (offline is not null) { offline.Text = L("Офлайн"); offline.TooltipText = L(OfflineTooltip); }
         var close = Find<Button>(host, CloseName); if (close is not null) close.TooltipText = L("Закрыть");
         searchRefresh = null;
         searchCharacter = null;

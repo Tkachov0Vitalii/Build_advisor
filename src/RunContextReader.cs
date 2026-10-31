@@ -92,6 +92,13 @@ internal static class RunContextReader
         };
     }
 
+    // The live Player model of this client (null outside a run).
+    public static Player? LocalPlayerModel()
+    {
+        var state = RunManager.Instance is { } manager ? ReflectionIds.Member(manager, "State") : null;
+        return state is null ? null : LocalPlayer(Values(ReflectionIds.Member(state, "Players")).ToArray()) as Player;
+    }
+
     // In co-op the player list starts with the host, not necessarily with this client.
     // LocalContext.GetMe returns null in single player (no NetId), so the first player
     // remains the correct fallback there.

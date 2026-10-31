@@ -22,6 +22,7 @@ internal sealed class RelicCatalogClient
             if (File.Exists(path)) json = await File.ReadAllTextAsync(path);
             else
             {
+                NetworkSettings.ThrowIfOffline();
                 json = await Http.GetStringAsync("https://spire-codex.com/api/relics?lang=" + language);
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 await File.WriteAllTextAsync(path, json);

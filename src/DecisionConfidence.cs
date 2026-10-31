@@ -15,6 +15,8 @@ internal static class DecisionConfidenceModel
     internal const decimal AutoPickMinimumScore = 90m;
     internal const decimal AutoPickMinimumLead = 20m;
     internal const int AutoPickMaximumSkipProbability = 11;
+    // 6.18: the pick must also beat skipping by a clear win-rate margin on the take/skip scale.
+    internal const decimal AutoPickMinimumWinDelta = 3m;
 
     public static DecisionConfidence Evaluate(BuildAssessment assessment)
     {
@@ -31,8 +33,10 @@ internal static class DecisionConfidenceModel
         var skipThreshold = RunHistoryInsights.SkipThreshold * 100m;
         if (best.Final < 70m || lead < 8m || assessment.SkipScore >= skipThreshold)
             return new("спорный выбор", $"диапазон модели {low:F0}–{high:F0}; варианты близки или пропуск остаётся конкурентным", false, lead, evidence) { ScoreLow = low, ScoreHigh = high };
+        var verdict = TakeSkipModel.Evaluate(assessment);
         var safe = best.Final >= AutoPickMinimumScore && lead >= AutoPickMinimumLead &&
-                   assessment.SkipScore <= AutoPickMaximumSkipProbability && low >= 80m;
+                   assessment.SkipScore <= AutoPickMaximumSkipProbability && low >= 80m &&
+                   verdict.Take && verdict.Best?.Id == best.Id && verdict.WinDelta >= AutoPickMinimumWinDelta && verdict.Evidence != "низкая";
         return safe
             ? new("уверенный автовыбор", $"диапазон модели {low:F0}–{high:F0}, отрыв {lead:F0}, вероятность пропуска {assessment.SkipScore}%", true, lead, evidence) { ScoreLow = low, ScoreHigh = high }
             : new("умеренная уверенность", $"диапазон модели {low:F0}–{high:F0}; преимущество лучшего варианта {lead:F0}", false, lead, evidence) { ScoreLow = low, ScoreHigh = high };

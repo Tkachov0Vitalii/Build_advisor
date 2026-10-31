@@ -5,7 +5,7 @@ namespace BuildAdvisor.Integration;
 internal sealed record ScoreAdjustment(decimal Value, string Label);
 internal sealed record OfferScore(string Id, string Name, decimal Final, decimal Community, decimal Context, string Role, string Reason,
     decimal Confidence = 0m, decimal Personal = 0m, string Impact = "", string TagText = "",
-    IReadOnlyList<ScoreAdjustment>? Adjustments = null);
+    IReadOnlyList<ScoreAdjustment>? Adjustments = null, decimal? CommunityLift = null, int LiftSamples = 0);
 internal sealed record BuildAssessment(string Summary, IReadOnlyList<string> Needs, IReadOnlyList<string> Archetypes, decimal AverageCost, int SkipScore, IReadOnlyList<OfferScore> Offers);
 
 // The Regent's Colorless route is a creation engine, not a blanket bonus to every gray card.
@@ -178,7 +178,7 @@ internal static class DeckBuildScoring
             adjustments.Add(new ScoreAdjustment(value, label));
             notes.Add($"{value:+#.#;-#.#;0} {detail ?? label}");
         }
-        if (card is null) { notes.Add("модель карты не найдена"); return new OfferScore(id, name, community, community, 0, "неизвестно", string.Join(", ", notes), confidence); }
+        if (card is null) { notes.Add("модель карты не найдена"); return new OfferScore(id, name, community, community, 0, "неизвестно", string.Join(", ", notes), confidence, CommunityLift: metric?.Lift, LiftSamples: metric?.LiftSamples ?? 0); }
         var role = Role(card);
         if (needs.Contains("защита") && card.Block > 0) Adjust(25, "нужна защита", $"закрывает дефицит защиты ({card.Block} блока)");
         if (needs.Contains("быстрый урон") && card.Damage > 0 && card.Cost <= 2) Adjust(15, "быстрый урон");
@@ -283,7 +283,7 @@ internal static class DeckBuildScoring
         }
         var impact = Impact(card, deck, needs, averageCost);
         var tagText = CardSemanticTags.Describe(card, context, final, contextScore, deck, archetypes);
-        return new OfferScore(id, name, final, community, contextScore, role, string.Join("; ", notes), confidence, personal, impact, tagText, appliedAdjustments);
+        return new OfferScore(id, name, final, community, contextScore, role, string.Join("; ", notes), confidence, personal, impact, tagText, appliedAdjustments, metric?.Lift, metric?.LiftSamples ?? 0);
     }
 
     internal static decimal[] CenteredChoiceAdjustments(IReadOnlyList<decimal?> signals)

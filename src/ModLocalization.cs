@@ -32,6 +32,25 @@ internal static class ModLocalization
     // Longer phrases are replaced first so a short word cannot damage a complete translation.
     private static readonly (string Ru, string En)[] English =
     [
+        // 6.18.0 take/skip scale and offline mode
+        ("п.п. к победе против пропуска", "pp of win rate vs skipping"),
+        ("Игроки в похожих ситуациях пропускали награду в", "Players in similar situations skipped this reward in"),
+        ("% случаев", "% of cases"),
+        ("Взять или пропустить", "Take or skip"),
+        ("нужно не меньше", "needs at least"),
+        ("лучшая карта", "best card"),
+        ("п.п. к победе", "pp of win rate"),
+        ("уверенность высокая", "evidence high"),
+        ("уверенность средняя", "evidence medium"),
+        ("уверенность низкая", "evidence low"),
+        ("п.п.", "pp"),
+        ("⚠ СМЕРТЕЛЬНО — этот вариант убьёт персонажа: ", "⚠ LETHAL — this option will kill the character: "),
+        ("Офлайн-режим: мод не обращается к сети и использует сохранённую статистику и локальную модель. Pick Coach и загрузка картинок отключаются.", "Offline mode: the mod makes no network requests and uses saved statistics and the local model. Pick Coach and image downloads are turned off."),
+        ("Автовыбор", "Auto-pick"),
+        ("Офлайн", "Offline"),
+        ("после покупки останется", "left after buying:"),
+        ("не хватает", "short by"),
+        ("цена", "price"),
         ("Автовыбор на экранах событий отключён: мод не подтверждает выбор и не мешает выбрать несколько карт.", "Auto-pick is disabled on event screens: the mod does not confirm the choice or interfere with selecting multiple cards."),
         ("Высокая оценка означает лучший выбор именно для этой цели.", "A higher score means a better choice for this specific event action."),
         ("чем выше оценка, тем выгоднее преобразовать карту", "a higher score means this card is a better transformation target"),

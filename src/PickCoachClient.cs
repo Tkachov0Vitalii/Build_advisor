@@ -13,6 +13,7 @@ internal sealed class PickCoachClient
     private static readonly Dictionary<string, (DateTimeOffset Until, CoachAdvice? Advice)> Cache = new(StringComparer.Ordinal);
     public async Task<CoachAdvice?> GetAsync(RunContext context, IEnumerable<string> offer, CancellationToken token = default)
     {
+        if (NetworkSettings.Offline) return null;
         var offered = offer.ToArray();
         var language = ModLocalization.ApiLanguage;
         var key = language + "|" + context.Character + "|" + string.Join(',', context.Cards.OrderBy(x => x)) + "|" + string.Join(',', context.Relics.OrderBy(x => x)) + "|" + string.Join(',', offered.OrderBy(x => x));

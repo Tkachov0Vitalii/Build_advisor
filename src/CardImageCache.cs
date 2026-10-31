@@ -42,6 +42,7 @@ internal static class CardImageCache
                     var path = DiskPath(url);
                     if (!File.Exists(path))
                     {
+                        if (NetworkSettings.Offline) return;   // only already downloaded art is shown offline
                         var bytes = await Http.GetByteArrayAsync(url);
                         if (!IsStaticWebp(bytes)) { Unsupported[url] = 0; return; }
                         Directory.CreateDirectory(Path.GetDirectoryName(path)!);

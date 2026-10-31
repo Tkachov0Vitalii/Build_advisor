@@ -23,7 +23,7 @@ public static class MapHudBootstrapPatch
         {
             var context = RunContextReader.TryRead();
             var catalogTask = Catalog.GetAsync();
-            var metricsTask = context is null ? Task.FromResult<IReadOnlyDictionary<string, EntityMetric>>(new Dictionary<string, EntityMetric>()) : Metrics.GetMetricsAsync("cards", context.Bracket);
+            var metricsTask = context is null ? Task.FromResult<IReadOnlyDictionary<string, EntityMetric>>(new Dictionary<string, EntityMetric>()) : Metrics.GetMetricsAsync("cards", context.Bracket, context.Character);
             await Task.WhenAll(catalogTask, metricsTask);
             if (context is not null)
             {

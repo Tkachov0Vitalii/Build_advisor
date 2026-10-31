@@ -27,13 +27,24 @@ public static class EventOptionPatch
             var options = Descendants(screen).Where(x => x is NEventOptionButton).ToArray();
             if (options.Length == 0) return;
             var context = RunContextReader.TryRead();
-            var choices = options.Select(option => Clean(OptionText(option) ?? "Ветка события")).ToArray();
+            var player = RunContextReader.LocalPlayerModel();
+            var choices = options.Select(option => (WillKill(option, player) ? DeadlyWarning : "") + Clean(OptionText(option) ?? "Ветка события")).ToArray();
             var header = "BUILD ADVISOR · событие" + (context is null ? "" : $" · {context.Bracket.ToUpperInvariant()} · Act {context.Act}");
             AdviceOverlay.Render(screen, header + "\n" + LocalDeckAdvisor.ForEvent(context, choices));
         }
         catch (Exception error) { GD.PrintErr("Build Advisor event: " + error.Message); }
         finally { PendingScreens.Remove(screenId); }
     }
+    internal const string DeadlyWarning = "⚠ СМЕРТЕЛЬНО — этот вариант убьёт персонажа: ";
+
+    // L8: the game itself knows when an option is lethal for the current HP (WillKillPlayer).
+    private static bool WillKill(Node option, MegaCrit.Sts2.Core.Entities.Players.Player? player)
+    {
+        if (player is null || option is not NEventOptionButton button) return false;
+        try { return button.Option?.WillKillPlayer?.Invoke(player) == true; }
+        catch { return false; }
+    }
+
     private static string? OptionText(Node option) => ReflectionIds.Text(ReflectionIds.Member(option, "_label") ?? option);
     private static Node EventScreen(Node node)
     {
