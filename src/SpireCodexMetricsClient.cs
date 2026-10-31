@@ -36,8 +36,7 @@ public sealed class SpireCodexMetricsClient
             if (File.Exists(disk) && DateTime.UtcNow - File.GetLastWriteTimeUtc(disk) < TimeSpan.FromMinutes(30))
             {
                 var saved = await File.ReadAllTextAsync(disk, cancellationToken);
-                using var savedDoc = JsonDocument.Parse(saved);
-                var fromDisk = ParseMetrics(savedDoc.RootElement, entityType);
+                var fromDisk = await Task.Run(() => ParseJson(saved, entityType), cancellationToken);
                 if (fromDisk.Count > 0) { lock (Cache) Cache[cacheKey] = (DateTimeOffset.UtcNow.AddMinutes(30), fromDisk); return fromDisk; }
             }
             try
@@ -45,17 +44,18 @@ public sealed class SpireCodexMetricsClient
                 using var response = await Http.GetAsync($"https://spire-codex.com/api/runs/metrics/{entityType}?bracket={Uri.EscapeDataString(bracket)}", cancellationToken);
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync(cancellationToken);
-                using var doc = JsonDocument.Parse(json);
-                var data = ParseMetrics(doc.RootElement, entityType);
+                var data = await Task.Run(() => ParseJson(json, entityType), cancellationToken);
+                if (data.Count == 0) throw new InvalidDataException($"Spire Codex returned no {entityType} metrics.");
                 Directory.CreateDirectory(Path.GetDirectoryName(disk)!);
-                await File.WriteAllTextAsync(disk, json, cancellationToken);
+                await File.WriteAllTextAsync(disk + ".tmp", json, cancellationToken);
+                File.Move(disk + ".tmp", disk, true);
                 lock (Cache) Cache[cacheKey] = (DateTimeOffset.UtcNow.AddMinutes(15), data);
                 return data;
             }
             catch when (!cancellationToken.IsCancellationRequested && File.Exists(disk))
             {
-                using var staleDoc = JsonDocument.Parse(await File.ReadAllTextAsync(disk, cancellationToken));
-                var stale = ParseMetrics(staleDoc.RootElement, entityType);
+                var staleJson = await File.ReadAllTextAsync(disk, cancellationToken);
+                var stale = await Task.Run(() => ParseJson(staleJson, entityType), cancellationToken);
                 if (stale.Count == 0) throw;
                 lock (Cache) Cache[cacheKey] = (DateTimeOffset.UtcNow.AddMinutes(10), stale);
                 GD.Print($"Build Advisor metrics: using stale offline cache for {cacheKey}");
@@ -73,10 +73,23 @@ public sealed class SpireCodexMetricsClient
         return Path.Combine(ProjectSettings.GlobalizePath("user://"), "build-advisor", "metrics-" + safe + ".json");
     }
 
+    private static Dictionary<string, EntityMetric> ParseJson(string json, string entityType)
+    {
+        using var document = JsonDocument.Parse(json);
+        return ParseMetrics(document.RootElement, entityType);
+    }
+
     internal static Dictionary<string, EntityMetric> ParseMetrics(JsonElement root, string entityType)
     {
         var result = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase);
-        foreach (var row in Rows(root))
+        var rows = Rows(root).ToArray();
+        // Spire Codex reports rates in percent (43.0), older payloads used fractions (.43).
+        // The unit is decided once per response: a per-value guess turned a 0.8% pick rate
+        // into 80% because 0.8 looks like a fraction.
+        var pickPercent = UsesPercent(rows, "pick_rate", "take_rate");
+        var winPercent = UsesPercent(rows, "win_rate", "winrate");
+        var actPercent = UsesPercentArray(rows, "pick_rate_by_act") ?? pickPercent;
+        foreach (var row in rows)
         {
             // Card metrics contain separate base and upgraded rows with the same id.
             // Rewards are offered in their base form, so allowing the upgraded row to
@@ -91,15 +104,15 @@ public sealed class SpireCodexMetricsClient
             result[NormalizeId(id)] = new EntityMetric(
                 id,
                 Text(row, "name", $"{entityType.TrimEnd('s')}_name") ?? id,
-                RatioOrNull(row, "pick_rate", "take_rate"),
-                Ratio(Number(row, "win_rate", "winrate")),
+                RatioOrNull(row, pickPercent, "pick_rate", "take_rate"),
+                Ratio(Number(row, "win_rate", "winrate"), winPercent),
                 picks > 0 ? picks : Math.Max(picked, offered),
                 NullableNumber(row, "score", "codex_score"),
                 Text(row, "tier"),
                 NullableNumber(row, "elo", "codex_elo"),
                 offered,
                 picked,
-                DecimalArray(row, "pick_rate_by_act"));
+                DecimalArray(row, "pick_rate_by_act", actPercent));
         }
         return result;
     }
@@ -118,11 +131,22 @@ public sealed class SpireCodexMetricsClient
             if (row.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out var number)) return number;
         return 0;
     }
-    private static decimal? RatioOrNull(JsonElement row, params string[] keys)
+    private static decimal? RatioOrNull(JsonElement row, bool percent, params string[] keys)
     {
         foreach (var key in keys)
-            if (row.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out var number)) return Ratio(number);
+            if (row.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out var number)) return Ratio(number, percent);
         return null;
+    }
+    private static bool UsesPercent(IEnumerable<JsonElement> rows, params string[] keys) =>
+        rows.Any(row => keys.Any(key => row.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.Number &&
+                                         value.TryGetDecimal(out var number) && number > 1m));
+    private static bool? UsesPercentArray(IEnumerable<JsonElement> rows, string key)
+    {
+        var values = rows.Where(row => row.TryGetProperty(key, out var array) && array.ValueKind == JsonValueKind.Array)
+            .SelectMany(row => row.GetProperty(key).EnumerateArray())
+            .Where(item => item.ValueKind == JsonValueKind.Number && item.TryGetDecimal(out _))
+            .Select(item => item.GetDecimal()).ToArray();
+        return values.Length == 0 ? null : values.Any(x => x > 1m);
     }
     private static decimal? NullableNumber(JsonElement row, params string[] keys)
     {
@@ -130,10 +154,10 @@ public sealed class SpireCodexMetricsClient
             if (row.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out var number)) return number;
         return null;
     }
-    private static IReadOnlyList<decimal?>? DecimalArray(JsonElement row, string key)
+    private static IReadOnlyList<decimal?>? DecimalArray(JsonElement row, string key, bool percent)
     {
         if (!row.TryGetProperty(key, out var value) || value.ValueKind != JsonValueKind.Array) return null;
-        return value.EnumerateArray().Select(item => item.ValueKind == JsonValueKind.Number && item.TryGetDecimal(out var number) ? (decimal?)Ratio(number) : null).ToArray();
+        return value.EnumerateArray().Select(item => item.ValueKind == JsonValueKind.Number && item.TryGetDecimal(out var number) ? (decimal?)Ratio(number, percent) : null).ToArray();
     }
-    private static decimal Ratio(decimal value) => value > 1m ? value / 100m : value;
+    private static decimal Ratio(decimal value, bool percent) => percent ? value / 100m : value;
 }

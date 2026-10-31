@@ -43,6 +43,30 @@ internal static class RegentColorlessArchetype
     private static bool Has(string text, params string[] tokens) => tokens.Any(text.Contains);
 }
 
+// Relic roles taken from the game assembly (Slay the Spire 2 v0.111): relics that override
+// ModifyMaxEnergy, ModifyHpLost and ModifyMerchantPrice. The 6.16 substring lists (COFFEE,
+// CROWN, FUSION, KEY…) were Slay the Spire 1 names and matched no relic in this game.
+internal static class RelicKnowledge
+{
+    private static readonly HashSet<string> MaxEnergy = new(StringComparer.Ordinal)
+    {
+        "BLESSEDANTLER", "BLOODSOAKEDROSE", "BREAD", "ECTOPLASM", "PAELSFLESH", "PHILOSOPHERSSTONE",
+        "PRISMATICGEM", "PUMPKINCANDLE", "SOZU", "SPIKEDGAUNTLETS", "VELVETCHOKER", "WHISPERINGEARRING"
+    };
+    private static readonly HashSet<string> Survival = new(StringComparer.Ordinal)
+    {
+        "TUNGSTENROD", "ORICHALCUM", "FAKEORICHALCUM", "BEATINGREMNANT", "THEBOOT"
+    };
+    private static readonly HashSet<string> Economy = new(StringComparer.Ordinal) { "MEMBERSHIPCARD", "THECOURIER" };
+
+    // Game IDs are snake case (PAELS_FLESH) while class names are Pascal case (PaelsFlesh);
+    // comparing letters and digits only accepts both spellings.
+    private static string Compact(string id) => new string(id.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
+    public static bool GivesEnergy(string id) => MaxEnergy.Contains(Compact(id));
+    public static bool HelpsSurvival(string id) => Survival.Contains(Compact(id));
+    public static bool HelpsEconomy(string id) => Economy.Contains(Compact(id));
+}
+
 internal static class ScoreExplanation
 {
     public static string Formula(OfferScore score)
@@ -85,9 +109,16 @@ internal static class DeckBuildScoring
         var detectedArchetypes = DetectArchetypes(context.Character, deck, context.Floor);
         var archetypes = ArchetypePreferences.Apply(context.Character, detectedArchetypes);
         var threat = EncounterThreatModel.Assess(context);
+        // Starter Strike/Defend copies are counted in the summary but do not satisfy a need:
+        // five Strikes are not "enough damage" for Act 1 elites and four Defends are not a
+        // defensive plan. Only reward-quality cards count as coverage.
+        var core = deck.Where(x => !CardTaxonomy.IsStarterStrikeOrDefend(x)).ToArray();
+        var coreDefense = core.Count(x => x.Block > 0);
+        var coreAttacks = core.Count(x => x.Damage > 0 && x.Type.Contains("attack", StringComparison.OrdinalIgnoreCase));
+        var defenseTarget = context.Act switch { <= 1 => context.Floor >= 8 ? 1 : 0, 2 => 2, _ => 3 };
         var needs = new List<string>();
-        if (context.Hp > 0 && context.Hp * 3 < context.MaxHp || defense < Math.Max(3, context.Act + 1)) needs.Add("защита");
-        if (context.Act == 1 && attacks < 4) needs.Add("быстрый урон");
+        if (context.Hp > 0 && context.Hp * 3 < context.MaxHp || coreDefense < defenseTarget) needs.Add("защита");
+        if (context.Act == 1 && coreAttacks < 2) needs.Add("быстрый урон");
         if (context.Act >= 2 && powers < 2 && !archetypes.Any(x => x.Contains("Темп"))) needs.Add("масштабирование");
         if (deck.Length >= 14 && draw < 2) needs.Add("добор");
         if (averageCost >= 1.7 && energy == 0 && !context.Relics.Any(IsEnergyRelic)) needs.Add("энергия");
@@ -399,7 +430,7 @@ internal static class DeckBuildScoring
         if (card.Type.Contains("power", StringComparison.OrdinalIgnoreCase)) roles.Add("талант");
         return roles.Count == 0 ? "навык" : string.Join("+ ", roles);
     }
-    private static bool IsEnergyRelic(string id) => new[] { "COFFEE", "CROWN", "FUSION", "KEY", "ENERGY" }.Any(x => id.Contains(x, StringComparison.OrdinalIgnoreCase));
+    private static bool IsEnergyRelic(string id) => RelicKnowledge.GivesEnergy(id);
     private static bool Has(CardDefinition card, params string[] tokens) => tokens.Any(x => (card.Id + " " + card.Description).Contains(x, StringComparison.OrdinalIgnoreCase));
     private static bool Has(string text, params string[] tokens) => tokens.Any(x => text.Contains(x, StringComparison.OrdinalIgnoreCase));
 }

@@ -119,7 +119,9 @@ internal static class EventCardAdvisor
         {
             catalog.TryGetValue(SpireCodexMetricsClient.NormalizeId(score.Id), out var card);
             var isCurse = card?.Type.Contains("curse", StringComparison.OrdinalIgnoreCase) == true || card?.Type.Contains("status", StringComparison.OrdinalIgnoreCase) == true;
-            var isStarter = score.Id.Contains("STRIKE", StringComparison.OrdinalIgnoreCase) || score.Id.Contains("DEFEND", StringComparison.OrdinalIgnoreCase);
+            var isStarter = card is not null
+                ? CardTaxonomy.IsStarterStrikeOrDefend(card)
+                : SpireCodexMetricsClient.NormalizeId(score.Id) is "STRIKE" or "DEFEND";
             decimal value;
             string reason;
             switch (purpose)

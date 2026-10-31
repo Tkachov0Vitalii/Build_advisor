@@ -7,9 +7,12 @@ namespace BuildAdvisor.Integration;
 internal static class BuildAdvisorRegression
 {
     public static string LastError { get; private set; } = "";
+    // While true, personal data (diary, local .run files) is ignored so the matrix is hermetic.
+    public static bool IsRunning { get; private set; }
 
     public static bool Run()
     {
+        IsRunning = true;
         try
         {
             RarityFormatsAreStable();
@@ -42,6 +45,10 @@ internal static class BuildAdvisorRegression
             StrongEarlyCardDetectsArchetype();
             EveryManualArchetypeMatchesItsSignal();
             RegentColorlessEngineNeedsBothHalves();
+            StarterDetectionUsesRarity();
+            StarterStrikesDoNotSatisfyEarlyDamage();
+            LowPercentMetricsStayLow();
+            EventHintsMatchWholeWords();
             LastError = "";
             return true;
         }
@@ -50,6 +57,59 @@ internal static class BuildAdvisorRegression
             LastError = error.Message;
             return false;
         }
+        finally { IsRunning = false; }
+    }
+
+    // 6.17.0: TWIN_STRIKE/PERFECTED_STRIKE contain "STRIKE" but are reward cards.
+    private static void StarterDetectionUsesRarity()
+    {
+        var strike = Card("STRIKE_IRONCLAD", "Attack", damage: 6, rarity: "basic");
+        var twin = Card("TWIN_STRIKE", "Attack", damage: 5, rarity: "common");
+        var perfected = Card("PERFECTED_STRIKE", "Attack", cost: 2, damage: 6, rarity: "common");
+        var bash = Card("BASH", "Attack", cost: 2, damage: 8, rarity: "basic");
+        var fixture = Card("STRIKE", "Attack", damage: 6, rarity: "");
+        if (!CardTaxonomy.IsStarterCopy(strike, "STRIKE") || CardTaxonomy.IsStarterCopy(twin, "STRIKE") ||
+            CardTaxonomy.IsStarterCopy(perfected, "STRIKE") || CardTaxonomy.IsStarterCopy(bash, "STRIKE") ||
+            !CardTaxonomy.IsStarterCopy(fixture, "STRIKE"))
+            throw new InvalidOperationException("Starter Strike detection must use rarity, not an ID substring.");
+    }
+
+    // 6.17.0: five starter Strikes used to hide the Act 1 "fast damage" need.
+    private static void StarterStrikesDoNotSatisfyEarlyDamage()
+    {
+        var catalog = new[]
+        {
+            Card("STRIKE", "Attack", damage: 6, rarity: "basic"), Card("DEFEND", "Skill", block: 5, rarity: "basic"),
+            Card("BASH", "Attack", cost: 2, damage: 8, rarity: "basic"), Card("QUICK_PICK", "Attack", damage: 9)
+        }.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
+        var deck = Enumerable.Repeat("STRIKE", 5).Concat(Enumerable.Repeat("DEFEND", 4)).Append("BASH").ToArray();
+        var context = new RunContext("ironclad", deck, [], 0, 1, 3, 80, 80, 99, null, 1.1m, 6, 4, 0, []);
+        var result = DeckBuildScoring.Evaluate(context, ["QUICK_PICK"], catalog, Metrics("QUICK_PICK"));
+        if (!result.Needs.Contains("быстрый урон"))
+            throw new InvalidOperationException("Starter deck in Act 1 must still need fast damage.");
+        if (result.Needs.Contains("защита"))
+            throw new InvalidOperationException("Floor 3 with full HP must not demand defense from starter Defends.");
+    }
+
+    // 6.17.0: rates are percent in the API; a 0.8% pick rate must not become 80%.
+    private static void LowPercentMetricsStayLow()
+    {
+        using var document = System.Text.Json.JsonDocument.Parse("{\"rows\":[{\"id\":\"POPULAR\",\"win_rate\":51.0,\"pick_rate\":45.0,\"picks\":900},{\"id\":\"NICHE\",\"win_rate\":0.9,\"pick_rate\":0.8,\"picks\":40}]}");
+        var parsed = SpireCodexMetricsClient.ParseMetrics(document.RootElement, "cards");
+        if (parsed["NICHE"].PickRate != .008m || parsed["NICHE"].WinRate != .009m || parsed["POPULAR"].PickRate != .45m)
+            throw new InvalidOperationException("Percent metrics must be scaled once per response.");
+        using var fractions = System.Text.Json.JsonDocument.Parse("{\"rows\":[{\"id\":\"OLD\",\"win_rate\":0.52,\"pick_rate\":0.3}]}");
+        if (SpireCodexMetricsClient.ParseMetrics(fractions.RootElement, "cards")["OLD"].PickRate != .3m)
+            throw new InvalidOperationException("Fraction metrics must stay fractions.");
+    }
+
+    // 6.17.0: "DAM" (Dam fragment) used to match every option mentioning DAMAGE.
+    private static void EventHintsMatchWholeWords()
+    {
+        var context = new RunContext("ironclad", [], [], 0, 1, 5, 80, 80, 150, null, 1m, 0, 0, 0, []);
+        var advice = LocalDeckAdvisor.ForEvent(context, ["Deal 10 damage to all enemies"]);
+        if (advice.Contains("повторный выбор награды", StringComparison.Ordinal))
+            throw new InvalidOperationException("Event hint matched DAM inside DAMAGE.");
     }
 
     private static void EventAdviceIsBilingual()

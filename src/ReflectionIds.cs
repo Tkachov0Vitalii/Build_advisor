@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using Godot;
 
@@ -8,6 +9,10 @@ internal static class ReflectionIds
     private static readonly string[] IdNames = ["Id", "ModelId", "CardId", "RelicId", "id"];
     private static readonly string[] ModelNames = ["Card", "CardModel", "Model", "Relic", "RelicModel", "Item", "Entry", "Visual", "SaleVisual", "_saleVisual", "_cardNode", "_relic", "_relicNode", "Data", "Result", "Value"];
     private const BindingFlags Flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+    // Reflection lookups are cached per (type, member). The live panel reads the whole deck
+    // every second, and uncached GetProperty/GetFields calls dominated that cost.
+    private static readonly ConcurrentDictionary<(Type Type, string Name), Func<object, object?>?> Getters = new();
+    private static readonly ConcurrentDictionary<Type, (string Name, Func<object, object?> Get)[]> MemberLists = new();
 
     public static IReadOnlyList<string> FindIds(IEnumerable<object> roots) => roots.Select(FindId).Where(id => id is not null).Cast<string>().Distinct().ToArray();
     public static IReadOnlyList<string> FindIdsWithDuplicates(IEnumerable<object> roots) => roots.Select(FindId).Where(id => id is not null).Cast<string>().ToArray();
@@ -68,7 +73,30 @@ internal static class ReflectionIds
     }
 
     public static string? Text(object value) => Member(value, "Text")?.ToString();
-    public static object? Member(object source, string name) => source.GetType().GetProperty(name, Flags)?.GetValue(source) ?? source.GetType().GetField(name, Flags)?.GetValue(source);
+    public static object? Member(object source, string name)
+    {
+        var getter = Getters.GetOrAdd((source.GetType(), name), static key => CreateGetter(key.Type, key.Name));
+        if (getter is null) return null;
+        try { return getter(source); }
+        catch (TargetInvocationException) { return null; }
+    }
+
+    // Walks from the most derived type upwards with DeclaredOnly. Type.GetProperty(name) throws
+    // AmbiguousMatchException when a derived class hides a base property with "new".
+    private static Func<object, object?>? CreateGetter(Type type, string name)
+    {
+        PropertyInfo? property = null;
+        FieldInfo? field = null;
+        for (var current = type; current is not null && (property is null || field is null); current = current.BaseType)
+        {
+            property ??= current.GetProperties(Flags | BindingFlags.DeclaredOnly)
+                .FirstOrDefault(x => x.Name == name && x.CanRead && x.GetIndexParameters().Length == 0);
+            field ??= current.GetField(name, Flags | BindingFlags.DeclaredOnly);
+        }
+        if (property is null && field is null) return null;
+        // Preserve the previous lookup order: property first, then a field with the same name.
+        return source => property?.GetValue(source) ?? field?.GetValue(source);
+    }
     public static string? FindText(object root, params string[] names) => FindValue(root, names)?.ToString();
     public static int? FindInt(object root, params string[] names)
     {
@@ -105,12 +133,16 @@ internal static class ReflectionIds
     };
     private static IEnumerable<(string name, object? value)> Members(object value)
     {
-        foreach (var property in value.GetType().GetProperties(Flags).Where(p => p.GetIndexParameters().Length == 0))
+        var members = MemberLists.GetOrAdd(value.GetType(), static type =>
+            type.GetProperties(Flags).Where(p => p.GetIndexParameters().Length == 0 && p.CanRead)
+                .Select(p => (p.Name, (Func<object, object?>)p.GetValue))
+                .Concat(type.GetFields(Flags).Select(f => (f.Name, (Func<object, object?>)f.GetValue)))
+                .ToArray());
+        foreach (var (name, get) in members)
         {
-            object? memberValue = null; try { memberValue = property.GetValue(value); } catch { }
-            yield return (property.Name, memberValue);
+            object? memberValue = null; try { memberValue = get(value); } catch { }
+            yield return (name, memberValue);
         }
-        foreach (var field in value.GetType().GetFields(Flags)) yield return (field.Name, field.GetValue(value));
     }
     private static bool IsGameValue(object value) => value.GetType().Namespace?.StartsWith("MegaCrit.Sts2", StringComparison.Ordinal) == true;
     private static IEnumerable<Node> Descendants(Node root) { foreach (var child in root.GetChildren()) { yield return child; foreach (var nested in Descendants(child)) yield return nested; } }

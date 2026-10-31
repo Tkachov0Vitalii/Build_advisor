@@ -1,4 +1,6 @@
 using System.Collections;
+using MegaCrit.Sts2.Core.Context;
+using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Runs;
 
 namespace BuildAdvisor.Integration;
@@ -8,6 +10,9 @@ internal sealed record RunContext(string Character, IReadOnlyList<string> Cards,
     public string Bracket => "a" + Math.Clamp(Ascension, 0, 10);
     public IReadOnlyList<DeckCardState> CardStates { get; init; } = [];
     public RouteSnapshot Route { get; init; } = RouteSnapshot.Empty;
+    public int PlayerCount { get; init; } = 1;
+    public string? RunSeed { get; init; }
+    public bool IsMultiplayer => PlayerCount > 1;
 }
 
 internal sealed record DeckCardState(string Id, int UpgradeLevel, int MaxUpgradeLevel)
@@ -41,7 +46,8 @@ internal static class RunContextReader
         if (manager is null) return null;
         var state = ReflectionIds.Member(manager, "State");
         if (state is null) return null;
-        var player = Values(ReflectionIds.Member(state, "Players")).FirstOrDefault();
+        var players = Values(ReflectionIds.Member(state, "Players")).ToArray();
+        var player = LocalPlayer(players);
         if (player is null) return null;
         var character = ReflectionIds.FindId(ReflectionIds.Member(player, "Character")!);
         if (string.IsNullOrWhiteSpace(character)) return null;
@@ -79,9 +85,25 @@ internal static class RunContextReader
         var powers = facts.Count(x => x.Kind.Contains("POWER", StringComparison.OrdinalIgnoreCase));
         return new RunContext(character.ToLowerInvariant(), cards, relics, ascension, act, floor, hp, maxHp <= 0 ? Math.Max(hp, 1) : maxHp, gold, boss, averageCost, attacks, skills, powers, RunTimeline.Update(cards, relics, floor))
         {
-            CardStates = cardStates
-            , Route = route
+            CardStates = cardStates,
+            Route = route,
+            PlayerCount = Math.Max(1, players.Length),
+            RunSeed = ReflectionIds.Member(ReflectionIds.Member(state, "Rng") ?? new object(), "StringSeed")?.ToString()
         };
+    }
+
+    // In co-op the player list starts with the host, not necessarily with this client.
+    // LocalContext.GetMe returns null in single player (no NetId), so the first player
+    // remains the correct fallback there.
+    private static object? LocalPlayer(object[] players)
+    {
+        if (players.Length <= 1) return players.FirstOrDefault();
+        try
+        {
+            if (LocalContext.GetMe(players.OfType<Player>()) is { } me) return me;
+        }
+        catch { }
+        return players.FirstOrDefault();
     }
 
     private static RouteSnapshot ReadRoute(object state)

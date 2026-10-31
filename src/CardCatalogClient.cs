@@ -20,6 +20,21 @@ internal static class CardTaxonomy
         return string.IsNullOrWhiteSpace(rarity) ? "Неизвестная" : value!.Trim();
     }
 
+    public static bool IsBasic(CardDefinition card) => RarityName(card.Rarity) == "Базовая";
+
+    // Starter Strike/Defend copies. Rarity is authoritative: TWIN_STRIKE, POMMEL_STRIKE and
+    // PERFECTED_STRIKE contain the token but are real reward cards, not starter slots. When an
+    // offline fixture has no rarity, only the exact starter IDs (STRIKE, STRIKE_<CHARACTER>) count.
+    public static bool IsStarterCopy(CardDefinition card, string token)
+    {
+        var id = SpireCodexMetricsClient.NormalizeId(card.Id);
+        var exact = id == token || id.StartsWith(token + "_", StringComparison.Ordinal);
+        if (string.IsNullOrWhiteSpace(card.Rarity)) return exact;
+        return IsBasic(card) && (exact || id.Contains(token, StringComparison.Ordinal));
+    }
+
+    public static bool IsStarterStrikeOrDefend(CardDefinition card) => IsStarterCopy(card, "STRIKE") || IsStarterCopy(card, "DEFEND");
+
     public static bool MatchesRarity(CardDefinition card, string filter) =>
         filter == "Любая редкость" || string.Equals(RarityName(card.Rarity), filter, StringComparison.OrdinalIgnoreCase);
 }
@@ -62,7 +77,7 @@ internal sealed class CardCatalogClient
             if (File.Exists(disk) && DateTime.UtcNow - File.GetLastWriteTimeUtc(disk) < DiskLifetime)
             {
                 var cachedJson = await File.ReadAllTextAsync(disk, token);
-                var cachedData = Parse(cachedJson);
+                var cachedData = await Task.Run(() => Parse(cachedJson), token);
                 if (cachedData.Count > 0) { Caches[language] = (DateTimeOffset.UtcNow.Add(DiskLifetime), cachedData); return cachedData; }
             }
             try
@@ -70,9 +85,15 @@ internal sealed class CardCatalogClient
                 using var response = await Http.GetAsync("https://spire-codex.com/api/cards?lang=" + language, token);
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync(token);
-                var data = Parse(json);
+                // Parsing a full catalogue is the heaviest step; keep it off the Godot frame.
+                // The continuation returns to the main thread through Godot's sync context.
+                var data = await Task.Run(() => Parse(json), token);
+                // A changed API format or a 200 OK placeholder page must not replace a good
+                // local copy or be cached as an empty catalogue for 12 hours.
+                if (data.Count == 0) throw new InvalidDataException("Spire Codex returned an empty card catalogue.");
                 Directory.CreateDirectory(Path.GetDirectoryName(disk)!);
-                await File.WriteAllTextAsync(disk, json, token);
+                await File.WriteAllTextAsync(disk + ".tmp", json, token);
+                File.Move(disk + ".tmp", disk, true);
                 Caches[language] = (DateTimeOffset.UtcNow.AddHours(12), data);
                 return data;
             }
@@ -80,7 +101,8 @@ internal sealed class CardCatalogClient
             {
                 // A catalogue changes slowly. An expired local copy is much more useful than
                 // an empty UI when the service, DNS or an antivirus web shield is unavailable.
-                var stale = Parse(await File.ReadAllTextAsync(disk, token));
+                var staleJson = await File.ReadAllTextAsync(disk, token);
+                var stale = await Task.Run(() => Parse(staleJson), token);
                 if (stale.Count == 0) throw;
                 Caches[language] = (DateTimeOffset.UtcNow.AddMinutes(30), stale);
                 GD.Print($"Build Advisor catalog: using stale offline cache ({stale.Count} keys)");

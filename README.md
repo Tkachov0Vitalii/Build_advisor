@@ -1,4 +1,4 @@
-# Build Advisor 6.16.2 для Slay the Spire 2
+# Build Advisor 6.17.0 для Slay the Spire 2
 
 Кроссплатформенный релиз для Windows, Linux и macOS. В верхней строке окна появился сохраняемый переключатель **Русский / English**; каталог Spire Codex также загружается на выбранном языке. Подробные инструкции: [русская](INSTALL_RU.md) и [English](INSTALL_EN.md).
 

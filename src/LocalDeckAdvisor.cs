@@ -155,9 +155,9 @@ internal static class LocalDeckAdvisor
     private static string RelicRole(string id)
     {
         var x = SpireCodexId(id);
-        if (Has(x, "ENERGY", "COFFEE", "FUSION", "CROWN", "KEY")) return "energy";
-        if (Has(x, "GOLD", "MEMBERSHIP", "COURIER", "SMILING", "MAW", "ECON")) return "economy";
-        if (Has(x, "BLOCK", "ARMOR", "TUNGSTEN", "ORICH", "DEFEND")) return "defense";
+        if (RelicKnowledge.GivesEnergy(x)) return "energy";
+        if (RelicKnowledge.HelpsEconomy(x) || Has(x, "GOLD", "MEMBERSHIP", "COURIER")) return "economy";
+        if (RelicKnowledge.HelpsSurvival(x)) return "defense";
         if (Has(x, "DRAW", "BAG", "LANTERN", "TOY", "BELL", "CONSIST")) return "consistency";
         return "other";
     }
@@ -166,23 +166,32 @@ internal static class LocalDeckAdvisor
         var x = text.ToUpperInvariant();
         // The three Ancient artefacts are an explicit strategic choice, not a generic event.
         // These names are checked in Russian and canonical English so the advice survives locale changes.
-        if (Has(x, "ПРИЗМАТИЧЕСКИЙ САМОЦВЕТ", "PRISMATIC GEM", "ENERGY_ICON", "ЭНЕРГ"))
+        if (x.Contains("ENERGY_ICON", StringComparison.Ordinal) || HasWord(x, "ПРИЗМАТИЧЕСКИЙ САМОЦВЕТ", "PRISMATIC GEM", "ЭНЕРГ"))
         {
             var expensive = c is not null && c.AverageCost >= 1.5m;
             return expensive
                 ? "ВЫСОКИЙ ПРИОРИТЕТ: дополнительная энергия разгружает дорогую колоду; карты других цветов — осознанный риск"
                 : "средний приоритет: энергия сильна, но карты других цветов могут размыть уже выбранный архетип";
         }
-        if (Has(x, "ОБЛОМОК ПЛОТИНЫ", "DAM", "REWARD", "НАГРАДН"))
+        if (HasWord(x, "ОБЛОМОК ПЛОТИНЫ", "DAM", "REWARD", "НАГРАДН"))
             return "ситуативно: повторный выбор награды полезен, когда колода уже ищет конкретные карты; не закрывает дефицит немедленно";
-        if (Has(x, "ДРЕВНИЙ ЗУБ", "ANCIENT TOOTH", "ВМЯТИН", "ПРОЛОМ"))
+        if (HasWord(x, "ДРЕВНИЙ ЗУБ", "ANCIENT TOOTH", "ВМЯТИН", "ПРОЛОМ"))
             return "рекомендуется, если улучшение «Вмятина → Пролом» даёт повторное наложение Уязвимости; особенно ценно при уже собранном направлении Уязвимости";
-        if (Has(x, "РЕЛИК", "RELIC")) return "ценность зависит от синергии и возможной цены";
-        if (Has(x, "ПРОКЛЯТ", "CURSE")) return "берите только если награда окупает проклятие и есть способ удалить его";
-        if (Has(x, "ЗОЛОТ", "GOLD")) return c is not null && c.Gold < 100 ? "золото особенно ценно перед ближайшим магазином" : "сравните с потерей HP и альтернативной наградой";
-        if (Has(x, "HP", "ЗДОРОВ", "ПОЛУЧИТ")) return c is not null && c.Hp * 3 < c.MaxHp ? "низкий HP: избегайте риска без сильной компенсации" : "сравните с ближайшей элитой";
+        if (HasWord(x, "РЕЛИК", "RELIC")) return "ценность зависит от синергии и возможной цены";
+        if (HasWord(x, "ПРОКЛЯТ", "CURSE")) return "берите только если награда окупает проклятие и есть способ удалить его";
+        if (HasWord(x, "ЗОЛОТ", "GOLD")) return c is not null && c.Gold < 100 ? "золото особенно ценно перед ближайшим магазином" : "сравните с потерей HP и альтернативной наградой";
+        if (HasWord(x, "HP", "ЗДОРОВ", "HEAL", "ИСЦЕЛ")) return c is not null && c.Hp * 3 < c.MaxHp ? "низкий HP: избегайте риска без сильной компенсации" : "сравните с ближайшей элитой";
         return "оцените немедленную цену и то, закрывает ли награда текущую потребность";
     }
+    // Event option text is matched by words, not substrings: "DAM" used to fire on every
+    // "DAMAGE" and "ПОЛУЧИТ" on every "получите". Cyrillic tokens are stems and match a word
+    // prefix (ПРОКЛЯТ → проклятие); Latin tokens must be whole words with an optional plural S.
+    private static bool HasWord(string value, params string[] tokens) => tokens.Any(token =>
+    {
+        var cyrillic = token.Any(ch => ch is >= 'А' and <= 'я' or 'Ё' or 'ё');
+        var pattern = @"(?<![\p{L}\p{N}_])" + System.Text.RegularExpressions.Regex.Escape(token) + (cyrillic ? "" : @"S?(?![\p{L}\p{N}_])");
+        return System.Text.RegularExpressions.Regex.IsMatch(value, pattern, System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+    });
     private static bool Has(string value, params string[] tokens) => tokens.Any(value.Contains);
     private static string SpireCodexId(string id) => Data.SpireCodexMetricsClient.NormalizeId(id);
     private static string CharacterName(string id) => id switch { "silent" => "Безмолвная", "ironclad" => "Латник", "defect" => "Дефект", _ => id };

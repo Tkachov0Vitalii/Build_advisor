@@ -199,5 +199,9 @@ public static class CardRewardPatch
 public static class CardRewardExitBadgeCleanup
 {
     [HarmonyPrefix]
-    public static void BeforeExit(Node __instance) => AdviceOverlay.ClearBadges(__instance);
+    public static void BeforeExit(Node __instance)
+    {
+        AdviceOverlay.ClearBadges(__instance);
+        PersonalRunDiary.CloseOffer();
+    }
 }

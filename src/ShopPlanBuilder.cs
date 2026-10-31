@@ -22,7 +22,7 @@ internal static class ShopPlanBuilder
         var scoredRelics = relics.Select(item => ScoreRelic(item, context, relicMetrics, relicNames)).ToArray();
         var relicLines = scoredRelics.OrderByDescending(x => Value(x.Score, x.Price)).Take(3).Select(x =>
             $"{x.Name}: {x.Score:F0}/100" + (x.Price > 0 ? $" · {x.Price} золота" : " · цена не прочитана") + $" — {x.Reason}");
-        var removal = context.Cards.Count >= 15 && context.Cards.Any(IsStarterCard)
+        var removal = context.Cards.Count >= 15 && context.Cards.Any(id => IsStarterCard(id, catalog))
             ? "Удаление: высокий приоритет — колода уже большая, базовая карта снижает качество добора."
             : "Удаление: средний приоритет; не жертвуйте ключевой покупкой без явного слабого базового слота.";
         var budget = context.Gold > 0 ? $"Бюджет: {context.Gold} золота." : "Золото не прочитано.";
@@ -74,12 +74,17 @@ internal static class ShopPlanBuilder
         var key = SpireCodexMetricsClient.NormalizeId(item.Id);
         var metric = metrics.TryGetValue(key, out var found) ? found : null;
         var score = metric is null ? 50m : metric.CodexScore ?? Math.Clamp(50m + (metric.WinRate - .5m) * 100m, 0m, 100m);
-        var text = item.Id.ToUpperInvariant(); var reason = "общая ценность по данным сообщества";
-        if (context.AverageCost >= 1.7m && new[] { "COFFEE", "CROWN", "FUSION", "KEY", "ENERGY" }.Any(text.Contains)) { score += 24; reason = "решает дефицит энергии дорогой колоды"; }
-        else if (context.Hp > 0 && context.Hp * 3 < context.MaxHp && new[] { "BLOCK", "ARMOR", "TUNGSTEN", "ORICH" }.Any(text.Contains)) { score += 16; reason = "поддерживает выживаемость при низком HP"; }
-        else if (context.Gold < 100 && new[] { "GOLD", "MEMBERSHIP", "COURIER", "SMILING" }.Any(text.Contains)) { score += 10; reason = "улучшает экономику следующих магазинов"; }
+        var reason = "общая ценность по данным сообщества";
+        if (context.AverageCost >= 1.7m && RelicKnowledge.GivesEnergy(item.Id)) { score += 24; reason = "решает дефицит энергии дорогой колоды"; }
+        else if (context.Hp > 0 && context.Hp * 3 < context.MaxHp && RelicKnowledge.HelpsSurvival(item.Id)) { score += 16; reason = "поддерживает выживаемость при низком HP"; }
+        else if (context.Gold < 100 && RelicKnowledge.HelpsEconomy(item.Id)) { score += 10; reason = "улучшает экономику следующих магазинов"; }
         var displayName = names is not null && names.TryGetValue(key, out var localized) ? localized : metric?.Name ?? item.Id;
         return (displayName, Math.Clamp(score, 0m, 100m), item.Price, reason);
     }
-    private static bool IsStarterCard(string id) => new[] { "STRIKE", "DEFEND", "УДАР", "ОБОРОНА" }.Any(x => id.Contains(x, StringComparison.OrdinalIgnoreCase));
+    private static bool IsStarterCard(string id, IReadOnlyDictionary<string, CardDefinition> catalog) =>
+        catalog.TryGetValue(SpireCodexMetricsClient.NormalizeId(id), out var card)
+            ? CardTaxonomy.IsStarterStrikeOrDefend(card)
+            : SpireCodexMetricsClient.NormalizeId(id) is "STRIKE" or "DEFEND" ||
+              SpireCodexMetricsClient.NormalizeId(id).StartsWith("STRIKE_", StringComparison.Ordinal) ||
+              SpireCodexMetricsClient.NormalizeId(id).StartsWith("DEFEND_", StringComparison.Ordinal);
 }

@@ -10,6 +10,7 @@ internal static class CardImageCache
     private static readonly System.Net.Http.HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(12) };
     private static readonly SemaphoreSlim Downloads = new(4, 4);
     private static readonly ConcurrentDictionary<string, Texture2D> Memory = new(StringComparer.OrdinalIgnoreCase);
+    private const int MemoryLimit = 128;
     private static readonly ConcurrentDictionary<string, byte> Unsupported = new(StringComparer.OrdinalIgnoreCase);
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> UrlGates = new(StringComparer.OrdinalIgnoreCase);
 
@@ -54,6 +55,10 @@ internal static class CardImageCache
                     var image = Image.LoadFromFile(path);
                     if (image is null || image.IsEmpty()) return;
                     ready = ImageTexture.CreateFromImage(image);
+                    // The search can show every card in the game. Textures on screen stay alive
+                    // through their TextureRect; the cache itself is dropped past a fixed size
+                    // instead of keeping every artwork for the whole session. Disk cache remains.
+                    if (Memory.Count >= MemoryLimit) Memory.Clear();
                     Memory[url] = ready;
                 }
                 }

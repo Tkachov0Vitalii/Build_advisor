@@ -14,9 +14,17 @@ internal sealed class PickCoachClient
     public async Task<CoachAdvice?> GetAsync(RunContext context, IEnumerable<string> offer, CancellationToken token = default)
     {
         var offered = offer.ToArray();
-        var key = context.Character + "|" + string.Join(',', context.Cards.OrderBy(x => x)) + "|" + string.Join(',', context.Relics.OrderBy(x => x)) + "|" + string.Join(',', offered.OrderBy(x => x));
-        lock (Gate) if (Cache.TryGetValue(key, out var cached) && cached.Until > DateTimeOffset.UtcNow) return cached.Advice;
-        var query = $"character={Uri.EscapeDataString(context.Character.ToUpperInvariant())}&cards={Uri.EscapeDataString(string.Join(',', context.Cards))}&relics={Uri.EscapeDataString(string.Join(',', context.Relics))}&offer={Uri.EscapeDataString(string.Join(',', offered))}&lang=rus";
+        var language = ModLocalization.ApiLanguage;
+        var key = language + "|" + context.Character + "|" + string.Join(',', context.Cards.OrderBy(x => x)) + "|" + string.Join(',', context.Relics.OrderBy(x => x)) + "|" + string.Join(',', offered.OrderBy(x => x));
+        lock (Gate)
+        {
+            if (Cache.TryGetValue(key, out var cached) && cached.Until > DateTimeOffset.UtcNow) return cached.Advice;
+            // Every deck change creates a new key, so expired entries are pruned instead of
+            // accumulating for the whole game session.
+            if (Cache.Count > 64)
+                foreach (var stale in Cache.Where(x => x.Value.Until <= DateTimeOffset.UtcNow).Select(x => x.Key).ToArray()) Cache.Remove(stale);
+        }
+        var query = $"character={Uri.EscapeDataString(context.Character.ToUpperInvariant())}&cards={Uri.EscapeDataString(string.Join(',', context.Cards))}&relics={Uri.EscapeDataString(string.Join(',', context.Relics))}&offer={Uri.EscapeDataString(string.Join(',', offered))}&lang={language}";
         using var response = await Http.GetAsync("https://spire-codex.com/api/runs/pick-coach?" + query, token);
         response.EnsureSuccessStatusCode();
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStreamAsync(token));
@@ -27,7 +35,7 @@ internal sealed class PickCoachClient
             return null;
         }
         var target = root.TryGetProperty("target", out var targetElement) ? targetElement : default;
-        var archetype = Text(target, "name") ?? "смешанный билд";
+        var archetype = Text(target, "name") ?? (language == "eng" ? "mixed build" : "смешанный билд");
         var winRate = Number(target, "win_rate") / 100m;
         var offers = root.TryGetProperty("offers", out var rows) && rows.ValueKind == JsonValueKind.Array
             ? rows.EnumerateArray().Select(row => new CoachOffer(Text(row, "id") ?? "?", Text(row, "name") ?? Text(row, "id") ?? "?", Number(row, "coach_score"), Number(row, "winner_support"))).OrderByDescending(x => x.Score).ToArray()

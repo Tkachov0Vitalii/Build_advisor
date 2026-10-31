@@ -9,18 +9,30 @@ namespace BuildAdvisor.Integration;
 [HarmonyPatch(typeof(NEventOptionButton), "_Ready")]
 public static class EventOptionPatch
 {
+    // Every option button runs _Ready, so one event page used to be analysed and rendered once
+    // per option. Buttons of the same page share one pending render.
+    private static readonly HashSet<ulong> PendingScreens = new();
+
     [HarmonyPostfix]
     public static async void AfterReady(Node __instance)
     {
-        await Task.Delay(150);
-        if (!GodotObject.IsInstanceValid(__instance)) return;
-        var screen = EventScreen(__instance);
-        var options = Descendants(screen).Where(x => x is NEventOptionButton).ToArray();
-        if (options.Length == 0) return;
-        var context = RunContextReader.TryRead();
-        var choices = options.Select(option => Clean(OptionText(option) ?? "Ветка события")).ToArray();
-        var header = "BUILD ADVISOR · событие" + (context is null ? "" : $" · {context.Bracket.ToUpperInvariant()} · Act {context.Act}");
-        AdviceOverlay.Render(screen, header + "\n" + LocalDeckAdvisor.ForEvent(context, choices));
+        var initialScreen = EventScreen(__instance);
+        var screenId = initialScreen.GetInstanceId();
+        if (!PendingScreens.Add(screenId)) return;
+        try
+        {
+            await Task.Delay(150);
+            if (!GodotObject.IsInstanceValid(__instance)) return;
+            var screen = EventScreen(__instance);
+            var options = Descendants(screen).Where(x => x is NEventOptionButton).ToArray();
+            if (options.Length == 0) return;
+            var context = RunContextReader.TryRead();
+            var choices = options.Select(option => Clean(OptionText(option) ?? "Ветка события")).ToArray();
+            var header = "BUILD ADVISOR · событие" + (context is null ? "" : $" · {context.Bracket.ToUpperInvariant()} · Act {context.Act}");
+            AdviceOverlay.Render(screen, header + "\n" + LocalDeckAdvisor.ForEvent(context, choices));
+        }
+        catch (Exception error) { GD.PrintErr("Build Advisor event: " + error.Message); }
+        finally { PendingScreens.Remove(screenId); }
     }
     private static string? OptionText(Node option) => ReflectionIds.Text(ReflectionIds.Member(option, "_label") ?? option);
     private static Node EventScreen(Node node)

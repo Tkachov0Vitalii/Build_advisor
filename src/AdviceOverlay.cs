@@ -654,12 +654,12 @@ public static class AdviceOverlay
     private static void UpdateLive(Node host)
     {
         var live = Find<Label>(host, LiveName);
-        var context = RunContextReader.TryRead();
         if (live is null) return;
+        var context = RunContextReader.TryRead();
         if (context is not null)
         {
             contextMissingSince = null;
-            ArchetypePreferences.ObserveRun(context.Character, context.Floor, context.Cards.Count);
+            ArchetypePreferences.ObserveRun(context.Character, context.Floor, context.Cards.Count, context.RunSeed);
             SyncArchetypeChooser(host, context);
             live.Text = L($"Act {context.Act} · этаж {context.Floor} · HP {context.Hp}/{context.MaxHp} · золото {context.Gold} · {context.Cards.Count} карт · {context.Relics.Count} реликвий");
             EnsureCachedSearch(host, context);

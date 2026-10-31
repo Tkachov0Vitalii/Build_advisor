@@ -21,20 +21,24 @@ internal static class RunHistoryInsights
         IReadOnlyDictionary<string, DuplicatePreference> DuplicatePreferences,
         IReadOnlyDictionary<string, ChoicePreference> ChoicePreferences,
         IReadOnlyDictionary<string, IReadOnlyDictionary<int, int>> ExpectedDeck, SkipDecisionModel? SkipModel, int PriorRuns);
-    private static readonly Lazy<Model> Data = new(Load, LazyThreadSafetyMode.ExecutionAndPublication);
+    private static readonly Lazy<Model> Data = new(() => Load(includeLocalHistory: true), LazyThreadSafetyMode.ExecutionAndPublication);
+    // The startup regression matrix must give the same answer on every machine, so while it
+    // runs only the bundled priors are used, never this player's .run files.
+    private static readonly Lazy<Model> PriorsOnly = new(() => Load(includeLocalHistory: false), LazyThreadSafetyMode.ExecutionAndPublication);
+    private static Model Current => BuildAdvisorRegression.IsRunning ? PriorsOnly.Value : Data.Value;
 
     public static int ExpectedDeckSize(string character, int floor)
     {
         floor = Math.Max(1, floor);
-        var relevant = Data.Value.Runs.Where(x => x.Character == character && x.Win && x.MaxFloor >= floor).ToArray();
+        var relevant = Current.Runs.Where(x => x.Character == character && x.Win && x.MaxFloor >= floor).ToArray();
         // A handful of personal runs is far too noisy to redefine the target curve. Prefer
         // the global winner prior until the player has a genuinely representative history.
-        if (relevant.Length < 10 && Data.Value.ExpectedDeck.TryGetValue(character, out var priorCurve) && priorCurve.Count > 0)
+        if (relevant.Length < 10 && Current.ExpectedDeck.TryGetValue(character, out var priorCurve) && priorCurve.Count > 0)
         {
             var nearest = priorCurve.OrderBy(x => Math.Abs(x.Key - floor)).First();
             return nearest.Value;
         }
-        if (relevant.Length < 2) relevant = Data.Value.Runs.Where(x => x.Character == character && !x.Abandoned && x.MaxFloor >= floor).ToArray();
+        if (relevant.Length < 2) relevant = Current.Runs.Where(x => x.Character == character && !x.Abandoned && x.MaxFloor >= floor).ToArray();
         if (relevant.Length == 0) return Math.Clamp(12 + floor / 3, 15, 28);
         var sizes = relevant.Select(run => run.Deck.Count(card => card.Floor <= floor)).OrderBy(x => x).ToArray();
         return sizes[sizes.Length / 2];
@@ -61,12 +65,12 @@ internal static class RunHistoryInsights
         var key = character + "|" + SpireCodexMetricsClient.NormalizeId(cardId);
         var learned = 0m;
         var preferenceKey = key + "|" + Math.Clamp(act, 1, 3) + "|" + Math.Clamp(copiesAfter - 1, 1, 3);
-        if (Data.Value.DuplicatePreferences.TryGetValue(preferenceKey, out var preference))
+        if (Current.DuplicatePreferences.TryGetValue(preferenceKey, out var preference))
         {
             var preferenceReliability = Math.Min(1m, preference.Offers / 150m);
             learned = Math.Clamp(preference.Adjustment * preferenceReliability, -12m, 6m);
         }
-        if (!Data.Value.Duplicates.TryGetValue(key, out var evidence) || evidence.DuplicateRuns < 10 || evidence.SingleRuns < 10)
+        if (!Current.Duplicates.TryGetValue(key, out var evidence) || evidence.DuplicateRuns < 10 || evidence.SingleRuns < 10)
             return Math.Min(-.5m, structural + learned);
         var delta = evidence.DuplicateWinRate - evidence.SingleWinRate;
         // The smaller group limits the comparison. A 3-vs-30 split is not as trustworthy
@@ -81,14 +85,14 @@ internal static class RunHistoryInsights
 
     public static string Summary(string character, int floor)
     {
-        var runs = Data.Value.Runs.Where(x => x.Character == character).ToArray();
+        var runs = Current.Runs.Where(x => x.Character == character).ToArray();
         var wins = runs.Count(x => x.Win);
-        return $"История: локально {runs.Length} забегов ({wins} побед), глобальный офлайн-приор {Data.Value.PriorRuns}; ориентир размера к этажу {floor}: {ExpectedDeckSize(character, floor)} карт. " +
+        return $"История: локально {runs.Length} забегов ({wins} побед), глобальный офлайн-приор {Current.PriorRuns}; ориентир размера к этажу {floor}: {ExpectedDeckSize(character, floor)} карт. " +
                "Личные результаты используются только при достаточной повторяемости наблюдений.";
     }
 
     public static DuplicateInsight? ForCard(string character, string id) =>
-        Data.Value.Duplicates.GetValueOrDefault(character + "|" + SpireCodexMetricsClient.NormalizeId(id));
+        Current.Duplicates.GetValueOrDefault(character + "|" + SpireCodexMetricsClient.NormalizeId(id));
 
     public static bool HasReliableDuplicateEvidence(DuplicateInsight? evidence) =>
         evidence is { DuplicateRuns: >= 8, SingleRuns: >= 8 };
@@ -96,14 +100,14 @@ internal static class RunHistoryInsights
     public static decimal? ChoiceSignal(string character, string cardId, int act, int deckSize, int copiesBefore)
     {
         var key = $"{character.ToLowerInvariant()}|{NormalizeId(cardId)}|{Math.Clamp(act, 1, 3)}|{Math.Min(5, Math.Max(0, deckSize) / 8)}|{Math.Clamp(copiesBefore, 0, 3)}";
-        return Data.Value.ChoicePreferences.TryGetValue(key, out var preference) && preference.Offers >= 20 ? preference.Rate : null;
+        return Current.ChoicePreferences.TryGetValue(key, out var preference) && preference.Offers >= 20 ? preference.Rate : null;
     }
 
-    public static decimal SkipThreshold => Data.Value.SkipModel?.Threshold ?? .45m;
+    public static decimal SkipThreshold => Current.SkipModel?.Threshold ?? .45m;
 
     public static decimal? SkipProbability(RunContext context, IReadOnlyList<string> offeredIds, IReadOnlyList<decimal?> signals)
     {
-        var model = Data.Value.SkipModel;
+        var model = Current.SkipModel;
         if (model is null || offeredIds.Count < 2) return null;
         const decimal neutral = .24m;
         var values = signals.Select(x => x ?? neutral).ToArray();
@@ -133,16 +137,47 @@ internal static class RunHistoryInsights
 
     private static int Bucket(decimal value, params decimal[] boundaries) => boundaries.Count(boundary => value > boundary);
 
-    private static Model Load()
+    // Co-op history files list every participant; the host is first. Prefer the entry whose
+    // id matches this platform account and fall back to the first player for solo runs.
+    private static JsonElement LocalHistoryPlayer(JsonElement players)
+    {
+        if (players.GetArrayLength() > 1 && LocalPlayerId() is { } localId)
+            foreach (var candidate in players.EnumerateArray())
+                if (candidate.TryGetProperty("id", out var idValue) && idValue.ValueKind == JsonValueKind.Number &&
+                    idValue.TryGetUInt64(out var id) && id == localId)
+                    return candidate;
+        return players[0];
+    }
+
+    private static ulong? cachedLocalPlayerId;
+    private static bool localPlayerIdResolved;
+    private static ulong? LocalPlayerId()
+    {
+        if (localPlayerIdResolved) return cachedLocalPlayerId;
+        try
+        {
+            // The platform may not be initialised yet during the startup regression pass, so only
+            // a real id is cached; a failed lookup is retried on the next co-op history file.
+            var id = MegaCrit.Sts2.Core.Platform.PlatformUtil.GetLocalPlayerId(MegaCrit.Sts2.Core.Platform.PlatformUtil.PrimaryPlatform);
+            if (id == 0) return null;
+            cachedLocalPlayerId = id;
+            localPlayerIdResolved = true;
+            return id;
+        }
+        catch { return null; }
+    }
+
+    private static Model Load(bool includeLocalHistory)
     {
         var runs = new List<HistoryRun>(); var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var file in HistoryFiles().OrderByDescending(File.GetLastWriteTimeUtc).Take(300))
+        var files = includeLocalHistory ? HistoryFiles().OrderByDescending(File.GetLastWriteTimeUtc).Take(300) : Enumerable.Empty<string>();
+        foreach (var file in files)
         {
             try
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(file)); var root = doc.RootElement;
                 if (!root.TryGetProperty("players", out var players) || players.GetArrayLength() == 0) continue;
-                var player = players[0];
+                var player = LocalHistoryPlayer(players);
                 var character = NormalizeCharacter(player.GetProperty("character").GetString() ?? "");
                 var seed = root.TryGetProperty("seed", out var seedValue) ? seedValue.ToString() : "";
                 var start = root.TryGetProperty("start_time", out var startValue) ? startValue.ToString() : "";

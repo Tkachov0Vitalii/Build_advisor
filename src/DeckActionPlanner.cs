@@ -69,8 +69,8 @@ internal static class DeckActionPlanner
         var cards = ids.Select(id => catalog.TryGetValue(SpireCodexMetricsClient.NormalizeId(id), out var card) ? card : null).Where(x => x is not null).Cast<CardDefinition>().ToArray();
         var curse = cards.FirstOrDefault(x => x.Type.Contains("curse", StringComparison.OrdinalIgnoreCase) || x.Type.Contains("status", StringComparison.OrdinalIgnoreCase));
         if (curse is not null) return curse.Name;
-        var strikes = cards.Where(x => IsStarter(x.Id, "STRIKE", "УДАР")).ToArray();
-        var defends = cards.Where(x => IsStarter(x.Id, "DEFEND", "ОБОРОН")).ToArray();
+        var strikes = cards.Where(x => CardTaxonomy.IsStarterCopy(x, "STRIKE")).ToArray();
+        var defends = cards.Where(x => CardTaxonomy.IsStarterCopy(x, "DEFEND")).ToArray();
         if (strikes.Length > 0 && cards.Count(x => x.Damage > 0) >= 5) return strikes[0].Name;
         if (defends.Length > 0 && cards.Count(x => x.Block > 0) >= 5) return defends[0].Name;
         return null;
@@ -88,7 +88,7 @@ internal static class DeckActionPlanner
             : context.Cards;
         return ids
         .Select(id => catalog.TryGetValue(SpireCodexMetricsClient.NormalizeId(id), out var card) ? card : null)
-        .Where(x => x is not null && !IsStarter(x.Id, "STRIKE", "DEFEND", "УДАР", "ОБОРОН"))
+        .Where(x => x is not null && !CardTaxonomy.IsStarterStrikeOrDefend(x))
         .Cast<CardDefinition>()
         .OrderByDescending(x => UpgradePriority(x))
         .FirstOrDefault();
@@ -98,6 +98,4 @@ internal static class DeckActionPlanner
         (card.Type.Contains("power", StringComparison.OrdinalIgnoreCase) ? 5 : 0) +
         (card.Draw > 0 ? 4 : 0) + (card.Energy > 0 ? 4 : 0) +
         (CardTaxonomy.RarityName(card.Rarity) == "Редкая" ? 3 : 0) + Math.Min(3, card.Damage / 6 + card.Block / 6);
-
-    private static bool IsStarter(string id, params string[] tokens) => tokens.Any(x => id.Contains(x, StringComparison.OrdinalIgnoreCase));
 }

@@ -421,10 +421,18 @@ internal static class ModLocalization
     internal static string Translate(string? value, AdvisorLanguage language)
     {
         if (string.IsNullOrEmpty(value) || language == AdvisorLanguage.Russian) return value ?? "";
+        // Every dictionary key is Russian, so text without Cyrillic (server names in English,
+        // numbers, already translated lines) needs no replacement pass at all.
+        if (!value.Any(IsCyrillic)) return value;
         var result = value;
-        foreach (var (ru, en) in English.OrderByDescending(x => x.Ru.Length)) result = result.Replace(ru, en, StringComparison.OrdinalIgnoreCase);
+        foreach (var (ru, en) in EnglishByLength ??= English.OrderByDescending(x => x.Ru.Length).ToArray())
+            if (result.Contains(ru, StringComparison.OrdinalIgnoreCase)) result = result.Replace(ru, en, StringComparison.OrdinalIgnoreCase);
         return result;
     }
+
+    // Sorted once instead of on every call; Translate runs for each render and every second.
+    private static (string Ru, string En)[]? EnglishByLength;
+    private static bool IsCyrillic(char ch) => ch is >= '\u0400' and <= '\u04FF';
 
     public static void Set(AdvisorLanguage language)
     {
