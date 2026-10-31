@@ -1,0 +1,113 @@
+using Godot;
+using HarmonyLib;
+using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
+using BuildAdvisor.Data;
+using BuildAdvisor.UI;
+
+namespace BuildAdvisor.Integration;
+
+[HarmonyPatch(typeof(NMerchantInventory), "Open")]
+public static class MerchantPatch
+{
+    private static readonly SpireCodexMetricsClient Metrics = new();
+    private static readonly CardCatalogClient Catalog = new();
+    private static readonly RelicCatalogClient RelicCatalog = new();
+    private static long openSession;
+
+    internal static void Invalidate() => Interlocked.Increment(ref openSession);
+    private static bool IsCurrent(long session, GodotObject instance) =>
+        session == Interlocked.Read(ref openSession) && GodotObject.IsInstanceValid(instance);
+
+    [HarmonyPostfix]
+    public static async void AfterOpen(Node __instance)
+    {
+        var session = Interlocked.Increment(ref openSession);
+        // Inventory is populated over the opening animation. Wait only until real slots exist.
+        await Task.Delay(120);
+        if (!IsCurrent(session, __instance)) return;
+        // Inventory exposes the actual sale slots.  This is the canonical source: each slot has
+        // its own visual (for ID) and Entry.Cost, unlike the nested UI containers.
+        if (__instance is not NMerchantInventory inventory) return;
+        AdviceOverlay.ClearShopBadges(__instance);
+        AdviceOverlay.SetRefreshAction(() => AfterOpen(__instance));
+        var allItems = ReadSlots(inventory).ToArray();
+        for (var attempt = 0; allItems.Length == 0 && attempt < 24; attempt++)
+        {
+            await Task.Delay(125);
+            if (!IsCurrent(session, __instance)) return;
+            allItems = ReadSlots(inventory).ToArray();
+        }
+        var cardSlots = allItems.Where(x => x.Kind == "card").ToArray();
+        var cardItems = cardSlots.Select(x => x.Item).ToArray();
+        var relicItems = allItems.Where(x => x.Kind == "relic").Select(x => x.Item).ToArray();
+        var cards = cardItems.Select(x => x.Id).ToArray();
+        var relics = relicItems.Select(x => x.Id).ToArray();
+        if (cards.Length == 0 && relics.Length == 0) { AdviceOverlay.Render(__instance, "BUILD ADVISOR · магазин\nТовары ещё загружаются — откройте совет через мгновение."); return; }
+        var context = RunContextReader.TryRead();
+        var local = LocalDeckAdvisor.ForShop(context, cards, relics);
+        // A useful local plan is immediate; remote statistics replace it when available.
+        AdviceOverlay.Render(__instance, "BUILD ADVISOR · магазин\n" + local + "\n\nЗагрузка общей статистики…", null, context);
+        var cachedCatalog = Catalog.TryGetCached();
+        if (context is not null && cachedCatalog.Count > 0)
+        {
+            var localAssessment = DeckBuildScoring.Evaluate(context, cards, cachedCatalog, new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase));
+            RenderCardBadges(__instance, cardSlots, localAssessment.Offers);
+        }
+        try
+        {
+            var bracket = context?.Bracket ?? "a10";
+            if (context is null)
+            {
+                var standaloneMetrics = await Metrics.GetMetricsAsync("cards", bracket);
+                if (IsCurrent(session, __instance)) AdviceOverlay.Render(__instance, "BUILD ADVISOR · магазин\n" + AdviceText.ForMetrics("Карты", cards, standaloneMetrics));
+                return;
+            }
+            var cardMetricsTask = Metrics.GetMetricsAsync("cards", bracket);
+            var relicMetricsTask = Metrics.GetMetricsAsync("relics", bracket);
+            var catalogTask = Catalog.GetAsync();
+            var relicCatalogTask = RelicCatalog.GetAsync();
+            // Card badges do not depend on the slower relic/metrics requests. Display a
+            // complete local evaluation as soon as the catalogue is ready, then enrich it.
+            var catalog = await catalogTask;
+            if (IsCurrent(session, __instance))
+                RenderCardBadges(__instance, cardSlots, DeckBuildScoring.Evaluate(context, cards, catalog, new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase)).Offers);
+            await Task.WhenAll(cardMetricsTask, relicMetricsTask, relicCatalogTask);
+            if (!IsCurrent(session, __instance)) return;
+            var cardMetrics = await cardMetricsTask;
+            var relicMetrics = await relicMetricsTask;
+            var plan = ShopPlanBuilder.Create(context, cardItems, relicItems, catalog, cardMetrics, relicMetrics, await relicCatalogTask);
+            if (IsCurrent(session, __instance))
+            {
+                AdviceOverlay.Render(__instance, "BUILD ADVISOR · магазин · " + bracket.ToUpperInvariant() + "\n" + plan);
+                RenderCardBadges(__instance, cardSlots, DeckBuildScoring.Evaluate(context, cards, catalog, cardMetrics).Offers);
+            }
+        }
+        catch (Exception error) { if (IsCurrent(session, __instance)) AdviceOverlay.Render(__instance, "BUILD ADVISOR · магазин\n" + local + "\n\nСетевые данные недоступны — показан локальный совет."); GD.PrintErr($"Build Advisor shop: {error}"); }
+    }
+
+    private static void RenderCardBadges(Node screen, IReadOnlyList<(string Kind, ShopItem Item, Control Slot)> slots, IReadOnlyList<OfferScore> scores)
+    {
+        var byId = scores.GroupBy(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
+        AdviceOverlay.RenderShopBadges(screen, slots.Select(x => (x.Slot, byId.GetValueOrDefault(SpireCodexMetricsClient.NormalizeId(x.Item.Id))))
+            .Where(x => x.Item2 is not null).Select(x => (x.Slot, x.Item2!)));
+    }
+
+    private static IEnumerable<(string Kind, ShopItem Item, Control Slot)> ReadSlots(NMerchantInventory inventory)
+    {
+        foreach (var slot in inventory.GetAllSlots().Cast<object>())
+        {
+            // Every visible shop slot is an NMerchantSlot.  The actual kind lives on
+            // its Entry (MerchantCardEntry / MerchantRelicEntry), not on the slot.
+            var entry = ReflectionIds.Member(slot, "Entry");
+            var type = entry?.GetType().Name ?? string.Empty;
+            var kind = type.Contains("MerchantCardEntry", StringComparison.Ordinal) ? "card" : type.Contains("MerchantRelicEntry", StringComparison.Ordinal) ? "relic" : null;
+            if (kind is null) continue;
+            var visual = ReflectionIds.Member(slot, "Visual");
+            var id = visual is null ? ReflectionIds.FindId(entry!) : ReflectionIds.FindId(visual) ?? ReflectionIds.FindId(entry!);
+            if (id is null) continue;
+            var price = entry is null ? 0 : ReflectionIds.FindDirectInt(entry, "Cost") ?? 0;
+            if (slot is Control control) yield return (kind, new ShopItem(id, price), control);
+        }
+    }
+}

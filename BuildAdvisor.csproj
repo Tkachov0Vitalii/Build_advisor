@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <AssemblyName>build-advisor</AssemblyName>
+    <RootNamespace>BuildAdvisor</RootNamespace>
+    <!-- Set STS2_GAME_DIR or pass -p:Sts2ManagedDir=... on any OS. -->
+    <Sts2GameDir Condition="'$(Sts2GameDir)' == '' and '$(STS2_GAME_DIR)' != ''">$(STS2_GAME_DIR)</Sts2GameDir>
+    <Sts2ManagedDir Condition="'$(Sts2ManagedDir)' == '' and Exists('$(Sts2GameDir)\game\data_sts2_windows_x86_64\sts2.dll')">$(Sts2GameDir)\game\data_sts2_windows_x86_64</Sts2ManagedDir>
+    <Sts2ManagedDir Condition="'$(Sts2ManagedDir)' == '' and Exists('$(Sts2GameDir)\data_sts2_windows_x86_64\sts2.dll')">$(Sts2GameDir)\data_sts2_windows_x86_64</Sts2ManagedDir>
+    <Sts2ManagedDir Condition="'$(Sts2ManagedDir)' == '' and Exists('$(Sts2GameDir)/data_sts2_linuxbsd_x86_64/sts2.dll')">$(Sts2GameDir)/data_sts2_linuxbsd_x86_64</Sts2ManagedDir>
+    <Sts2ManagedDir Condition="'$(Sts2ManagedDir)' == '' and Exists('$(Sts2GameDir)/SlayTheSpire2.app/Contents/Resources/data_sts2_macos_arm64/sts2.dll')">$(Sts2GameDir)/SlayTheSpire2.app/Contents/Resources/data_sts2_macos_arm64</Sts2ManagedDir>
+    <Sts2ManagedDir Condition="'$(Sts2ManagedDir)' == '' and Exists('$(Sts2GameDir)/SlayTheSpire2.app/Contents/Resources/data_sts2_macos_x86_64/sts2.dll')">$(Sts2GameDir)/SlayTheSpire2.app/Contents/Resources/data_sts2_macos_x86_64</Sts2ManagedDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="tools\**\*.cs" />
+    <Reference Include="sts2"><HintPath>$(Sts2ManagedDir)/sts2.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="GodotSharp"><HintPath>$(Sts2ManagedDir)/GodotSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>$(Sts2ManagedDir)/0Harmony.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+
+  <Target Name="ValidateGameAssemblies" BeforeTargets="ResolveReferences" Condition="!Exists('$(Sts2ManagedDir)/sts2.dll')">
+    <Error Text="Slay the Spire 2 assemblies were not found. Set STS2_GAME_DIR or run dotnet build -p:Sts2ManagedDir=&quot;/full/path/to/data_sts2_PLATFORM_ARCH&quot;." />
+  </Target>
+
+  <Target Name="CreateModPackage" AfterTargets="Build">
+    <PropertyGroup><ModOutput>$(OutputPath)package\BuildAdvisor</ModOutput></PropertyGroup>
+    <MakeDir Directories="$(ModOutput)" />
+    <Copy SourceFiles="$(TargetPath);build-advisor.json;data\build-advisor-run-priors.data;data\segment-risk-v1.data;assets\tandrex-emblem.png" DestinationFolder="$(ModOutput)" />
+  </Target>
+</Project>

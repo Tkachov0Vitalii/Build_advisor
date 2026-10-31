@@ -1,0 +1,10 @@
+{
+  "id": "build-advisor",
+  "name": "Build Advisor",
+  "author": "Build Advisor contributors",
+  "description": "Cross-platform RU/EN deck advisor: context-aware card, relic, shop and run analysis.",
+  "version": "6.16.2",
+  "has_pck": false,
+  "has_dll": true,
+  "affects_gameplay": false
+}
