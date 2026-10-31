@@ -159,11 +159,16 @@ internal static class EventCardAdvisor
     {
         // The grid reassigns holders to other cards while scrolling: badges are matched to the card
         // each holder shows at the moment, not to the holder captured once.
+        // The card drawn in a holder is CardNode.Model; the holder's own CardModel can still name
+        // the card it held before the grid reassigned it (6.21.1 badges showed Strike scores on
+        // other cards). The badge anchors to the drawn card body, so it sits on the card's top edge.
         IEnumerable<(Control Anchor, string Id)> Holders() => CardHolders(screen).Select(holder =>
         {
-            var id = ReflectionIds.FindId(ReflectionIds.Member(holder, "CardModel") ?? holder);
-            var visual = ReflectionIds.Member(holder, "CardNode") as Control ?? holder;
-            return (Anchor: visual, Id: id);
+            var cardNode = ReflectionIds.Member(holder, "CardNode") as Control;
+            var model = (cardNode is null ? null : ReflectionIds.Member(cardNode, "Model")) ?? ReflectionIds.Member(holder, "CardModel");
+            var id = model is null ? null : ReflectionIds.FindId(model);
+            var anchor = (cardNode is null ? null : ReflectionIds.Member(cardNode, "Body") as Control) ?? cardNode ?? holder;
+            return (Anchor: anchor, Id: id);
         }).Where(x => x.Id is not null).Select(x => (x.Anchor, x.Id!));
         AdviceOverlay.RenderTrackedSelectionBadges(screen, Holders, assessment.Offers, ActionLabel(purpose));
         AdviceOverlay.Render(screen, Format(assessment.Offers, purpose, intent), null, RunContextReader.TryRead());
