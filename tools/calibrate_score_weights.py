@@ -36,7 +36,65 @@ LOW, HIGH = 0.0, 3.0
 
 
 class Data:
+    WIDTH = 4
+
+    @staticmethod
+    def load(path: str) -> tuple["Data", np.ndarray]:
+        # Streams the features file into preallocated float32 arrays (the file is ~1 GB of
+        # JSON; loading it whole as Python objects ran out of memory).
+        with open(path, encoding="utf-8") as handle:
+            total = sum(1 for _ in handle)
+        data = Data.__new__(Data)
+        w = Data.WIDTH
+        data.mask = np.zeros((total, w), bool)
+        data.c = np.zeros((total, w), np.float32)
+        data.fixed = np.zeros((total, w), np.float32)
+        data.raw = np.zeros((len(KEYS), total, w), np.float32)
+        data.similar = np.zeros((total, w), np.float32)
+        data.pick = np.zeros(total, np.int8)
+        data.win = np.zeros(total, np.int8)
+        data.act = np.zeros(total, np.int8)
+        data.asc = np.zeros(total, np.int8)
+        data.floor = np.zeros(total, np.int16)
+        data.size = np.zeros(total, np.int16)
+        data.run = np.empty(total, object)
+        data.character = np.empty(total, object)
+        split = np.empty(total, object)
+        index = {k: i for i, k in enumerate(KEYS)}
+        n = 0
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                r = json.loads(line)
+                if r.get("ab") or r["s"] not in ("train", "validation", "test") or len(r["o"]) > w or r["p"] >= len(r["o"]):
+                    continue
+                for j, o in enumerate(r["o"]):
+                    data.mask[n, j] = True
+                    data.c[n, j] = o["c"]
+                    for key, value in o["r"].items():
+                        if key in index:
+                            data.raw[index[key], n, j] = value
+                        elif key == SIMILAR:
+                            data.similar[n, j] = value
+                        else:
+                            data.fixed[n, j] += value
+                data.pick[n] = r["p"]
+                data.win[n] = r["w"]
+                data.act[n] = r["act"]
+                data.asc[n] = min(20, max(0, r.get("a", 0) or 0))
+                data.floor[n] = r.get("fl", 0)
+                data.size[n] = r.get("n", 0)
+                data.run[n] = r.get("h", "")
+                data.character[n] = r["ch"]
+                split[n] = r["s"]
+                n += 1
+        data.n = n
+        for name in ("mask", "c", "fixed", "similar", "pick", "win", "act", "asc", "floor", "size", "run", "character"):
+            setattr(data, name, getattr(data, name)[:n])
+        data.raw = data.raw[:, :n]
+        return data, split[:n]
+
     def __init__(self, rows: list[dict]):
+        # Small in-memory construction (tests); the tool itself uses Data.load.
         width = max(len(r["o"]) for r in rows)
         n = len(rows)
         self.n = n
@@ -63,7 +121,7 @@ class Data:
                         self.fixed[i, j] += value
 
     def scores(self, w: np.ndarray) -> np.ndarray:
-        s = self.fixed + np.tensordot(w[: len(KEYS)], self.raw, axes=1)
+        s = self.fixed + np.tensordot(w[: len(KEYS)].astype(np.float32), self.raw, axes=1)
         damped = np.where(s > 0, s * np.maximum(0.0, 100.0 - self.c) / 70.0, s)
         score = np.clip(self.c + damped, 0.0, 100.0)
         return np.clip(score + w[len(KEYS)] * self.similar, 0.0, 100.0)
@@ -82,8 +140,9 @@ class Data:
     def subset(self, keep: np.ndarray) -> "Data":
         other = Data.__new__(Data)
         other.n = int(keep.sum())
-        for name in ("mask", "c", "fixed", "similar", "pick", "win", "act", "character"):
-            setattr(other, name, getattr(self, name)[keep])
+        for name in ("mask", "c", "fixed", "similar", "pick", "win", "act", "character", "asc", "floor", "size", "run"):
+            if hasattr(self, name):
+                setattr(other, name, getattr(self, name)[keep])
         other.raw = self.raw[:, keep]
         return other
 
@@ -125,17 +184,81 @@ def outcome_check(data: Data, hand: np.ndarray, fitted: np.ndarray) -> dict:
             "took_hand": int(took_hand.sum()), "win_rate_hand": rate(took_hand)}
 
 
+def outcome_design(data: Data) -> tuple[np.ndarray, list[str]]:
+    # Picked card minus the mean of the offered cards, per feature, plus run-state controls.
+    rows = np.arange(data.n)
+    count = data.mask.sum(axis=1)
+
+    def delta(values: np.ndarray) -> np.ndarray:
+        chosen = values[rows, data.pick]
+        return chosen - np.where(data.mask, values, 0).sum(axis=1) / count
+
+    columns = [delta(data.c)] + [delta(data.raw[k]) for k in range(len(KEYS))] + [delta(data.similar)]
+    names = ["community"] + KEYS + [SIMILAR]
+    controls = []
+    for act in (2, 3):
+        controls.append((data.act == act).astype(np.float32))
+    for character in ("silent", "defect", "regent", "necrobinder"):
+        controls.append((data.character == character).astype(np.float32))
+    controls += [data.asc / 10.0, data.floor / 50.0, data.size / 30.0]
+    return np.column_stack(columns + controls).astype(np.float64), names
+
+
+def outcome_fit(train: Data, seed: int = 11, rounds: int = 12) -> dict:
+    # Does picking a card with more of adjustment k (than its alternatives) go with winning the
+    # run? Logistic regression of the run result on the deltas; a weight is the effect of one
+    # adjustment point relative to one point of community score (the scale the mod is built on).
+    from sklearn.linear_model import LogisticRegression
+    x, names = outcome_design(train)
+    y = train.win.astype(int)
+    scale = x.std(axis=0)
+    scale[scale == 0] = 1.0
+
+    def ratios(index: np.ndarray) -> np.ndarray:
+        model = LogisticRegression(C=1.0, max_iter=400)
+        model.fit(x[index] / scale, y[index])
+        beta = model.coef_[0] / scale
+        return beta[1:len(names)] / beta[0]
+
+    point = ratios(np.arange(train.n))
+    runs = np.unique(train.run)
+    by_run = {r: i for i, r in enumerate(runs)}
+    run_index = np.array([by_run[r] for r in train.run])
+    rng = np.random.default_rng(seed)
+    samples = []
+    for _ in range(rounds):
+        pick = rng.integers(0, len(runs), len(runs))
+        weight = np.bincount(pick, minlength=len(runs))
+        index = np.repeat(np.arange(train.n), weight[run_index])
+        samples.append(ratios(index))
+    se = np.array(samples).std(axis=0)
+    return {"names": names[1:], "ratio": point, "se": se}
+
+
+RELEASE_LOW, RELEASE_HIGH = 0.5, 2.0
+
+
+def outcome_weights(fit: dict) -> np.ndarray:
+    # Move a weight away from the hand value only as far as the evidence allows (positive-part
+    # shrinkage by twice the bootstrap error: a ratio within 2 SE of 1 keeps the hand value), and at most to
+    # half or double the hand value in one calibration: these are observational associations.
+    ratio, se = fit["ratio"], fit["se"]
+    gap = ratio - 1.0
+    reliability = np.clip(1.0 - (2.0 * se) ** 2 / np.maximum(gap ** 2, 1e-12), 0.0, 1.0)
+    weights = np.clip(1.0 + gap * reliability, RELEASE_LOW, RELEASE_HIGH)
+    weights[se == 0] = 1.0  # never observed in the corpus (e.g. boss preparation needs a boss)
+    return weights
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("features")
     parser.add_argument("output")
     parser.add_argument("--report")
     parser.add_argument("--max-train", type=int, default=400000)
+    parser.add_argument("--method", choices=("imitation", "outcome"), default="outcome")
     args = parser.parse_args()
-    rows = [json.loads(line) for line in open(args.features, encoding="utf-8")]
-    rows = [r for r in rows if r["s"] in ("train", "validation", "test") and not r.get("ab")]
-    data = Data(rows)
-    split = np.array([r["s"] for r in rows])
+    data, split = Data.load(args.features)
     won = data.win == 1
     train = data.subset((split == "train") & won)
     if train.n > args.max_train:
@@ -171,11 +294,27 @@ def main() -> int:
         "outcome_check_test": outcome_check(test_all, hand, w),
         "l2_search": [{"l2": c["l2"], "validation_nll": round(c["validation_nll"], 5)} for c in candidates],
     }
+    train_all = data.subset(split == "train")
+    print(f"outcome model on {train_all.n} decisions", file=sys.stderr)
+    fit_outcome = outcome_fit(train_all if train_all.n <= args.max_train * 2 else train_all.subset(
+        np.random.default_rng(3).random(train_all.n) < (args.max_train * 2) / train_all.n))
+    w_outcome = outcome_weights(fit_outcome)
+    t_outcome = temperature_only(train, w_outcome)
+    report["outcome_model"] = {
+        "ratios": {k: [round(float(r), 3), round(float(e), 3)] for k, r, e in zip(fit_outcome["names"], fit_outcome["ratio"], fit_outcome["se"])},
+        "weights": {k: round(float(v), 2) for k, v in zip(ALL, w_outcome)},
+        "validation_won": evaluate(valid_won, w_outcome, t_outcome), "test_won": evaluate(test_won, w_outcome, t_outcome),
+        "outcome_check_test": outcome_check(test_all, hand, w_outcome),
+        "outcome_check_validation": outcome_check(valid_all, hand, w_outcome),
+    }
+    report["outcome_check_validation"] = outcome_check(valid_all, hand, w)
+    if args.method == "outcome":
+        w, t = w_outcome, t_outcome
     weights = {k: round(float(v), 2) for k, v in zip(ALL, w)}
     payload = {
         "contract": "score-weights-v1",
         "created": dt.date.today().isoformat(),
-        "source": "Spire Codex public run corpus, picks in won runs (train split), conditional logit over offered cards",
+        "source": "Spire Codex public run corpus (solo, 177k runs); method: " + args.method,
         "decisions": {"train": train.n, "validation": valid_won.n, "test": test_won.n},
         "weights": weights,
         "metrics": report,
@@ -183,8 +322,8 @@ def main() -> int:
     json.dump(payload, open(args.output, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     if args.report:
         json.dump(report, open(args.report, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-    print(json.dumps({"weights": weights, "hand": report["hand"]["test_won"], "fitted": report["fitted"]["test_won"],
-                      "outcome": report["outcome_check_test"]}, ensure_ascii=False, indent=1))
+    print(json.dumps({"method": args.method, "weights": weights, "hand": report["hand"]["test_won"], "imitation": report["fitted"]["test_won"],
+                      "imitation_outcome": report["outcome_check_test"], "outcome_model": report["outcome_model"]}, ensure_ascii=False, indent=1))
     return 0
 
 

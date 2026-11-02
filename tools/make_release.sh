@@ -40,7 +40,7 @@ echo "== Package"
 package="$root/bin/Release/net9.0/package/BuildAdvisor"
 stage="$work/zip"; mkdir -p "$stage/build-advisor" "$out"
 cp "$package/build-advisor.dll" "$package/build-advisor.json" "$package/build-advisor-run-priors.data" \
-   "$package/segment-risk-v1.data" "$package/tandrex-emblem.png" "$stage/build-advisor/"
+   "$package/segment-risk-v1.data" "$package/score-weights-v1.data" "$package/tandrex-emblem.png" "$stage/build-advisor/"
 cp "$root/README.md" "$root/CHANGELOG.md" "$root/INSTALL_RU.md" "$root/INSTALL_EN.md" \
    "$root/LICENSE" "$root/THIRD_PARTY_NOTICES.md" "$stage/"
 zip_path="$out/BuildAdvisor-$version.zip"

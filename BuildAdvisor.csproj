@@ -11,7 +11,7 @@
     <Sts2GameDir Condition="'$(Sts2GameDir)' == '' and '$(STS2_GAME_DIR)' != ''">$(STS2_GAME_DIR)</Sts2GameDir>
     <!-- Default Steam location on Windows, so a plain "dotnet build" works without settings. -->
     <Sts2GameDir Condition="'$(Sts2GameDir)' == '' and Exists('C:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2')">C:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2</Sts2GameDir>
-    <Version>6.22.7</Version>
+    <Version>6.23.0</Version>
     <Sts2ManagedDir Condition="'$(Sts2ManagedDir)' == '' and Exists('$(Sts2GameDir)\game\data_sts2_windows_x86_64\sts2.dll')">$(Sts2GameDir)\game\data_sts2_windows_x86_64</Sts2ManagedDir>
     <Sts2ManagedDir Condition="'$(Sts2ManagedDir)' == '' and Exists('$(Sts2GameDir)\data_sts2_windows_x86_64\sts2.dll')">$(Sts2GameDir)\data_sts2_windows_x86_64</Sts2ManagedDir>
     <Sts2ManagedDir Condition="'$(Sts2ManagedDir)' == '' and Exists('$(Sts2GameDir)/data_sts2_linuxbsd_x86_64/sts2.dll')">$(Sts2GameDir)/data_sts2_linuxbsd_x86_64</Sts2ManagedDir>
@@ -33,6 +33,6 @@
   <Target Name="CreateModPackage" AfterTargets="Build">
     <PropertyGroup><ModOutput>$(OutputPath)package\BuildAdvisor</ModOutput></PropertyGroup>
     <MakeDir Directories="$(ModOutput)" />
-    <Copy SourceFiles="$(TargetPath);build-advisor.json;data\build-advisor-run-priors.data;data\segment-risk-v1.data;assets\tandrex-emblem.png" DestinationFolder="$(ModOutput)" />
+    <Copy SourceFiles="$(TargetPath);build-advisor.json;data\build-advisor-run-priors.data;data\segment-risk-v1.data;data\score-weights-v1.data;assets\tandrex-emblem.png" DestinationFolder="$(ModOutput)" />
   </Target>
 </Project>
