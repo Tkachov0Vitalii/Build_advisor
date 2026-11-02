@@ -7,3 +7,4 @@ tools/obj/
 release/
 **/bin/
 **/obj/
+__pycache__/
