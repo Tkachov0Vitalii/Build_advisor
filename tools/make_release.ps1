@@ -56,6 +56,9 @@ try {
     foreach ($file in "build-advisor.dll", "build-advisor.json", "build-advisor-run-priors.data", "segment-risk-v1.data", "score-weights-v1.data", "tandrex-emblem.png") {
         Copy-Item (Join-Path $package $file) $modFolder
     }
+    $fontFolder = Join-Path $modFolder "fonts"
+    New-Item -ItemType Directory -Force -Path $fontFolder | Out-Null
+    Copy-Item (Join-Path $package "fonts/*") $fontFolder
     foreach ($file in "README.md", "CHANGELOG.md", "INSTALL_RU.md", "INSTALL_EN.md", "LICENSE", "THIRD_PARTY_NOTICES.md") {
         Copy-Item (Join-Path $root $file) $stage
     }

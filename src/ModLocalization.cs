@@ -458,6 +458,7 @@ internal static class ModLocalization
         ,("База", "Base")
         ,("поправка текущей колоды", "current deck adjustment")
         ,("нужна защита", "defense needed")
+        ,("Сомнительно", "Doubtful"), ("Полезно", "Useful")
         ,("Команда:", "Team:"), ("Команда", "Team"), ("защита напарника", "teammate protection"), ("усиление напарника", "teammate boost")
         ,("атаки напарников", "teammates' attacks"), ("архетип напарника", "teammate's archetype")
         ,("роль:", "role:"), ("универсал", "all-rounder"), ("поддержка", "support"), ("ОЗ", "HP")

@@ -8,6 +8,10 @@ public static class AdviceOverlay
 {
     private const string ToggleName = "BuildAdvisorToggle";
     private const string PageName = "BuildAdvisorPage";
+    // Panel geometry in the game's 1920x1080 layout: left side, clear of the top bar.
+    private const float PanelX = 74, PanelY = 72, PanelWidth = 640, PanelHeight = 984;
+    private const float ContentWidth = PanelWidth - 44, TextWidth = ContentWidth - 20;
+    private const float BodyY = 158, FooterY = 884, BodyHeight = FooterY - 12 - BodyY;
     private const string TextName = "BuildAdvisorText";
     private const string AdviceBodyName = "BuildAdvisorAdviceBody";
     private const string SearchName = "BuildAdvisorCardSearch";
@@ -64,46 +68,53 @@ public static class AdviceOverlay
         if (label is not null)
         {
             label.Text = L(text);
-            label.CustomMinimumSize = new Vector2(1500, HeightFor(label.Text));
+            label.CustomMinimumSize = new Vector2(TextWidth, HeightFor(label.Text));
             SyncArchetypeChooser(host, context);
             UpdateLive(host);
             return;
         }
 
-        // Keep the control and the underlying bitmap at the same size. A TextureButton
-        // otherwise draws the source texture at its native 2K resolution.
-        var toggle = new TextureButton { Name = ToggleName, Position = new Vector2(1510, 4), Size = new Vector2(68, 68), CustomMinimumSize = new Vector2(68, 68), IgnoreTextureSize = true, ZIndex = 500, TooltipText = "Build Advisor · F8" };
-        var emblem = LoadEmblem();
-        if (emblem is not null) toggle.TextureNormal = emblem;
+        // 6.24 (variant B): a parchment panel on the left and a wax seal "BD" at the left edge; the
+        // old emblem sat in the game's top bar over its own buttons.
+        var toggle = AdvisorTheme.Seal(ToggleName);
 
-        var page = new Panel { Name = PageName, Position = new Vector2(110, 55), Size = new Vector2(1700, 930), ZIndex = 500, Visible = false };
-        page.AddThemeStyleboxOverride("panel", Box(new Color(0.015f, 0.035f, 0.075f, 0.985f), 14));
-        var title = new Label { Text = "BUILD ADVISOR", Position = new Vector2(28, 18), Size = new Vector2(420, 42) };
-        title.AddThemeFontSizeOverride("font_size", 28); title.AddThemeColorOverride("font_color", new Color("f5ca63"));
-        var live = new Label { Name = LiveName, Position = new Vector2(520, 22), Size = new Vector2(980, 34) };
-        live.AddThemeFontSizeOverride("font_size", 18); live.AddThemeColorOverride("font_color", new Color("a6c4d9"));
-        var adviceTab = Tab("BuildAdvisorAdviceTab", "Совет", new Vector2(28, 70));
-        var close = new Button { Name = CloseName, Text = "×", Position = new Vector2(1628, 16), Size = new Vector2(46, 42), TooltipText = L("Закрыть") };
+        var page = new Panel { Name = PageName, Position = new Vector2(PanelX, PanelY), Size = new Vector2(PanelWidth, PanelHeight), ZIndex = 500, Visible = false, Theme = AdvisorTheme.PanelTheme() };
+        page.AddThemeStyleboxOverride("panel", AdvisorTheme.PanelBox());
+        var monogram = new Label { Text = "BD", Position = new Vector2(22, 12), Size = new Vector2(60, 40) };
+        if (AdvisorTheme.Monogram is { } monogramFont) monogram.AddThemeFontOverride("font", monogramFont);
+        monogram.AddThemeFontSizeOverride("font_size", 26); monogram.AddThemeColorOverride("font_color", AdvisorTheme.Wax);
+        var title = new Label { Text = "Build Advisor", Position = new Vector2(84, 12), Size = new Vector2(420, 40) };
+        if (AdvisorTheme.Heading is { } headingFont) title.AddThemeFontOverride("font", headingFont);
+        title.AddThemeFontSizeOverride("font_size", 28);
+        var live = new Label { Name = LiveName, Position = new Vector2(22, 56), Size = new Vector2(ContentWidth, 44), AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        live.AddThemeFontSizeOverride("font_size", 15); live.AddThemeColorOverride("font_color", AdvisorTheme.InkSoft);
+        var close = new Button { Name = CloseName, Text = "×", Position = new Vector2(PanelWidth - 58, 12), Size = new Vector2(40, 40), Flat = true };
         close.AddThemeFontSizeOverride("font_size", 28);
+        var adviceTab = Tab("BuildAdvisorAdviceTab", "Совет", new Vector2(22, 104));
+        var rule = new ColorRect { Color = AdvisorTheme.PaperLine, Position = new Vector2(22, 146), Size = new Vector2(ContentWidth, 1), MouseFilter = Control.MouseFilterEnum.Ignore };
 
-        var body = new Control { Name = AdviceBodyName, Position = new Vector2(28, 118), Size = new Vector2(1644, 784) };
-        var scroll = new ScrollContainer { Position = Vector2.Zero, Size = new Vector2(1644, 784), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto };
-        label = new Label { Name = TextName, Text = L(text), AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(1580, HeightFor(L(text))), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
-        label.AddThemeFontSizeOverride("font_size", 20); scroll.AddChild(label); body.AddChild(scroll);
+        var body = new Control { Name = AdviceBodyName, Position = new Vector2(22, BodyY), Size = new Vector2(ContentWidth, BodyHeight) };
+        var scroll = new ScrollContainer { Position = Vector2.Zero, Size = new Vector2(ContentWidth, BodyHeight), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto };
+        label = new Label { Name = TextName, Text = L(text), AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(TextWidth, HeightFor(L(text))), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+        label.AddThemeFontSizeOverride("font_size", 17); scroll.AddChild(label); body.AddChild(scroll);
         // The tab exists immediately, even while the catalogue is still being fetched.
-        var searchTab = Tab("BuildAdvisorSearchTab", "Искать карты", new Vector2(160, 70));
-        var runTab = Tab("BuildAdvisorRunTab", "Анализ забега", new Vector2(292, 70));
-        var tagsTab = Tab("BuildAdvisorTagsTab", "Метки", new Vector2(442, 70));
-        var search = new Control { Name = SearchName, Position = new Vector2(28, 118), Size = new Vector2(1644, 784), Visible = false };
-        var loading = new Label { Text = L("Каталог карт загружается…"), Position = new Vector2(0, 0), Size = new Vector2(800, 42) };
-        loading.AddThemeFontSizeOverride("font_size", 22); search.AddChild(loading);
-        var run = new Control { Name = RunName, Position = new Vector2(28, 118), Size = new Vector2(1644, 784), Visible = false };
-        var runScroll = new ScrollContainer { Position = Vector2.Zero, Size = new Vector2(1644, 784), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto };
-        var runText = new Label { Name = RunTextName, AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(1580, 760) };
-        runText.AddThemeFontSizeOverride("font_size", 20); runScroll.AddChild(runText); run.AddChild(runScroll);
+        var searchTab = Tab("BuildAdvisorSearchTab", "Искать карты", new Vector2(116, 104));
+        var runTab = Tab("BuildAdvisorRunTab", "Анализ забега", new Vector2(268, 104));
+        var tagsTab = Tab("BuildAdvisorTagsTab", "Метки", new Vector2(430, 104));
+        var search = new Control { Name = SearchName, Position = new Vector2(22, BodyY), Size = new Vector2(ContentWidth, BodyHeight), Visible = false };
+        var loading = new Label { Text = L("Каталог карт загружается…"), Position = new Vector2(0, 0), Size = new Vector2(ContentWidth, 42) };
+        loading.AddThemeFontSizeOverride("font_size", 20); search.AddChild(loading);
+        var run = new Control { Name = RunName, Position = new Vector2(22, BodyY), Size = new Vector2(ContentWidth, BodyHeight), Visible = false };
+        var runScroll = new ScrollContainer { Position = Vector2.Zero, Size = new Vector2(ContentWidth, BodyHeight), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto };
+        var runText = new Label { Name = RunTextName, AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(TextWidth, BodyHeight) };
+        runText.AddThemeFontSizeOverride("font_size", 17); runScroll.AddChild(runText); run.AddChild(runScroll);
         var tagsPanel = CreateTagReference();
+        var tabs = new[] { adviceTab, searchTab, runTab, tagsTab };
+        void Activate(Button active) { foreach (var tab in tabs) MarkTab(tab, ReferenceEquals(tab, active)); }
+        Activate(adviceTab);
         searchTab.Pressed += () =>
         {
+            Activate(searchTab);
             search.Visible = true;
             body.Visible = false;
             run.Visible = false;
@@ -114,13 +125,13 @@ public static class AdviceOverlay
             else
                 _ = LoadSearchFromTabAsync(host);
         };
-        adviceTab.Pressed += () => { search.Visible = false; run.Visible = false; tagsPanel.Visible = false; body.Visible = true; };
-        runTab.Pressed += () => { search.Visible = false; body.Visible = false; tagsPanel.Visible = false; run.Visible = true; UpdateRunReport(host); };
-        tagsTab.Pressed += () => { search.Visible = false; body.Visible = false; run.Visible = false; tagsPanel.Visible = true; };
+        adviceTab.Pressed += () => { Activate(adviceTab); search.Visible = false; run.Visible = false; tagsPanel.Visible = false; body.Visible = true; };
+        runTab.Pressed += () => { Activate(runTab); search.Visible = false; body.Visible = false; tagsPanel.Visible = false; run.Visible = true; UpdateRunReport(host); };
+        tagsTab.Pressed += () => { Activate(tagsTab); search.Visible = false; body.Visible = false; run.Visible = false; tagsPanel.Visible = true; };
 
         var chooser = new OptionButton
         {
-            Name = ArchetypeChooserName, Position = new Vector2(580, 72), Size = new Vector2(300, 38),
+            Name = ArchetypeChooserName, CustomMinimumSize = new Vector2(250, 38),
             TooltipText = L("Направление колоды: вручную или автоматически"), Visible = false
         };
         chooser.ItemSelected += index =>
@@ -132,15 +143,13 @@ public static class AdviceOverlay
             ArchetypePreferences.Set(liveContext.Character, options[(int)index]);
             currentRefresh?.Invoke();
         };
-        var refreshLive = new Button { Name = RefreshName, Text = L("Обновить"), Position = new Vector2(892, 72), Size = new Vector2(150, 38), TooltipText = L("Прочитать текущее состояние забега заново") };
+        var refreshLive = new Button { Name = RefreshName, Text = L("Обновить"), CustomMinimumSize = new Vector2(120, 38) };
         refreshLive.Pressed += () => RefreshAdvice(host);
         var autoPick = new CheckButton
         {
             Name = AutoPickName, Text = L("Автовыбор"),
             ButtonPressed = AutoPickSettings.Enabled,
-            Position = new Vector2(1060, 72),
-            Size = new Vector2(190, 38),
-            TooltipText = L("Автоматически берёт карту только при высокой уверенности, явном преимуществе и когда пропуск хуже. Не выбирает спорные варианты.")
+            CustomMinimumSize = new Vector2(150, 38)
         };
         autoPick.Toggled += enabled => AutoPickSettings.Enabled = enabled;
         // L1: offline mode. Cached and local data only; the choice persists between sessions.
@@ -148,15 +157,12 @@ public static class AdviceOverlay
         {
             Name = OfflineName, Text = L("Офлайн"),
             ButtonPressed = NetworkSettings.Offline,
-            Position = new Vector2(1256, 72),
-            Size = new Vector2(144, 38),
-            TooltipText = L(OfflineTooltip)
+            CustomMinimumSize = new Vector2(120, 38)
         };
         offline.Toggled += enabled => { NetworkSettings.Offline = enabled; RefreshAdvice(host); };
         var language = new OptionButton
         {
-            Name = LanguageChooserName, Position = new Vector2(1406, 72), Size = new Vector2(100, 38),
-            TooltipText = "Language / Язык"
+            Name = LanguageChooserName, CustomMinimumSize = new Vector2(120, 38)
         };
         language.AddItem("Русский"); language.AddItem("English");
         language.Select(ModLocalization.Current == AdvisorLanguage.English ? 1 : 0);
@@ -165,13 +171,19 @@ public static class AdviceOverlay
             ModLocalization.Set(index == 1 ? AdvisorLanguage.English : AdvisorLanguage.Russian);
             Relocalize(host);
         };
+        // Settings live in a wrapping footer under the content.
+        var footerRule = new ColorRect { Color = AdvisorTheme.PaperLine, Position = new Vector2(22, FooterY - 8), Size = new Vector2(ContentWidth, 1), MouseFilter = Control.MouseFilterEnum.Ignore };
+        var footer = new HFlowContainer { Position = new Vector2(22, FooterY), Size = new Vector2(ContentWidth, PanelHeight - FooterY - 12) };
+        footer.AddThemeConstantOverride("h_separation", 10); footer.AddThemeConstantOverride("v_separation", 8);
+        footer.AddChild(chooser); footer.AddChild(refreshLive); footer.AddChild(autoPick); footer.AddChild(offline); footer.AddChild(language);
         if (feedback is not null)
         {
-            var useful = new Button { Text = "👍", Position = new Vector2(1516, 72), Size = new Vector2(54, 38), TooltipText = L("Совет полезен") };
-            var bad = new Button { Text = "⚑", Position = new Vector2(1578, 72), Size = new Vector2(54, 38), TooltipText = L("Совет сомнителен") };
-            useful.Pressed += () => feedback(true); bad.Pressed += () => feedback(false); page.AddChild(useful); page.AddChild(bad);
+            var useful = new Button { Text = L("Полезно"), CustomMinimumSize = new Vector2(100, 38) };
+            var bad = new Button { Text = L("Сомнительно"), CustomMinimumSize = new Vector2(130, 38) };
+            useful.Pressed += () => feedback(true); bad.Pressed += () => feedback(false); footer.AddChild(useful); footer.AddChild(bad);
         }
-        page.AddChild(title); page.AddChild(live); page.AddChild(adviceTab); page.AddChild(searchTab); page.AddChild(runTab); page.AddChild(tagsTab); page.AddChild(chooser); page.AddChild(refreshLive); page.AddChild(autoPick); page.AddChild(offline); page.AddChild(language); page.AddChild(close); page.AddChild(body); page.AddChild(search); page.AddChild(run); page.AddChild(tagsPanel);
+        page.AddChild(monogram); page.AddChild(title); page.AddChild(live); page.AddChild(close); page.AddChild(adviceTab); page.AddChild(searchTab); page.AddChild(runTab); page.AddChild(tagsTab); page.AddChild(rule);
+        page.AddChild(body); page.AddChild(search); page.AddChild(run); page.AddChild(tagsPanel); page.AddChild(footerRule); page.AddChild(footer);
         host.AddChild(toggle); host.AddChild(page);
         toggle.Pressed += () => page.Visible = !page.Visible;
         close.Pressed += () => page.Hide();
@@ -397,21 +409,17 @@ public static class AdviceOverlay
         private void Describe(Label badge, OfferScore score)
         {
             var tier = Tier(score.Final);
-            var marker = score.Final == Best && Multiple ? "★" : "◆";
-            badge.Text = string.IsNullOrWhiteSpace(ActionLabel) ? $"{marker} {tier}  {score.Final:F0}" : $"{marker} {L(ActionLabel)} {score.Final:F0}";
+            var marker = score.Final == Best && Multiple ? "★ " : "";
+            badge.Text = string.IsNullOrWhiteSpace(ActionLabel) ? $"{marker}{tier}  {score.Final:F0}" : $"{marker}{L(ActionLabel)} {score.Final:F0}";
             var details = L($"{score.Name}: {score.Final:F0}/100\n{ScoreExplanation.Formula(score)}\n{score.Reason}");
             var best = score.Final == Best && Multiple;
             if (badge is AttachedBadge attached)
             {
                 attached.ExpandedText = details;
-                attached.StylePopup = popup => StyleBadge(popup, tier, best, 15);
+                attached.StylePopup = popup => AdvisorTheme.Popup(popup, best ? AdvisorTheme.Wax : null);
             }
             else badge.TooltipText = details;
-            var color = TierColor(tier);
-            badge.AddThemeColorOverride("font_color", color);
-            var box = BadgeBox(score.Final == Best && Multiple ? new Color("f2c94c") : color);
-            box.CornerRadiusTopLeft = box.CornerRadiusTopRight = box.CornerRadiusBottomLeft = box.CornerRadiusBottomRight = 10;
-            badge.AddThemeStyleboxOverride("normal", box);
+            AdvisorTheme.Ribbon(badge, best);
         }
 
         // The card node is centred on the holder; the badge sits on the card's bottom rim.
@@ -426,12 +434,12 @@ public static class AdviceOverlay
     private static Label AddSelectionBadge(Node host, Node screen, Control anchor, OfferScore score, decimal best, bool multiple, string actionLabel, string name)
     {
         var tier = Tier(score.Final);
-        var marker = score.Final == best && multiple ? "★" : "◆";
+        var marker = score.Final == best && multiple ? "★ " : "";
         // S–D describes intrinsic card quality. For remove/transform/upgrade, the score is
         // action priority and must not make a weak removal target look like an S-tier card.
         var compactText = string.IsNullOrWhiteSpace(actionLabel)
-            ? $"{marker} {tier}  {score.Final:F0}"
-            : $"{marker} {actionLabel} {score.Final:F0}";
+            ? $"{marker}{tier}  {score.Final:F0}"
+            : $"{marker}{actionLabel} {score.Final:F0}";
         var badge = new SelectionBadgeFollower
         {
             Target = anchor,
@@ -443,14 +451,12 @@ public static class AdviceOverlay
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
             TooltipText = L(string.IsNullOrWhiteSpace(actionLabel) ? $"{score.Name}\n{ScoreExplanation.Breakdown(score)}\n{score.TagText}\n{score.Impact}" : $"{score.Name}: {score.Final:F0}/100\n{ScoreExplanation.Formula(score)}\n{score.TagText}\n{score.Impact}")
         };
-        badge.AddThemeFontSizeOverride("font_size", 15);
-        badge.AddThemeColorOverride("font_color", TierColor(tier));
-        badge.AddThemeStyleboxOverride("normal", BadgeBox(TierColor(tier)));
+        AdvisorTheme.Ribbon(badge, score.Final == best && multiple);
         host.AddChild(badge);
         badge.RefreshPosition();
         FrameTicker.Add(badge.Tick);
         MakeBadgeExpandable(badge, compactText,
-            L($"{marker} {(string.IsNullOrWhiteSpace(actionLabel) ? tier : actionLabel)}  {score.Final:F0}\n{(string.IsNullOrWhiteSpace(actionLabel) ? ScoreExplanation.Breakdown(score) : ScoreExplanation.Formula(score))}\n{FullTags(score.TagText)}"),
+            L($"{marker}{(string.IsNullOrWhiteSpace(actionLabel) ? tier : actionLabel)}  {score.Final:F0}\n{(string.IsNullOrWhiteSpace(actionLabel) ? ScoreExplanation.Breakdown(score) : ScoreExplanation.Formula(score))}\n{FullTags(score.TagText)}"),
             badge.Position, badge.Size);
         return badge;
     }
@@ -477,8 +483,8 @@ public static class AdviceOverlay
             var score = values[index];
             var tier = Tier(score.Final);
             var isBest = score.Final == best && values.Length > 1;
-            var shortTags = ShortTags(score.TagText);
-            var compactText = $"{(isBest ? "★" : "◆")} {tier}  {score.Final:F0}\n{shortTags}";
+            // 6.24 ribbon under the card: tier and score, then the win-rate scale.
+            var compactText = $"{(isBest ? "★ " : "")}{tier} · {score.Final:F0}\n{TakeSkipModel.Format(TakeSkipModel.WinDelta(score))} п.п.";
             var anchor = holderFor?.Invoke(score.Id);
             if (anchor is { } attached && GodotObject.IsInstanceValid(attached.Holder))
             {
@@ -487,16 +493,16 @@ public static class AdviceOverlay
                 {
                     OwnerScreen = screen, ExpectedModel = attached.Model,
                     CurrentModel = () => GodotObject.IsInstanceValid(holder) ? CardModelOf(holder) : null,
-                    Place = badge => PlaceAboveCard(badge, holder),
-                    Name = $"BuildAdvisorTier{index}", Text = compactText, Size = new Vector2(148, 58),
+                    Place = badge => PlaceBelowCard(badge, holder),
+                    Name = $"BuildAdvisorTier{index}", Text = compactText, Size = new Vector2(150, 56),
                     ZIndex = 20, ZAsRelative = true, MouseFilter = Control.MouseFilterEnum.Pass,
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-                    ExpandedText = L($"{(isBest ? "★" : "◆")} {tier}  {score.Final:F0}\n{ScoreExplanation.Breakdown(score)}\n{FullTags(score.TagText)}\n{score.Impact}"),
-                    StylePopup = popup => StyleBadge(popup, tier, isBest, 15)
+                    ExpandedText = L($"{(isBest ? "★ " : "")}{tier}  {score.Final:F0}\n{ScoreExplanation.Breakdown(score)}\n{FullTags(score.TagText)}\n{score.Impact}"),
+                    StylePopup = popup => AdvisorTheme.Popup(popup, isBest ? AdvisorTheme.Wax : null)
                 };
-                StyleBadge(cardBadge, tier, isBest, 15);
+                AdvisorTheme.Ribbon(cardBadge, isBest, 16);
                 holder.AddChild(cardBadge);
-                PlaceAboveCard(cardBadge, holder);
+                PlaceBelowCard(cardBadge, holder);
                 cardBadge.Activate();
                 continue;
             }
@@ -512,11 +518,9 @@ public static class AdviceOverlay
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                 TooltipText = L($"{score.Name}\n{ScoreExplanation.Breakdown(score)}\n{score.TagText}\n{score.Impact}")
             };
-            badge.AddThemeFontSizeOverride("font_size", 15);
-            badge.AddThemeColorOverride("font_color", TierColor(tier));
-            badge.AddThemeStyleboxOverride("normal", BadgeBox(TierColor(tier)));
+            AdvisorTheme.Ribbon(badge, isBest);
             host.AddChild(badge);
-            MakeBadgeExpandable(badge, compactText, L($"{(isBest ? "★" : "◆")} {tier}  {score.Final:F0}\n{ScoreExplanation.Breakdown(score)}\n{FullTags(score.TagText)}"), badge.Position, badge.Size);
+            MakeBadgeExpandable(badge, compactText, L($"{(isBest ? "★ " : "")}{tier}  {score.Final:F0}\n{ScoreExplanation.Breakdown(score)}\n{FullTags(score.TagText)}"), badge.Position, badge.Size);
         }
     }
 
@@ -526,31 +530,21 @@ public static class AdviceOverlay
         return (card is null ? null : ReflectionIds.Member(card, "Model")) ?? ReflectionIds.Member(holder, "CardModel");
     }
 
-    private static void PlaceAboveCard(Label badge, Control holder)
+    // 6.24: the reward ribbon hangs under the card (variant B), clear of the card title.
+    private static void PlaceBelowCard(Label badge, Control holder)
     {
         var card = ReflectionIds.Member(holder, "CardNode") as Control;
         var valid = card is not null && GodotObject.IsInstanceValid(card) && card.Size.Y > 0;
-        var top = AttachedBadges.CardTopCentre(valid ? card!.Position : Vector2.Zero, valid ? card!.Size : new Vector2(300, 422), valid ? card!.Scale : Vector2.One);
-        badge.Position = AttachedBadges.Above(top, badge.Size, 8f);
+        var bottom = AttachedBadges.CardBottomCentre(valid ? card!.Position : Vector2.Zero, valid ? card!.Size : new Vector2(300, 422), valid ? card!.Scale : Vector2.One);
+        badge.Position = AttachedBadges.Below(bottom, badge.Size, 10f);
     }
 
-    private static void StylePopup(Label popup, Color color)
-    {
-        popup.AddThemeFontSizeOverride("font_size", 15);
-        popup.AddThemeColorOverride("font_color", new Color("e8edf2"));
-        var box = BadgeBox(color);
-        box.CornerRadiusTopLeft = box.CornerRadiusTopRight = box.CornerRadiusBottomLeft = box.CornerRadiusBottomRight = 10;
-        popup.AddThemeStyleboxOverride("normal", box);
-    }
+    private static void StylePopup(Label popup, Color color) => AdvisorTheme.Popup(popup, color);
 
     private static void StyleBadge(Label badge, string tier, bool best, int fontSize)
     {
-        badge.AddThemeFontSizeOverride("font_size", fontSize);
-        var color = TierColor(tier);
-        badge.AddThemeColorOverride("font_color", color);
-        var box = BadgeBox(best ? new Color("f2c94c") : color);
-        box.CornerRadiusTopLeft = box.CornerRadiusTopRight = box.CornerRadiusBottomLeft = box.CornerRadiusBottomRight = 10;
-        badge.AddThemeStyleboxOverride("normal", box);
+        _ = tier;
+        AdvisorTheme.Ribbon(badge, best, fontSize);
     }
 
     private const string OfflineTooltip = "Офлайн-режим: мод не обращается к сети и использует сохранённую статистику и локальную модель. Pick Coach и загрузка картинок отключаются.";
@@ -578,13 +572,13 @@ public static class AdviceOverlay
                 OwnerScreen = screen,
                 Place = label => PlaceAboveSlot(label, slot),
                 Name = ShopTierPrefix + index,
-                Text = $"{(isBest ? "★" : "◆")} {tier}  {score.Final:F0}",
+                Text = $"{(isBest ? "★ " : "")}{tier}  {score.Final:F0}",
                 Size = new Vector2(120, 34), ZIndex = 30, ZAsRelative = true,
                 MouseFilter = Control.MouseFilterEnum.Pass,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                 // L3: price and the gold left after buying, next to the win-rate scale.
                 ExpandedText = L($"{score.Name}\n{ScoreExplanation.Breakdown(score)}{(note?.Invoke(score) is { Length: > 0 } priceLine ? "\n" + priceLine : "")}\n{FullTags(score.TagText)}\n{score.Impact}"),
-                StylePopup = popup => StyleBadge(popup, tier, isBest, 15)
+                StylePopup = popup => AdvisorTheme.Popup(popup, isBest ? AdvisorTheme.Wax : null)
             };
             StyleBadge(badge, tier, isBest, 14);
             slot.AddChild(badge);
@@ -832,18 +826,19 @@ public static class AdviceOverlay
         var search = page.GetNodeOrNull<Control>(SearchName);
         if (search is null) return;
         foreach (var child in search.GetChildren().ToArray()) { search.RemoveChild(child); child.QueueFree(); }
-        var heading = new Label { Text = L("Карты для поиска"), Position = new Vector2(0, 0), Size = new Vector2(900, 36) };
-        heading.AddThemeFontSizeOverride("font_size", 24);
-        var note = new Label { Text = L("Список учитывает вашу колоду и выбранный архетип. Измените архетип сверху и нажмите «Обновить»."), Position = new Vector2(0, 38), Size = new Vector2(1500, 30) };
-        note.AddThemeFontSizeOverride("font_size", 17); note.AddThemeColorOverride("font_color", new Color("a6c4d9"));
-        var type = Filter("Все типы", "Атака", "Навык", "Талант", new Vector2(0, 82));
-        var rarity = Filter("Любая редкость", "Обычная", "Необычная", "Редкая", new Vector2(270, 82));
-        var tier = Filter("Любая метка", "S", "A", "B", "C", "D", new Vector2(540, 82));
-        var sorting = Filter("Сортировка: приоритет", "Сортировка: польза колоде", "Сортировка: надёжность", "Сортировка: редкость", new Vector2(810, 82));
-        var refresh = new Button { Text = L("Обновить"), Position = new Vector2(1080, 82), Size = new Vector2(180, 40) };
-        refresh.AddThemeStyleboxOverride("normal", Box(new Color("1c6675"), 7));
-        var resultsScroll = new ScrollContainer { Position = new Vector2(0, 140), Size = new Vector2(1620, 620), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto };
-        var results = new VBoxContainer { CustomMinimumSize = new Vector2(1550, 620) };
+        var heading = new Label { Text = L("Карты для поиска"), Position = new Vector2(0, 0), Size = new Vector2(ContentWidth, 34) };
+        if (AdvisorTheme.Heading is { } headingFont) heading.AddThemeFontOverride("font", headingFont);
+        heading.AddThemeFontSizeOverride("font_size", 22);
+        var note = new Label { Text = L("Список учитывает вашу колоду и выбранный архетип. Измените архетип сверху и нажмите «Обновить»."), Position = new Vector2(0, 36), Size = new Vector2(ContentWidth, 46), AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        note.AddThemeFontSizeOverride("font_size", 15); note.AddThemeColorOverride("font_color", AdvisorTheme.InkSoft);
+        var half = (ContentWidth - 12) / 2f;
+        var type = Filter("Все типы", "Атака", "Навык", "Талант", new Vector2(0, 88)); type.Size = new Vector2(half, 38);
+        var rarity = Filter("Любая редкость", "Обычная", "Необычная", "Редкая", new Vector2(half + 12, 88)); rarity.Size = new Vector2(half, 38);
+        var tier = Filter("Любая метка", "S", "A", "B", "C", "D", new Vector2(0, 134)); tier.Size = new Vector2(half, 38);
+        var sorting = Filter("Сортировка: приоритет", "Сортировка: польза колоде", "Сортировка: надёжность", "Сортировка: редкость", new Vector2(half + 12, 134)); sorting.Size = new Vector2(half, 38);
+        var refresh = new Button { Text = L("Обновить"), Position = new Vector2(0, 180), Size = new Vector2(150, 38) };
+        var resultsScroll = new ScrollContainer { Position = new Vector2(0, 228), Size = new Vector2(ContentWidth, BodyHeight - 228), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto };
+        var results = new VBoxContainer { CustomMinimumSize = new Vector2(TextWidth, BodyHeight - 228) };
         results.AddThemeConstantOverride("separation", 10); resultsScroll.AddChild(results);
 
         void Update()
@@ -852,25 +847,24 @@ public static class AdviceOverlay
             var filtered = source().Where(x => MatchesType(x.Card, type.Selected) && MatchesRarity(x.Card, rarity.Selected) && MatchesTier(x.Score.Final, tier.Selected));
             var entries = SortSearch(filtered, sorting.Selected).Take(30).ToArray();
             foreach (var child in results.GetChildren().ToArray()) { results.RemoveChild(child); child.QueueFree(); }
-            var summary = new Label { Text = L($"Архетип: {ArchetypePreferences.Get(liveContext.Character)} · Найдено: {entries.Length}"), CustomMinimumSize = new Vector2(1500, 34) };
-            summary.AddThemeFontSizeOverride("font_size", 20); results.AddChild(summary);
+            var summary = new Label { Text = L($"Архетип: {ArchetypePreferences.Get(liveContext.Character)} · Найдено: {entries.Length}"), CustomMinimumSize = new Vector2(TextWidth, 30) };
+            summary.AddThemeFontSizeOverride("font_size", 17); results.AddChild(summary);
             if (entries.Length == 0)
             {
-                results.AddChild(new Label { Text = L("Нет карт с такими фильтрами."), CustomMinimumSize = new Vector2(1400, 44) });
+                results.AddChild(new Label { Text = L("Нет карт с такими фильтрами."), CustomMinimumSize = new Vector2(TextWidth, 44) });
                 return;
             }
             foreach (var entry in entries)
             {
-                var row = new PanelContainer { CustomMinimumSize = new Vector2(1510, 180) };
-                row.AddThemeStyleboxOverride("panel", Box(new Color("0b1a28"), 8));
-                var content = new HBoxContainer(); content.AddThemeConstantOverride("separation", 18);
-                var preview = new TextureRect { CustomMinimumSize = new Vector2(118, 170), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, TooltipText = entry.Card.Name };
-                var details = new Label { Text = L($"{Tier(entry.Score.Final)}  {entry.Score.Final:F0}/100   {entry.Card.Name}\n{TypeName(entry.Card.Type)} · {RarityName(entry.Card.Rarity)} · стоимость {entry.Card.Cost}\n{ScoreExplanation.Formula(entry.Score)}\nМетки: {entry.Score.TagText}\n{entry.Score.Impact}"), AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(1340, 170), VerticalAlignment = VerticalAlignment.Center };
-                details.AddThemeFontSizeOverride("font_size", 18);
+                var row = new PanelContainer { CustomMinimumSize = new Vector2(TextWidth, 150) };
+                var content = new HBoxContainer(); content.AddThemeConstantOverride("separation", 12);
+                var preview = new TextureRect { CustomMinimumSize = new Vector2(92, 132), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered };
+                var details = new Label { Text = L($"{Tier(entry.Score.Final)}  {entry.Score.Final:F0}/100   {entry.Card.Name}\n{TypeName(entry.Card.Type)} · {RarityName(entry.Card.Rarity)} · стоимость {entry.Card.Cost}\n{ScoreExplanation.Formula(entry.Score)}\nМетки: {entry.Score.TagText}\n{entry.Score.Impact}"), AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(TextWidth - 124, 140), VerticalAlignment = VerticalAlignment.Center };
+                details.AddThemeFontSizeOverride("font_size", 14);
                 content.AddChild(preview); content.AddChild(details); row.AddChild(content); results.AddChild(row);
                 _ = CardImageCache.LoadIntoAsync(preview, entry.Card.Id, entry.Card.ImageUrl);
             }
-            results.CustomMinimumSize = new Vector2(1550, Math.Max(620, 50 + entries.Length * 190));
+            results.CustomMinimumSize = new Vector2(TextWidth, Math.Max(BodyHeight - 228, 50 + entries.Length * 160));
         }
         refresh.Pressed += Update; type.ItemSelected += _ => Update(); rarity.ItemSelected += _ => Update(); tier.ItemSelected += _ => Update(); sorting.ItemSelected += _ => Update();
         search.AddChild(heading); search.AddChild(note); search.AddChild(type); search.AddChild(rarity); search.AddChild(tier); search.AddChild(sorting); search.AddChild(refresh); search.AddChild(resultsScroll);
@@ -939,8 +933,8 @@ public static class AdviceOverlay
         var search = host.GetNodeOrNull<Panel>(PageName)?.GetNodeOrNull<Control>(SearchName);
         if (search is null) return;
         foreach (var child in search.GetChildren().ToArray()) { search.RemoveChild(child); child.QueueFree(); }
-        var status = new Label { Text = L(text), Position = Vector2.Zero, Size = new Vector2(1500, 52), AutowrapMode = TextServer.AutowrapMode.WordSmart };
-        status.AddThemeFontSizeOverride("font_size", 22);
+        var status = new Label { Text = L(text), Position = Vector2.Zero, Size = new Vector2(ContentWidth, 80), AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        status.AddThemeFontSizeOverride("font_size", 19);
         search.AddChild(status);
         searchRefresh = null;
         searchCharacter = null;
@@ -948,8 +942,18 @@ public static class AdviceOverlay
 
     private static Button Tab(string name, string text, Vector2 position)
     {
-        var tab = new Button { Name = name, Text = L(text), Position = position, Size = new Vector2(text == "Анализ забега" ? 140 : 122, 38) };
-        tab.AddThemeStyleboxOverride("normal", Box(new Color("123a53"), 6)); return tab;
+        var tab = new Button { Name = name, Text = L(text), Position = position, Size = new Vector2(text == "Анализ забега" ? 150 : text == "Искать карты" ? 140 : 86, 38), FocusMode = Control.FocusModeEnum.None };
+        if (AdvisorTheme.Heading is { } font) tab.AddThemeFontOverride("font", font);
+        tab.AddThemeFontSizeOverride("font_size", 20);
+        MarkTab(tab, false);
+        return tab;
+    }
+
+    private static void MarkTab(Button tab, bool active)
+    {
+        foreach (var state in new[] { "normal", "hover", "pressed", "focus" }) tab.AddThemeStyleboxOverride(state, AdvisorTheme.TabBox(active));
+        tab.AddThemeColorOverride("font_color", active ? AdvisorTheme.Wax : AdvisorTheme.InkSoft);
+        tab.AddThemeColorOverride("font_hover_color", AdvisorTheme.Wax);
     }
     private static OptionButton Filter(string first, string second, string third, string fourth, Vector2 position)
     {
@@ -967,15 +971,16 @@ public static class AdviceOverlay
     private static StyleBoxFlat Box(Color color, int radius) => new() { BgColor = color, CornerRadiusTopLeft = radius, CornerRadiusTopRight = radius, CornerRadiusBottomLeft = radius, CornerRadiusBottomRight = radius };
     private static Control CreateTagReference()
     {
-        var panel = new Control { Name = TagsName, Position = new Vector2(28, 118), Size = new Vector2(1644, 784), Visible = false };
-        var heading = new Label { Text = L($"Справочник меток Build Advisor · {CardSemanticTags.Reference.Count} признаков"), Position = Vector2.Zero, Size = new Vector2(1100, 38) };
-        heading.AddThemeFontSizeOverride("font_size", 24);
-        var query = new LineEdit { PlaceholderText = L("Поиск по названию или описанию…"), Position = new Vector2(0, 48), Size = new Vector2(700, 42) };
-        var category = new OptionButton { Position = new Vector2(720, 48), Size = new Vector2(320, 42) };
+        var panel = new Control { Name = TagsName, Position = new Vector2(22, BodyY), Size = new Vector2(ContentWidth, BodyHeight), Visible = false };
+        var heading = new Label { Text = L($"Справочник меток Build Advisor · {CardSemanticTags.Reference.Count} признаков"), Position = Vector2.Zero, Size = new Vector2(ContentWidth, 34), AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        if (AdvisorTheme.Heading is { } headingFont) heading.AddThemeFontOverride("font", headingFont);
+        heading.AddThemeFontSizeOverride("font_size", 21);
+        var query = new LineEdit { PlaceholderText = L("Поиск по названию или описанию…"), Position = new Vector2(0, 44), Size = new Vector2(ContentWidth, 40) };
+        var category = new OptionButton { Position = new Vector2(0, 92), Size = new Vector2(ContentWidth, 40) };
         var categories = CardSemanticTags.Reference.Select(x => x.Category).Distinct().OrderBy(x => x).ToArray();
-        var scroll = new ScrollContainer { Position = new Vector2(0, 108), Size = new Vector2(1620, 650), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto };
-        var content = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(1550, 650) };
-        content.AddThemeFontSizeOverride("font_size", 18); scroll.AddChild(content);
+        var scroll = new ScrollContainer { Position = new Vector2(0, 142), Size = new Vector2(ContentWidth, BodyHeight - 142), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto };
+        var content = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(TextWidth, BodyHeight - 142) };
+        content.AddThemeFontSizeOverride("font_size", 16); scroll.AddChild(content);
         void Rebuild()
         {
             var needle = query.Text.Trim();
@@ -984,7 +989,7 @@ public static class AdviceOverlay
                 (needle.Length == 0 || x.Label.Contains(needle, StringComparison.OrdinalIgnoreCase) || L(x.Label).Contains(needle, StringComparison.OrdinalIgnoreCase) || x.Description.Contains(needle, StringComparison.OrdinalIgnoreCase) || L(x.Description).Contains(needle, StringComparison.OrdinalIgnoreCase) || x.Key.Contains(needle, StringComparison.OrdinalIgnoreCase)))
                 .GroupBy(x => x.Category).Select(group => $"{L(group.Key).ToUpperInvariant()}\n" + string.Join("\n", group.Select(x => $"  {L(x.Label)} — {L(x.Description)}")));
             content.Text = string.Join("\n\n", rows);
-            content.CustomMinimumSize = new Vector2(1550, Math.Max(650, 80 + content.Text.Count(c => c == '\n') * 27));
+            content.CustomMinimumSize = new Vector2(TextWidth, HeightFor(content.Text));
         }
         void LocalizeTags()
         {
@@ -1010,19 +1015,6 @@ public static class AdviceOverlay
         CornerRadiusTopLeft = 12, CornerRadiusTopRight = 12, CornerRadiusBottomLeft = 12, CornerRadiusBottomRight = 12,
         ShadowColor = new Color(accent, .28f), ShadowSize = 5
     };
-    private static Texture2D? LoadEmblem()
-    {
-        try
-        {
-            var folder = Path.GetDirectoryName(typeof(AdviceOverlay).Assembly.Location);
-            if (string.IsNullOrWhiteSpace(folder)) return null;
-            var image = Image.LoadFromFile(Path.Combine(folder, "tandrex-emblem.png"));
-            if (image is null || image.IsEmpty()) return null;
-            image.Resize(68, 68, Image.Interpolation.Lanczos);
-            return ImageTexture.CreateFromImage(image);
-        }
-        catch { return null; }
-    }
     private static Node GlobalHost(Node fallback)
     {
         var root = (Engine.GetMainLoop() as SceneTree)?.Root;
@@ -1060,7 +1052,7 @@ public static class AdviceOverlay
         {
             currentRawText = "BUILD ADVISOR\nНет активного забега.";
             label.Text = L(currentRawText);
-            label.CustomMinimumSize = new Vector2(1500, HeightFor(label.Text));
+            label.CustomMinimumSize = new Vector2(TextWidth, HeightFor(label.Text));
             currentRefresh = null;
             ClearBadges(host);
         }
@@ -1102,7 +1094,7 @@ public static class AdviceOverlay
                      "\n\n" + ArchetypeAdvisor.Format(ArchetypeAdvisor.Current(context, null).Direction, ArchetypeAdvisor.Current(context, null).Candidates) +
                      "\n\nПоследние изменения:\n" + history +
                      "\n\nОценки — диагностические ориентиры, а не гарантия исхода боя. Низкий показатель показывает, что именно стоит исправлять следующей наградой или покупкой.");
-        label.CustomMinimumSize = new Vector2(1580, HeightFor(label.Text));
+        label.CustomMinimumSize = new Vector2(TextWidth, HeightFor(label.Text));
     }
 
     private static string Meter(decimal value)
@@ -1129,7 +1121,7 @@ public static class AdviceOverlay
         if (label is null || context is null) return;
         currentRawText = "BUILD ADVISOR · обновлено вручную\n\n" + LocalDeckAdvisor.Snapshot(context) + "\n\nТекущие рекомендации автоматически заменятся при появлении новой награды, события или магазина.";
         label.Text = L(currentRawText);
-        label.CustomMinimumSize = new Vector2(1500, HeightFor(label.Text));
+        label.CustomMinimumSize = new Vector2(TextWidth, HeightFor(label.Text));
     }
     private static void Relocalize(Node host)
     {
@@ -1137,7 +1129,7 @@ public static class AdviceOverlay
         if (label is not null)
         {
             label.Text = L(currentRawText);
-            label.CustomMinimumSize = new Vector2(1500, HeightFor(label.Text));
+            label.CustomMinimumSize = new Vector2(TextWidth, HeightFor(label.Text));
         }
         var advice = Find<Button>(host, "BuildAdvisorAdviceTab"); if (advice is not null) advice.Text = L("Совет");
         var search = Find<Button>(host, "BuildAdvisorSearchTab"); if (search is not null) search.Text = L("Искать карты");
@@ -1212,5 +1204,7 @@ public static class AdviceOverlay
     }
     private static T? Find<T>(Node root, string name) where T : Node => root.FindChild(name, true, false) as T;
     private static string L(string text) => ModLocalization.Text(text);
-    private static float HeightFor(string text) => Math.Max(760, 80 + (text.Count(c => c == '\n') + 1) * 30);
+    // Wrapped height at font 17 in the narrow panel: ~60 characters per line, 25 px per line.
+    private static float HeightFor(string text) =>
+        Math.Max(BodyHeight - 10, 40 + text.Split('\n').Sum(line => Math.Max(1, (int)Math.Ceiling(line.Length / 60d))) * 25);
 }

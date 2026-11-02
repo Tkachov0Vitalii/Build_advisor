@@ -163,6 +163,13 @@ internal static class AttachedBadges
             Math.Clamp(y, 8f, Math.Max(8f, viewport.Y - popupSize.Y - 8f)));
     }
 
+    // Top-left corner of a badge centred below an anchor point (6.24 ribbons under cards).
+    internal static Vector2 Below(Vector2 anchorBottomCentre, Vector2 badgeSize, float gap) =>
+        new(anchorBottomCentre.X - badgeSize.X / 2f, anchorBottomCentre.Y + gap);
+
+    internal static Vector2 CardBottomCentre(Vector2 cardCentre, Vector2 cardSize, Vector2 cardScale) =>
+        new(cardCentre.X, cardCentre.Y + cardSize.Y * cardScale.Y / 2f);
+
     // Card nodes are centred on their holder: the top edge is half the scaled height above.
     internal static Vector2 CardTopCentre(Vector2 cardCentre, Vector2 cardSize, Vector2 cardScale) =>
         new(cardCentre.X, cardCentre.Y - cardSize.Y * cardScale.Y / 2f);

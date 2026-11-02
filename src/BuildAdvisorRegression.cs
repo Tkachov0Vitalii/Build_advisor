@@ -698,11 +698,14 @@ internal static class BuildAdvisorRegression
         var above = BuildAdvisor.UI.AttachedBadges.Above(new Godot.Vector2(150, 40), new Godot.Vector2(120, 34), 6f);
         if (Math.Abs(above.X - 90f) > .01f || Math.Abs(above.Y - 0f) > .01f)
             throw new InvalidOperationException($"Shop badge is not centred above its slot: {above}.");
-        // Reward cards are centred on the holder: the badge clears the scaled card top.
-        var top = BuildAdvisor.UI.AttachedBadges.CardTopCentre(new Godot.Vector2(0, 0), new Godot.Vector2(300, 422), new Godot.Vector2(.8f, .8f));
-        var reward = BuildAdvisor.UI.AttachedBadges.Above(top, new Godot.Vector2(148, 58), 8f);
-        if (Math.Abs(top.Y + 168.8f) > .01f || Math.Abs(reward.X + 74f) > .01f || Math.Abs(reward.Y + 234.8f) > .01f)
-            throw new InvalidOperationException($"Reward badge does not sit above the card: {top}; {reward}.");
+        // Reward cards are centred on the holder: the 6.24 ribbon hangs under the scaled card.
+        var bottom = BuildAdvisor.UI.AttachedBadges.CardBottomCentre(new Godot.Vector2(0, 0), new Godot.Vector2(300, 422), new Godot.Vector2(.8f, .8f));
+        var reward = BuildAdvisor.UI.AttachedBadges.Below(bottom, new Godot.Vector2(150, 56), 10f);
+        if (Math.Abs(bottom.Y - 168.8f) > .01f || Math.Abs(reward.X + 75f) > .01f || Math.Abs(reward.Y - 178.8f) > .01f)
+            throw new InvalidOperationException($"Reward ribbon does not hang under the card: {bottom}; {reward}.");
+        foreach (var text in new[] { "Полезно", "Сомнительно" })
+            if (ModLocalization.Translate(text, AdvisorLanguage.English).Any(ch => ch is >= 'А' and <= 'я'))
+                throw new InvalidOperationException("Panel button is not translated: " + text);
     }
 
     private static void FrameTasksAndHoverCardsWithoutGodotVirtuals()
