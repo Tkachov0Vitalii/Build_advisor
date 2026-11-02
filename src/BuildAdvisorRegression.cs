@@ -43,6 +43,8 @@ internal static class BuildAdvisorRegression
             PooledHolderBadgesLeaveForeignScreens();
             FrameTasksAndHoverCardsWithoutGodotVirtuals();
             CalibratedWeightsScaleHandAdjustments();
+            CoopAdviceUsesTeammateDecks();
+            RussianCatalogMatchesArchetypes();
             ArchetypeSelectionResetsBetweenRuns();
             ManualArchetypeOverridesGenericPowerAndLateBloat();
             StrongEarlyCardDetectsArchetype();
@@ -465,6 +467,88 @@ internal static class BuildAdvisorRegression
                 throw new InvalidOperationException("A smaller weight must lower the final score.");
         }
         finally { ScoreWeights.Override = null; }
+    }
+
+    private static void CoopAdviceUsesTeammateDecks()
+    {
+        CardDefinition C(string id, string type, string text, int damage = 0, int block = 0, string target = "Self", bool multiplayer = false) =>
+            new(id, id, "ironclad", type, 1, damage, block, 0, 0, "common", text, new HashSet<string>(), null, null, target, multiplayer);
+        var list = new[]
+        {
+            C("STRIKE_IRONCLAD", "Attack", "", damage: 6), C("DEFEND_IRONCLAD", "Skill", "", block: 5),
+            C("LIFT", "Skill", "Дает другому игроку 11 защиты.", target: "AnyAlly", multiplayer: true),
+            C("COORDINATE", "Skill", "Дает другому игроку 5 силы на этот ход.", target: "AnyAlly", multiplayer: true),
+            C("FLANKING", "Skill", "В этом ходу враг получает в 2 раза больше урона от атак других игроков.", target: "AnyEnemy", multiplayer: true),
+            C("INFLAME", "Power", "Сила +2."), C("DEMON_FORM", "Power", "В начале хода: Сила +2."),
+            C("SPOT_WEAKNESS", "Skill", "Если враг атакует: Сила +3."),
+            C("CLEAVE", "Attack", "", damage: 8), C("CARNAGE", "Attack", "", damage: 20), C("UPPERCUT", "Attack", "", damage: 13)
+        };
+        var catalog = list.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
+        var deck = new[] { "STRIKE_IRONCLAD", "STRIKE_IRONCLAD", "DEFEND_IRONCLAD", "DEFEND_IRONCLAD" };
+        var solo = new RunContext("ironclad", deck, [], 0, 2, 20, 60, 80, 99, null, 1m, 2, 2, 0, []);
+        var offered = new[] { "LIFT", "COORDINATE", "FLANKING", "SPOT_WEAKNESS" };
+        var metrics = Metrics(offered);
+        IReadOnlyDictionary<string, decimal> TeamPart(RunContext context) => DeckBuildScoring.Evaluate(context, offered, catalog, metrics).Offers
+            .ToDictionary(x => x.Id, x => (x.RawAdjustments ?? []).Where(a => ScoreExplanation.GroupOf(a.Label) == "Команда").Sum(a => a.Value), StringComparer.OrdinalIgnoreCase);
+        var none = TeamPart(solo);
+        if (none.Values.Any(x => x != 0)) throw new InvalidOperationException("Team adjustments appeared in single player.");
+
+        // A wounded attacker with the same character, building Strength.
+        var attacker = new TeammateDeck("ironclad", ["STRIKE_IRONCLAD", "CLEAVE", "CARNAGE", "UPPERCUT", "INFLAME", "DEMON_FORM"], 20, 80);
+        var team = TeamPart(solo with { PlayerCount = 2, Teammates = [attacker] });
+        if (team["LIFT"] != TeamAdvisor.ProtectBonus || team["COORDINATE"] != TeamAdvisor.EmpowerBonus ||
+            team["FLANKING"] != TeamAdvisor.ComboBonus || team["SPOT_WEAKNESS"] != TeamAdvisor.OverlapPenalty)
+            throw new InvalidOperationException("Co-op adjustments are wrong: " + string.Join(", ", team.Select(x => $"{x.Key}={x.Value}")));
+
+        // A healthy defender of another character: nobody to protect, empower or copy.
+        var defender = new TeammateDeck("silent", ["DEFEND_IRONCLAD", "LIFT", "LIFT", "DEFEND_IRONCLAD"], 70, 70);
+        var calm = TeamPart(solo with { PlayerCount = 2, Teammates = [defender with { Cards = ["DEFEND_IRONCLAD", "DEFEND_IRONCLAD", "LIFT", "COORDINATE"] }] });
+        if (calm["LIFT"] != 0 || calm["COORDINATE"] != 0 || calm["FLANKING"] != 0 || calm["SPOT_WEAKNESS"] != 0)
+            throw new InvalidOperationException("Co-op adjustments fired without a reason: " + string.Join(", ", calm.Select(x => $"{x.Key}={x.Value}")));
+
+        // Overlap only between the same characters: another class does not compete for these cards.
+        TeammateProfile Mate(string character) => new(character, 10, 90, false, false, false, ["Сила"]);
+        bool Strength(string archetype) => archetype == "Сила";
+        if (!TeamAdvisor.Adjust(catalog["SPOT_WEAKNESS"], "ironclad", [], [Mate("ironclad")], Strength).Any(x => x.Label == "архетип напарника") ||
+            TeamAdvisor.Adjust(catalog["SPOT_WEAKNESS"], "ironclad", [], [Mate("silent")], Strength).Count != 0 ||
+            TeamAdvisor.Adjust(catalog["SPOT_WEAKNESS"], "ironclad", ["Сила"], [Mate("ironclad")], Strength).Count != 0)
+            throw new InvalidOperationException("Archetype overlap ignores the character or the player's own engine.");
+
+        var profile = TeamAdvisor.Profile(attacker, catalog, 2, 20);
+        var summary = TeamAdvisor.Summary([profile]);
+        if (!profile.Fragile || !profile.Attacker || !profile.Archetypes.Contains("Сила") || !summary.Contains("Латоносец"))
+            throw new InvalidOperationException("Teammate profile is wrong: " + summary);
+        var english = ModLocalization.Translate(summary, AdvisorLanguage.English);
+        if (english.Any(ch => ch is >= 'А' and <= 'я' or 'ё' or 'Ё'))
+            throw new InvalidOperationException("Team summary is not translated: " + english);
+    }
+
+    private static void RussianCatalogMatchesArchetypes()
+    {
+        // Real rows of the Russian Spire Codex catalogue (6.22 found no Strength, Exhaust or Frost card).
+        const string json = """
+[{"id": "INFLAME", "name": "Воспламенение", "description": "Дает 2 [gold]силы[/gold].", "type_key": "Power", "cost": 1, "color": "ironclad", "rarity_key": "Uncommon", "vars": {"StrengthPower": 2, "Strength": 2}, "powers_applied": [{"power": "Сила", "power_key": "Strength", "amount": 2}]}, {"id": "FEEL_NO_PAIN", "name": "Обезболивание", "description": "Дает 3 [gold]защиты[/gold], когда [gold]сжигается[/gold] карта.", "type_key": "Power", "cost": 1, "color": "ironclad", "rarity_key": "Uncommon", "vars": {"Power": 3}}, {"id": "GLACIER", "name": "Ледник", "description": "Дает 6 [gold]защиты[/gold].\n[gold]Заряжает[/gold] 2 [gold]сферы льда[/gold].", "type_key": "Skill", "cost": 2, "color": "defect", "rarity_key": "Uncommon", "vars": {"Block": 6}}, {"id": "BEAT_INTO_SHAPE", "name": "Молот и наковальня", "description": "Наносит 5 урона.\n[gold]Закаляет[/gold] X.\n[gold]Закаляет[/gold] на 5 больше за каждый второй ваш удар по врагу в этом ходу.", "type_key": "Attack", "cost": 1, "color": "regent", "rarity_key": "Rare", "vars": {"Damage": 5, "CalculationBase": 5, "CalculationExtra": 5}}, {"id": "END_OF_DAYS", "name": "Конец света", "description": "Накладывает 29 [gold]злого рока[/gold] на ВСЕХ врагов.\nУбивает врагов, чей [gold]злой рок[/gold] не ниже их ОЗ.", "type_key": "Skill", "cost": 3, "color": "necrobinder", "rarity_key": "Rare", "vars": {"DoomPower": 29, "Doom": 29}, "powers_applied": [{"power": "Злой рок", "power_key": "Doom", "amount": 29}]}, {"id": "GATHER_LIGHT", "name": "Концентрация света", "description": "Дает 8 [gold]защиты[/gold].\nДает [star:1].", "type_key": "Skill", "cost": 1, "color": "regent", "rarity_key": "Common", "vars": {"Block": 8, "Stars": 1}}, {"id": "ARMAMENTS", "name": "Снаряжение", "description": "Дает 5 [gold]защиты[/gold].\n[gold]Улучшает[/gold] выбранную в [gold]руке[/gold] карту.", "type_key": "Skill", "cost": 1, "color": "ironclad", "rarity_key": "Common", "vars": {"Block": 5}}, {"id": "OFFERING", "name": "Подношение", "description": "Вы теряете 6 ОЗ.\nДает [energy:2].\nВы добираете 3 карты.", "type_key": "Skill", "cost": 0, "color": "ironclad", "rarity_key": "Rare", "vars": {"HpLoss": 6, "Energy": 2, "Cards": 3}, "keywords_key": ["Exhaust"]}]
+""";
+        var catalog = BuildAdvisor.Data.CardCatalogClient.Parse(json);
+        CardDefinition Get(string id) => catalog[id];
+        var expected = new (string Id, string Archetype)[]
+        {
+            ("INFLAME", "Сила"), ("FEEL_NO_PAIN", "Истощение"), ("GLACIER", "Мороз"), ("BEAT_INTO_SHAPE", "Кузня"),
+            ("END_OF_DAYS", "Гибель"), ("GATHER_LIGHT", "Звёзды"), ("OFFERING", "Саморанение")
+        };
+        foreach (var (id, archetype) in expected)
+            if (!DeckBuildScoring.CardMatchesArchetype(Get(id), archetype))
+                throw new InvalidOperationException($"{id} is not recognised as {archetype}: {Get(id).Description} | {Get(id).Signals}");
+        // Description-only matching (no signals) still works for the Russian wording.
+        if (!DeckBuildScoring.CardMatchesArchetype(Get("INFLAME") with { Signals = "" }, "Сила") ||
+            !DeckBuildScoring.CardMatchesArchetype(Get("FEEL_NO_PAIN") with { Signals = "" }, "Истощение"))
+            throw new InvalidOperationException("Russian archetype words are not matched without signals.");
+        // «выбранную» is not «рана», an upgrade card is not a Strength or Frost card.
+        if (DeckBuildScoring.CardMatchesArchetype(Get("ARMAMENTS"), "Саморанение") || DeckBuildScoring.CardMatchesArchetype(Get("ARMAMENTS"), "Сила") ||
+            DeckBuildScoring.CardMatchesArchetype(Get("INFLAME"), "Мороз"))
+            throw new InvalidOperationException("Archetype matcher over-matches Russian text.");
+        if (!Get("INFLAME").Signals.Contains("STRENGTH") || !Get("END_OF_DAYS").Signals.Contains("DOOM"))
+            throw new InvalidOperationException("Card signals are not parsed: " + Get("INFLAME").Signals);
     }
 
     private static void ExpensiveDeckValuesEnergy()

@@ -6,7 +6,7 @@ namespace BuildAdvisor.Data;
 internal sealed record CardDefinition(
     string Id, string Name, string Character, string Type, int Cost, int Damage, int Block,
     int Draw, int Energy, string Rarity, string Description, IReadOnlySet<string> Tags, string? ImageUrl,
-    CardUpgrade? Upgrade = null);
+    CardUpgrade? Upgrade = null, string Target = "", bool MultiplayerOnly = false, string Signals = "");
 
 internal static class CardTaxonomy
 {
@@ -131,11 +131,31 @@ internal sealed class CardCatalogClient
                 if (!string.IsNullOrWhiteSpace(imageUrl) && imageUrl.StartsWith('/')) imageUrl = "https://spire-codex.com" + imageUrl;
                 // Prefer the stable API key. Older cached catalogues may only contain the
                 // localized display value, which CardTaxonomy also understands.
-                var definition = new CardDefinition(id, Text(row, "name") ?? id, Text(row, "color") ?? "", Text(row, "type_key", "type") ?? "", Number(row, "cost"), Number(row, "damage"), Number(row, "block"), Number(row, "cards_draw"), Number(row, "energy_gain"), Text(row, "rarity_key", "rarity") ?? "", description, tags, imageUrl, CardUpgrades.Parse(row));
+                var definition = new CardDefinition(id, Text(row, "name") ?? id, Text(row, "color") ?? "", Text(row, "type_key", "type") ?? "", Number(row, "cost"), Number(row, "damage"), Number(row, "block"), Number(row, "cards_draw"), Number(row, "energy_gain"), Text(row, "rarity_key", "rarity") ?? "", description, tags, imageUrl, CardUpgrades.Parse(row),
+                    Text(row, "target") ?? "", row.TryGetProperty("multiplayer_only", out var multiplayer) && multiplayer.ValueKind == JsonValueKind.True,
+                    Signals(row));
                 map[SpireCodexMetricsClient.NormalizeId(id)] = definition;
                 map[SpireCodexMetricsClient.NormalizeId(definition.Name)] = definition;
             }
         return map;
+    }
+
+    // 6.23: language-neutral mechanics of a card (variable names, applied powers, keywords and
+    // spawned cards: "StrengthPower Strength EXHAUST SHIV"). Archetype detection read only the
+    // localized text and missed every Strength, Exhaust and Frost card in the Russian catalogue.
+    internal static string Signals(JsonElement row)
+    {
+        var parts = new List<string>();
+        if (row.TryGetProperty("vars", out var vars) && vars.ValueKind == JsonValueKind.Object)
+            parts.AddRange(vars.EnumerateObject().Select(x => x.Name));
+        if (row.TryGetProperty("powers_applied", out var powers) && powers.ValueKind == JsonValueKind.Array)
+            foreach (var power in powers.EnumerateArray())
+                if (power.ValueKind == JsonValueKind.Object && Text(power, "power_key") is { } key) parts.Add(key);
+        if (row.TryGetProperty("keywords_key", out var keywords) && keywords.ValueKind == JsonValueKind.Array)
+            parts.AddRange(keywords.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString() ?? ""));
+        if (row.TryGetProperty("spawns_cards", out var spawns) && spawns.ValueKind == JsonValueKind.Array)
+            parts.AddRange(spawns.EnumerateArray().Select(x => x.ValueKind == JsonValueKind.String ? x.GetString() ?? "" : x.ValueKind == JsonValueKind.Object && Text(x, "id") is { } id ? id : ""));
+        return string.Join(" ", parts.Where(x => x.Length > 0)).ToUpperInvariant();
     }
 
     private static string DiskPath() => ModPaths.UserData($"cards-{ModLocalization.ApiLanguage}-v1.json");

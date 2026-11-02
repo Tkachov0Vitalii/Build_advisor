@@ -95,8 +95,8 @@ internal static class CardSemanticTags
             var normalized = Normalize(raw);
             if (ByKey.ContainsKey(normalized)) result.Add(normalized);
         }
-        if (archetypes.Any(a => MatchesArchetype(text, a))) result.Add("ARCHETYPE_FIT");
-        if (archetypes.Count >= 2 && archetypes.Count(a => MatchesArchetype(text, a)) >= 2) result.Add("BRIDGE");
+        if (archetypes.Any(a => DeckBuildScoring.CardMatchesArchetype(card, a))) result.Add("ARCHETYPE_FIT");
+        if (archetypes.Count >= 2 && archetypes.Count(a => DeckBuildScoring.CardMatchesArchetype(card, a)) >= 2) result.Add("BRIDGE");
         if (contextScore >= 20) result.Add("SHORE_UP");
         if (contextScore > 0) result.Add("SYNERGY"); else if (contextScore < 0) result.Add("OFF_SYNERGY");
         if (final >= 90) { result.Add("TOP_PICK"); result.Add("CORE"); }
@@ -120,16 +120,6 @@ internal static class CardSemanticTags
         "ARCHETYPE_FIT" or "BRIDGE" or "SYNERGY" => 1,
         "NOT_RECOMMENDED" or "OFF_SYNERGY" or "BLOAT" or "DUPLICATE_EXCESS" => 2,
         _ => 5
-    };
-    private static bool MatchesArchetype(string text, string archetype) => archetype switch
-    {
-        "Сила" => Has(text, "STRENGTH", "СИЛА"), "Истощение" => Has(text, "EXHAUST", "ИСТОЩ"), "Блок" => Has(text, "BLOCK", "БЛОК"),
-        "Саморанение" => Has(text, "HP_LOSS", "ПОТЕРЯЙТЕ"), "Уязвимость" => Has(text, "VULNERABLE", "УЯЗВИМОСТ"),
-        "Яд" => Has(text, "POISON", "ЯД"), "Заточки" => Has(text, "SHIV", "ЗАТОЧК"), "Сброс" => Has(text, "DISCARD", "СБРОС"),
-        "Молнии" => Has(text, "LIGHTNING", "МОЛНИ"), "Мороз" => Has(text, "FROST", "МОРОЗ"), "Фокус" => Has(text, "FOCUS", "ФОКУС"),
-        "Нулевая стоимость" => Has(text, "ZERO", "0 COST"), "Звёзды" => Has(text, "STAR", "ЗВЕЗД", "ЗВЁЗД"), "Кузня" => Has(text, "FORGE", "КОВК", "КУЗН"),
-        "Бесцветные карты" => Has(text, "ARSENAL", "PILLAR_OF_CREATION", "MANIFEST_AUTHORITY", "BUNDLE_OF_JOY", "QUASAR", "SPECTRUM_SHIFT", "SUPERMASSIVE", "HEIRLOOM_HAMMER", "JACK_OF_ALL_TRADES", "BEGONE", "TYRANNY", "CHARGE", "GUARDS", "БЕСЦВЕТН"),
-        "Души" => Has(text, "SOUL", "ДУШ"), "Гибель" => Has(text, "DOOM", "ГИБЕЛ"), "Призыв" => Has(text, "SUMMON", "MINION", "ПРИЗЫВ"), _ => false
     };
     private static string Normalize(string value) => value.Trim().Replace('-', '_').Replace(' ', '_').ToUpperInvariant();
     private static bool Has(string text, params string[] tokens) => tokens.Any(text.Contains);

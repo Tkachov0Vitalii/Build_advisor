@@ -78,6 +78,7 @@ internal static class ScoreExplanation
         ("Архетип и синергия", ["синергия архетипа", "не подходит выбранному архетипу", "ограничение другого архетипа", "похожие победные колоды", "ключевая карта архетипа"]),
         ("Копии и размер колоды", ["копия", "размер колоды", "несколько структурных минусов"]),
         ("Акт и босс", ["ценность в акте", "подготовка к боссу"]),
+        ("Команда", ["защита напарника", "усиление напарника", "атаки напарников", "архетип напарника"]),
         ("Улучшение", ["улучшенная версия"]),
         ("Личное и похожие ситуации", ["ваша поправка", "ваша история выборов", "похожие ситуации"]),
     ];
@@ -149,6 +150,8 @@ internal static class DeckBuildScoring
         var detectedArchetypes = DetectArchetypes(context.Character, deck, context.Floor);
         var archetypes = ArchetypePreferences.Apply(context.Character, detectedArchetypes);
         var threat = EncounterThreatModel.Assess(context);
+        // H5: the other players of a co-op run (none in single player).
+        var team = context.Teammates.Select(mate => TeamAdvisor.Profile(mate, cards, context.Act, context.Floor)).ToArray();
         // Starter Strike/Defend copies are counted in the summary but do not satisfy a need:
         // five Strikes are not "enough damage" for Act 1 elites and four Defends are not a
         // defensive plan. Only reward-quality cards count as coverage.
@@ -173,7 +176,7 @@ internal static class DeckBuildScoring
         }).ToArray();
         var choiceAdjustments = CenteredChoiceAdjustments(choiceSignals);
         var offers = offered.Select((id, index) => Score(id, Find(id), context, deck, metrics, coach, needs, archetypes, threat, averageCost, choiceAdjustments[index],
-            upgradedOffers?.Contains(SpireCodexMetricsClient.NormalizeId(id)) == true, direction)).OrderByDescending(x => x.Final).ToArray();
+            upgradedOffers?.Contains(SpireCodexMetricsClient.NormalizeId(id)) == true, direction, team)).OrderByDescending(x => x.Final).ToArray();
         var best = offers.FirstOrDefault()?.Final ?? 0;
         var missesCurrentNeed = !needs.SequenceEqual(["синергия/качество"]) && offers.All(x => x.Context <= 0);
         var heuristicSkip = Math.Clamp(20
@@ -195,13 +198,14 @@ internal static class DeckBuildScoring
         var summary = $"Колода: {deck.Length} карт · ср. стоимость {averageCost:0.0} · атаки {attacks} · защита {defense} · добор {draw} · энергия {energy}.\n" +
                       $"Направление: {archetypeText}. Сейчас важнее: {string.Join(", ", needs)}.\n" + EncounterThreatModel.Summary(threat);
         if (segmentRisk.IsAvailable) summary += "\n" + SegmentRiskModel.Summary(segmentRisk);
+        if (team.Length > 0) summary += "\n" + TeamAdvisor.Summary(team);
         return new BuildAssessment(summary, needs, archetypes, (decimal)averageCost, skip, offers);
     }
 
     private static OfferScore Score(string id, CardDefinition? card, RunContext context, IReadOnlyList<CardDefinition> deck,
         IReadOnlyDictionary<string, EntityMetric> metrics, IReadOnlyDictionary<string, CoachOffer>? coach,
         IReadOnlyList<string> needs, IReadOnlyList<string> archetypes, ThreatAssessment threat, double averageCost, decimal learnedChoiceAdjustment,
-        bool upgraded = false, ArchetypeDirection? direction = null)
+        bool upgraded = false, ArchetypeDirection? direction = null, IReadOnlyList<TeammateProfile>? team = null)
     {
         var key = SpireCodexMetricsClient.NormalizeId(id);
         var name = (card?.Name ?? (metrics.TryGetValue(key, out var itemName) ? itemName.Name : id)) + (upgraded ? "+" : "");
@@ -252,6 +256,9 @@ internal static class DeckBuildScoring
         if (threatBonus != 0) Adjust(threatBonus, "подготовка к боссу");
         var archetypeBonus = ArchetypeBonus(card, archetypes, deck);
         if (archetypeBonus != 0) Adjust(archetypeBonus, "синергия архетипа");
+        if (team is { Count: > 0 })
+            foreach (var (value, label) in TeamAdvisor.Adjust(card, context.Character, archetypes, team, archetype => MatchesArchetype(cardText, card, archetype)))
+                Adjust(value, label);
         var conflictPenalty = competing.Length == 0 ? 0m : context.Act switch { 1 => -22m, 2 => -30m, _ => -38m };
         if (conflictPenalty != 0)
         {
@@ -410,7 +417,7 @@ internal static class DeckBuildScoring
         return "После выбора: " + string.Join(" · ", changes) + ".";
     }
 
-    private static IReadOnlyList<string> DetectArchetypes(string character, IEnumerable<CardDefinition> deck, int floor)
+    internal static IReadOnlyList<string> DetectArchetypes(string character, IEnumerable<CardDefinition> deck, int floor)
     {
         var candidates = ArchetypePreferences.Options(character).Where(x => x != "Авто").ToArray();
         var scores = candidates.ToDictionary(x => x, _ => 0, StringComparer.OrdinalIgnoreCase);
@@ -454,25 +461,34 @@ internal static class DeckBuildScoring
         return 0;
     }
 
-    private static bool MatchesArchetype(string text, CardDefinition card, string archetype) => archetype switch
+    // Text = ID + localized description + language-neutral signals (CardDefinition.Signals).
+    // 6.23: Russian tokens follow the game's own terms (Exhaust = «сжигает», Doom = «злой рок»,
+    // Forge = «закаляет», Frost = «сфера льда»); "РАН" matched «выбранную» and "STAR" «start».
+    private static bool MatchesArchetype(string text, CardDefinition card, string archetype) => MatchesArchetypeText(text + " " + card.Signals, card, archetype);
+
+    // One archetype matcher for scoring, detection and tags (CardSemanticTags had its own copy).
+    internal static bool CardMatchesArchetype(CardDefinition card, string archetype) =>
+        MatchesArchetype((card.Id + " " + card.Description).ToUpperInvariant(), card, archetype);
+
+    private static bool MatchesArchetypeText(string text, CardDefinition card, string archetype) => archetype switch
     {
-        "Сила" => Has(text, "STRENGTH", "СИЛА"),
-        "Истощение" => Has(text, "EXHAUST", "ИСТОЩ"),
+        "Сила" => Has(text, "STRENGTH", "СИЛА", "]СИЛ", " СИЛЫ", " СИЛУ"),
+        "Истощение" => Has(text, "EXHAUST", "ИСТОЩ", "СЖИГА", "СЖЕЧ", "СОЖЖ", "ПЕПЛ"),
         "Блок" => card.Block > 0 || Has(text, "BLOCK", "БЛОК"),
-        "Саморанение" => Has(text, "BLOOD", "HP_LOSS", "РАН", "ПОТЕРЯЙТЕ", "ПОЛУЧАЕТЕ.*УРОН"),
+        "Саморанение" => Has(text, "BLOOD", "HP_LOSS", "HPLOSS", "LOSE ", "ПОТЕРЯЙТЕ", "ТЕРЯЕТЕ"),
         "Уязвимость" => Has(text, "VULNERABLE", "УЯЗВИМОСТ", "BASH", "UPPER_CUT", "TRIP"),
         "Яд" => Has(text, "POISON", "ЯД"),
         "Заточки" => Has(text, "SHIV", "ЗАТОЧК", "BLADE_DANCE", "ACCURACY"),
         "Сброс" => Has(text, "DISCARD", "СБРОС", "СБРАСЫВ", "DAGGER_THROW", "REFLEX", "TACTICIAN"),
         "Молнии" => Has(text, "LIGHTNING", "МОЛНИ"),
-        "Мороз" => Has(text, "FROST", "МОРОЗ"),
+        "Мороз" => Has(text, "FROST", "МОРОЗ", "ЛЬДА", "ЛЁД", "ЛЬДОМ"),
         "Фокус" => Has(text, "FOCUS", "ФОКУС"),
         "Нулевая стоимость" => card.Cost == 0 || Has(text, "ZERO", "0 COST", "БЕСПЛАТ", "ALL_FOR_ONE", "SCRAPE"),
-        "Звёзды" => Has(text, "STAR", "ЗВЁЗД"),
-        "Кузня" => Has(text, "FORGE", "КУЗН", "SMITH"),
+        "Звёзды" => Has(text, "[STAR:", "STARS", "STARCOST", " STAR ", "ЗВЁЗД", "ЗВЕЗД"),
+        "Кузня" => Has(text, "FORGE", "КУЗН", "SMITH", "ЗАКАЛ"),
         "Бесцветные карты" => RegentColorlessArchetype.IsMatch(card),
         "Души" => Has(text, "SOUL", "ДУШ"),
-        "Гибель" => Has(text, "DOOM", "ГИБЕЛ", "ПОГИБ"),
+        "Гибель" => Has(text, "DOOM", "ГИБЕЛ", "ПОГИБ", "ЗЛОЙ РОК", "ЗЛОГО РОК"),
         "Призыв" => Has(text, "SUMMON", "ПРИЗЫВ", "ПРИЗЫВА"),
         _ => false
     };

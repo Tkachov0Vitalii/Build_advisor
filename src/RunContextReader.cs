@@ -19,7 +19,11 @@ internal sealed record RunContext(string Character, IReadOnlyList<string> Cards,
     public int PotionSlots { get; init; }
     public bool HasOpenPotionSlot => PotionSlots <= 0 || Potions.Count < PotionSlots;
     public bool IsMultiplayer => PlayerCount > 1;
+    // H5: the other players of a co-op run (empty in single player).
+    public IReadOnlyList<TeammateDeck> Teammates { get; init; } = [];
 }
+
+internal sealed record TeammateDeck(string Character, IReadOnlyList<string> Cards, int Hp, int MaxHp);
 
 internal sealed record DeckCardState(string Id, int UpgradeLevel, int MaxUpgradeLevel)
 {
@@ -97,11 +101,28 @@ internal static class RunContextReader
             CardStates = cardStates,
             Route = route,
             PlayerCount = Math.Max(1, players.Length),
+            Teammates = players.Where(x => !ReferenceEquals(x, player)).Select(ReadTeammate).Where(x => x is not null).Cast<TeammateDeck>().ToArray(),
             RunSeed = ReflectionIds.Member(ReflectionIds.Member(state, "Rng") ?? new object(), "StringSeed")?.ToString(),
             // PotionSlots holds one entry per slot, null for an empty slot.
             Potions = ReflectionIds.FindIds(Values(ReflectionIds.Member(player, "PotionSlots")).Where(x => x is not null)),
             PotionSlots = Math.Max(Number(ReflectionIds.Member(player, "MaxPotionCount")), Values(ReflectionIds.Member(player, "PotionSlots")).Count())
         };
+    }
+
+    private static TeammateDeck? ReadTeammate(object other)
+    {
+        try
+        {
+            var character = ReflectionIds.FindId(ReflectionIds.Member(other, "Character") ?? new object());
+            if (string.IsNullOrWhiteSpace(character)) return null;
+            var deck = ReflectionIds.Member(other, "Deck");
+            var cards = deck is null ? [] : ReflectionIds.FindIdsWithDuplicates(Values(ReflectionIds.Member(deck, "Cards")).ToArray());
+            var creature = ReflectionIds.Member(other, "Creature");
+            var hp = creature is null ? 0 : Number(First(creature, "CurrentHp", "Hp"));
+            var maxHp = creature is null ? 0 : Number(First(creature, "MaxHp", "MaxHealth"));
+            return new TeammateDeck(character.ToLowerInvariant(), cards, hp, Math.Max(1, maxHp));
+        }
+        catch { return null; }
     }
 
     // H1: the map point the player stands on (null before the first move of an act).
