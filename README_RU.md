@@ -1,6 +1,6 @@
 # Build Advisor 7.0.0 для Slay the Spire 2
 
-[English version](README.md) · [История изменений](CHANGELOG.md) · [Установка](INSTALL_RU.md)
+[English version](README.md) · [История изменений](CHANGELOG.md) · [Установка](INSTALL_RU.md) · [Релизы](https://github.com/Tkachov0Vitalii/Build_advisor/releases) · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3832174623) · [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588)
 
 ![Build Advisor на экране награды](docs/images/reward-screen.jpg)
 

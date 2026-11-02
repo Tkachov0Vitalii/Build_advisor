@@ -4,9 +4,9 @@
 
 ## Steam Workshop
 
-Подпишитесь на **Build Advisor** в мастерской Steam игры Slay the Spire 2, запустите игру и выберите **Modded**. Steam сам установит и обновит мод.
+Подпишитесь на **[Build Advisor в мастерской Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=3832174623)**, запустите игру и выберите **Modded**. Steam сам установит и обновит мод.
 
-## Ручная установка (GitHub Releases, Nexus Mods)
+## Ручная установка ([GitHub Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases), [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588))
 
 1. Закройте игру.
 2. Распакуйте `BuildAdvisor-7.0.0.zip` в папку `mods` игры (создайте её рядом с исполняемым файлом, если её нет). Должно получиться:

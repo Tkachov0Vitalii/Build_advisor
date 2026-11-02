@@ -1,6 +1,6 @@
 # Build Advisor 7.0.0 for Slay the Spire 2
 
-[Русская версия](README_RU.md) · [Changelog](CHANGELOG.md) · [Install](INSTALL_EN.md) · [Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases)
+[Русская версия](README_RU.md) · [Changelog](CHANGELOG.md) · [Install](INSTALL_EN.md) · [Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases) · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3832174623) · [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588)
 
 <img src="docs/images/logo.png" width="160" align="right" alt="Build Advisor logo">
 
@@ -28,8 +28,8 @@ The mod never plays for you and does not change the game's rules (`affects_gamep
 
 ## Install
 
-- **Steam Workshop** — subscribe to Build Advisor, start the game, choose *Modded*.
-- **Manual (GitHub Releases / Nexus Mods)** — extract `BuildAdvisor-7.0.0.zip` into `Slay the Spire 2/mods/build-advisor/` keeping the inner `build-advisor` folder; start the game and choose *Modded*. Details: [INSTALL_EN.md](INSTALL_EN.md).
+- **[Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3832174623)** — subscribe to Build Advisor, start the game, choose *Modded*.
+- **Manual ([GitHub Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases) / [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588))** — extract `BuildAdvisor-7.0.0.zip` into `Slay the Spire 2/mods/` (you get `mods/build-advisor/build-advisor.dll`); start the game and choose *Modded*. Details: [INSTALL_EN.md](INSTALL_EN.md).
 
 The game log (`%APPDATA%\SlayTheSpire2\logs\godot.log`) shows `Build Advisor 7.0.0 loaded; all patches installed; regression matrix passed.`
 

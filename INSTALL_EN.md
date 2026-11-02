@@ -4,9 +4,9 @@ The same package works on Windows, Linux and macOS. No game files are redistribu
 
 ## Steam Workshop
 
-Subscribe to **Build Advisor** in the Steam Workshop of Slay the Spire 2, start the game and choose **Modded**. Steam installs and updates the mod.
+Subscribe to **[Build Advisor in the Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3832174623)**, start the game and choose **Modded**. Steam installs and updates the mod.
 
-## Manual install (GitHub Releases, Nexus Mods)
+## Manual install ([GitHub Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases), [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588))
 
 1. Quit Slay the Spire 2.
 2. Extract `BuildAdvisor-7.0.0.zip` into the game's `mods` folder (create it next to the game executable if it does not exist). The result:
