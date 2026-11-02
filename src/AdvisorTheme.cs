@@ -82,14 +82,40 @@ internal static class AdvisorTheme
         return box;
     }
 
-    // Card, shop and selection badges: a paper ribbon; the best option is a red ribbon in gold.
-    internal static void Ribbon(Label label, bool best, int fontSize = 15)
+    // 7.0: every tier has its own colour (owner: "the letter gets lost on the colour"): a light
+    // tinted ribbon, dark ink of the same hue (contrast ≥ 7:1, regression-checked) and a strong
+    // frame. S purple, A red, B amber, C blue, D grey; the best option adds a gold frame and ★.
+    internal static (Color Fill, Color Ink, Color Frame) TierColors(string tier) => tier switch
     {
+        "S" => (new Color("e6d5f2"), new Color("3f1260"), new Color("7d3fb0")),
+        "A" => (new Color("f4d6cf"), new Color("6b1710"), new Color("b0302a")),
+        "B" => (new Color("f5e2c0"), new Color("5a3203"), new Color("c27a14")),
+        "C" => (new Color("d7e4f2"), new Color("17375f"), new Color("3a72b5")),
+        _ => (new Color("e3ded6"), new Color("35302a"), new Color("8a8178"))
+    };
+
+    // WCAG contrast ratio of two colours (1..21).
+    internal static double Contrast(Color a, Color b)
+    {
+        static double Channel(float c) => c <= .03928 ? c / 12.92 : Math.Pow((c + .055) / 1.055, 2.4);
+        static double Luminance(Color c) => .2126 * Channel(c.R) + .7152 * Channel(c.G) + .0722 * Channel(c.B);
+        var (light, dark) = (Math.Max(Luminance(a), Luminance(b)), Math.Min(Luminance(a), Luminance(b)));
+        return (light + .05) / (dark + .05);
+    }
+
+    // Card, shop and selection badges: a ribbon in the tier's colours; the best option is framed in gold.
+    internal static void Ribbon(Label label, string tier, bool best, int fontSize = 15)
+    {
+        var (fill, ink, frame) = TierColors(tier);
         if (Bold is { } font) label.AddThemeFontOverride("font", font);
         label.AddThemeFontSizeOverride("font_size", fontSize);
-        label.AddThemeColorOverride("font_color", best ? Cream : Ink);
-        label.AddThemeStyleboxOverride("normal", best ? Box(Wax, Gold, 2, 4) : Box(Paper, PaperLine, 1, 4));
+        label.AddThemeColorOverride("font_color", ink);
+        var box = Box(fill, best ? Gold : frame, best ? 3 : 2, 4);
+        if (best) { box.ShadowColor = new Color(Gold, .45f); box.ShadowSize = 6; }
+        label.AddThemeStyleboxOverride("normal", box);
     }
+
+    internal static Color TierFrame(string tier) => TierColors(tier).Frame;
 
     // Hover cards: parchment with dark ink; the accent colours the frame.
     internal static void Popup(Label label, Color? accent = null)

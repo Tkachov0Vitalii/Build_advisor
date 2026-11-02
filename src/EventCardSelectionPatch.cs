@@ -199,7 +199,8 @@ internal static class EventCardAdvisor
             }).Where(x => x.Id is not null).Select(x => (x.Anchor, x.Id!)).ToArray();
             AdviceOverlay.RenderTrackedSelectionBadges(screen, Holders, assessment.Offers, ActionLabel(purpose));
         }
-        AdviceOverlay.Render(screen, Format(assessment.Offers, purpose, intent), null, RunContextReader.TryRead());
+        AdviceOverlay.Render(screen, Format(assessment.Offers, purpose, intent), null, RunContextReader.TryRead(),
+            AdviceSummaries.ForChoice(SummaryTitle(purpose), assessment.Offers, $"Цель: {PurposeName(purpose)}"));
     }
 
     private static string Format(IEnumerable<OfferScore> offers, EventCardPurpose purpose, EventSelectionIntent intent)
@@ -232,6 +233,15 @@ internal static class EventCardAdvisor
         var deck = context.Cards.Select(SpireCodexMetricsClient.NormalizeId).ToHashSet(StringComparer.OrdinalIgnoreCase);
         return ids.Count(id => deck.Contains(SpireCodexMetricsClient.NormalizeId(id))) * 2 >= ids.Count ? EventCardPurpose.Generic : EventCardPurpose.Gain;
     }
+
+    private static string SummaryTitle(EventCardPurpose purpose) => purpose switch
+    {
+        EventCardPurpose.Remove => "Удалить",
+        EventCardPurpose.Transform => "Преобразовать",
+        EventCardPurpose.Upgrade => "Улучшить",
+        EventCardPurpose.Enchant => "Зачаровать",
+        _ => "Выбрать"
+    };
 
     private static string PurposeName(EventCardPurpose purpose) => purpose switch
     {

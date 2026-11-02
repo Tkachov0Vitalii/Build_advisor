@@ -34,6 +34,7 @@ if ((Read-Text "BuildAdvisor.csproj") -notmatch "<Version>$([regex]::Escape($ver
 if ((Read-Text "src/BuildAdvisorMod.cs") -notmatch "Current = `"$([regex]::Escape($version))`"") { throw "ModVersion.Current != $version" }
 if ((Read-Text "CHANGELOG.md") -notmatch "(?m)^## $([regex]::Escape($version)) ") { throw "CHANGELOG has no $version entry" }
 if ((Read-Text "README.md") -notmatch "Build Advisor $([regex]::Escape($version))") { throw "README title != $version" }
+python (Join-Path $root "tools/check_release_metadata.py"); if ($LASTEXITCODE -ne 0) { throw "Release metadata check failed" }
 
 Write-Host "== Build $version"
 Invoke-Checked "Build" { dotnet build (Join-Path $root "BuildAdvisor.csproj") -c Release "-p:Sts2ManagedDir=$ManagedDir" -warnaserror -nologo -v quiet }
@@ -53,14 +54,14 @@ try {
     $stage = Join-Path $work "zip"
     $modFolder = Join-Path $stage "build-advisor"
     New-Item -ItemType Directory -Force -Path $modFolder | Out-Null
-    foreach ($file in "build-advisor.dll", "build-advisor.json", "build-advisor-run-priors.data", "segment-risk-v1.data", "score-weights-v1.data", "tandrex-emblem.png") {
+    foreach ($file in "build-advisor.dll", "build-advisor.json", "build-advisor-run-priors.data", "segment-risk-v1.data", "score-weights-v1.data") {
         Copy-Item (Join-Path $package $file) $modFolder
     }
     $fontFolder = Join-Path $modFolder "fonts"
     New-Item -ItemType Directory -Force -Path $fontFolder | Out-Null
     Copy-Item (Join-Path $package "fonts/*") $fontFolder
-    foreach ($file in "README.md", "CHANGELOG.md", "INSTALL_RU.md", "INSTALL_EN.md", "LICENSE", "THIRD_PARTY_NOTICES.md") {
-        Copy-Item (Join-Path $root $file) $stage
+    foreach ($file in "README.md", "README_RU.md", "CHANGELOG.md", "INSTALL_RU.md", "INSTALL_EN.md", "LICENSE", "THIRD_PARTY_NOTICES.md") {
+        Copy-Item (Join-Path $root $file) $modFolder
     }
     $out = Join-Path $root "release"
     New-Item -ItemType Directory -Force -Path $out | Out-Null
@@ -68,8 +69,20 @@ try {
     if (Test-Path $zip) { Remove-Item $zip }
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [IO.Compression.ZipFile]::CreateFromDirectory($stage, $zip)
+    # Steam Workshop workspace for the Mega Crit uploader (content/ = the mod files).
+    $wsRoot = Join-Path $work "workshop"
+    $ws = Join-Path $wsRoot "BuildAdvisor-workshop"
+    New-Item -ItemType Directory -Force -Path (Join-Path $ws "content") | Out-Null
+    foreach ($file in "workshop.json", "image.png", "README.md") { Copy-Item (Join-Path $root "publish/workshop/$file") $ws }
+    Copy-Item -Recurse (Join-Path $root "publish/workshop/previews") $ws
+    Copy-Item -Recurse (Join-Path $modFolder "*") (Join-Path $ws "content")
+    Get-ChildItem (Join-Path $ws "content") -File | Where-Object { $_.Name -match '^(README.*|CHANGELOG|INSTALL_.*)\.md$' } | Remove-Item
+    $workshopZip = Join-Path $out "BuildAdvisor-$version-workshop.zip"
+    if (Test-Path $workshopZip) { Remove-Item $workshopZip }
+    [IO.Compression.ZipFile]::CreateFromDirectory($wsRoot, $workshopZip)
     $sums = @(
         "$((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant())  BuildAdvisor-$version.zip",
+        "$((Get-FileHash $workshopZip -Algorithm SHA256).Hash.ToLowerInvariant())  BuildAdvisor-$version-workshop.zip",
         "$((Get-FileHash (Join-Path $modFolder 'build-advisor.dll') -Algorithm SHA256).Hash.ToLowerInvariant())  build-advisor.dll")
     [IO.File]::WriteAllLines((Join-Path $out "SHA256SUMS.txt"), $sums)
     Write-Host "== Done: $zip"

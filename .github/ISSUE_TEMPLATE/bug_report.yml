@@ -1,0 +1,33 @@
+name: Bug report / Ошибка
+description: Wrong advice, a broken screen or a crash / Неверный совет, сломанный экран или вылет
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Mod and game version / Версия мода и игры
+      placeholder: "Build Advisor 7.0.0, game v0.107.1"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened and what you expected / Что произошло и что ожидали
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Screen and steps / Экран и шаги
+      placeholder: "Card reward after an elite in act 2…"
+  - type: textarea
+    id: log
+    attributes:
+      label: godot.log
+      description: "Windows: %APPDATA%\\SlayTheSpire2\\logs\\godot.log — attach the file or paste the Build Advisor lines."
+      render: text
+  - type: input
+    id: os
+    attributes:
+      label: OS / ОС
+      placeholder: "Windows 11"

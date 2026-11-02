@@ -45,6 +45,7 @@ internal static class BuildAdvisorRegression
             CalibratedWeightsScaleHandAdjustments();
             CoopAdviceUsesTeammateDecks();
             RussianCatalogMatchesArchetypes();
+            PanelSummaryAndTierColours();
             ArchetypeSelectionResetsBetweenRuns();
             ManualArchetypeOverridesGenericPowerAndLateBloat();
             StrongEarlyCardDetectsArchetype();
@@ -549,6 +550,34 @@ internal static class BuildAdvisorRegression
             throw new InvalidOperationException("Archetype matcher over-matches Russian text.");
         if (!Get("INFLAME").Signals.Contains("STRENGTH") || !Get("END_OF_DAYS").Signals.Contains("DOOM"))
             throw new InvalidOperationException("Card signals are not parsed: " + Get("INFLAME").Signals);
+    }
+
+    private static void PanelSummaryAndTierColours()
+    {
+        OfferScore Offer(string id, decimal final, decimal? lift, int samples) => new(id, id, final, final, 0m, "атака", "", .9m, CommunityLift: lift, LiftSamples: samples);
+        var take = AdviceSummaries.ForCards(new BuildAssessment("", ["защита"], ["Сила"], 1m, 20, [Offer("BASH", 66m, 1.2m, 4000), Offer("CLASH", 81m, 6m, 5000), Offer("FLEX", 40m, -.5m, 3000)]))!;
+        if (!take.Positive || take.Verdict != "Возьмите CLASH" || take.Rows.Count != 3 || take.Rows[0].Name != "CLASH" || !take.Rows[0].Best ||
+            take.Rows[0].Tier != "A" || take.Rows[2].Tier != "D" || take.Rows.Skip(1).Any(x => x.Best) || !take.Chips.Contains("нужно: защита") || !take.Chips.Contains("архетип: Сила"))
+            throw new InvalidOperationException("Card summary is wrong: " + take.Verdict + " " + string.Join(",", take.Rows.Select(x => x.Name + x.Tier + x.Best)));
+        var skip = AdviceSummaries.ForCards(new BuildAssessment("", ["синергия/качество"], [], 1m, 60, [Offer("FLEX", 40m, -.5m, 3000)]))!;
+        if (skip.Positive || skip.Verdict != "Лучше пропустить" || skip.Chips.Count != 0)
+            throw new InvalidOperationException("Skip summary is wrong: " + skip.Verdict);
+        if (AdviceSummaries.ForCards(new BuildAssessment("", [], [], 1m, 0, [])) is not null || AdviceSummaries.ForChoice("Реликвия", []) is not null)
+            throw new InvalidOperationException("An empty screen produced a summary.");
+        var shop = AdviceSummaries.ForChoice("Лучшая покупка", [Offer("A1", 50m, null, 0), Offer("B2", 79m, null, 0)], "Золото: 120")!;
+        foreach (var text in new[] { take.Verdict + " " + take.Detail + " " + string.Join(" ", take.Chips), skip.Verdict + " " + skip.Detail, shop.Verdict + " " + shop.Detail + " Подробный разбор" })
+        {
+            var english = ModLocalization.Translate(text, AdvisorLanguage.English);
+            if (english.Any(ch => ch is >= 'А' and <= 'я' or 'ё' or 'Ё')) throw new InvalidOperationException("Summary is not translated: " + english);
+        }
+        // Every tier ribbon is readable: dark ink on its tint at 7:1 or better, and the five tints differ.
+        foreach (var tier in new[] { "S", "A", "B", "C", "D" })
+        {
+            var (fill, ink, _) = BuildAdvisor.UI.AdvisorTheme.TierColors(tier);
+            if (BuildAdvisor.UI.AdvisorTheme.Contrast(fill, ink) < 7) throw new InvalidOperationException($"Tier {tier} ribbon contrast is too low.");
+        }
+        if (new[] { "S", "A", "B", "C", "D" }.Select(t => BuildAdvisor.UI.AdvisorTheme.TierColors(t).Fill).Distinct().Count() != 5)
+            throw new InvalidOperationException("Tier ribbons share a colour.");
     }
 
     private static void ExpensiveDeckValuesEnergy()

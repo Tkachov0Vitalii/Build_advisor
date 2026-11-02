@@ -8,6 +8,9 @@ public static class AdviceOverlay
 {
     private const string ToggleName = "BuildAdvisorToggle";
     private const string PageName = "BuildAdvisorPage";
+    private const string AdviceStackName = "BuildAdvisorAdviceStack";
+    private const string SummaryName = "BuildAdvisorSummary";
+    private static AdviceSummary? currentSummary;
     // Panel geometry in the game's 1920x1080 layout: left side, clear of the top bar.
     private const float PanelX = 74, PanelY = 72, PanelWidth = 640, PanelHeight = 984;
     private const float ContentWidth = PanelWidth - 44, TextWidth = ContentWidth - 20;
@@ -59,16 +62,18 @@ public static class AdviceOverlay
 
     internal static void SetRefreshAction(Action? action) => currentRefresh = action;
 
-    internal static void Render(Node screen, string text, Action<bool>? feedback = null, RunContext? context = null)
+    internal static void Render(Node screen, string text, Action<bool>? feedback = null, RunContext? context = null, AdviceSummary? summary = null)
     {
         var host = GlobalHost(screen);
         currentRawText = text;
+        currentSummary = summary;
         context ??= RunContextReader.TryRead();
         var label = Find<Label>(host, TextName);
         if (label is not null)
         {
             label.Text = L(text);
             label.CustomMinimumSize = new Vector2(TextWidth, HeightFor(label.Text));
+            BuildSummary(host);
             SyncArchetypeChooser(host, context);
             UpdateLive(host);
             return;
@@ -96,7 +101,13 @@ public static class AdviceOverlay
         var body = new Control { Name = AdviceBodyName, Position = new Vector2(22, BodyY), Size = new Vector2(ContentWidth, BodyHeight) };
         var scroll = new ScrollContainer { Position = Vector2.Zero, Size = new Vector2(ContentWidth, BodyHeight), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto };
         label = new Label { Name = TextName, Text = L(text), AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(TextWidth, HeightFor(L(text))), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
-        label.AddThemeFontSizeOverride("font_size", 17); scroll.AddChild(label); body.AddChild(scroll);
+        label.AddThemeFontSizeOverride("font_size", 17);
+        // 7.0: the summary (verdict, ranked options, deck needs) above the detailed text.
+        var stack = new VBoxContainer { Name = AdviceStackName, CustomMinimumSize = new Vector2(TextWidth, 0) };
+        stack.AddThemeConstantOverride("separation", 12);
+        var summaryPanel = new VBoxContainer { Name = SummaryName, CustomMinimumSize = new Vector2(TextWidth, 0), Visible = false };
+        summaryPanel.AddThemeConstantOverride("separation", 8);
+        stack.AddChild(summaryPanel); stack.AddChild(label); scroll.AddChild(stack); body.AddChild(scroll);
         // The tab exists immediately, even while the catalogue is still being fetched.
         var searchTab = Tab("BuildAdvisorSearchTab", "Искать карты", new Vector2(116, 104));
         var runTab = Tab("BuildAdvisorRunTab", "Анализ забега", new Vector2(268, 104));
@@ -185,6 +196,7 @@ public static class AdviceOverlay
         page.AddChild(monogram); page.AddChild(title); page.AddChild(live); page.AddChild(close); page.AddChild(adviceTab); page.AddChild(searchTab); page.AddChild(runTab); page.AddChild(tagsTab); page.AddChild(rule);
         page.AddChild(body); page.AddChild(search); page.AddChild(run); page.AddChild(tagsPanel); page.AddChild(footerRule); page.AddChild(footer);
         host.AddChild(toggle); host.AddChild(page);
+        BuildSummary(host);
         toggle.Pressed += () => page.Visible = !page.Visible;
         close.Pressed += () => page.Hide();
         StartLiveUpdates(host);
@@ -416,10 +428,10 @@ public static class AdviceOverlay
             if (badge is AttachedBadge attached)
             {
                 attached.ExpandedText = details;
-                attached.StylePopup = popup => AdvisorTheme.Popup(popup, best ? AdvisorTheme.Wax : null);
+                attached.StylePopup = popup => AdvisorTheme.Popup(popup, best ? AdvisorTheme.Gold : AdvisorTheme.TierFrame(tier));
             }
             else badge.TooltipText = details;
-            AdvisorTheme.Ribbon(badge, best);
+            AdvisorTheme.Ribbon(badge, tier, best);
         }
 
         // The card node is centred on the holder; the badge sits on the card's bottom rim.
@@ -451,7 +463,7 @@ public static class AdviceOverlay
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
             TooltipText = L(string.IsNullOrWhiteSpace(actionLabel) ? $"{score.Name}\n{ScoreExplanation.Breakdown(score)}\n{score.TagText}\n{score.Impact}" : $"{score.Name}: {score.Final:F0}/100\n{ScoreExplanation.Formula(score)}\n{score.TagText}\n{score.Impact}")
         };
-        AdvisorTheme.Ribbon(badge, score.Final == best && multiple);
+        AdvisorTheme.Ribbon(badge, tier, score.Final == best && multiple);
         host.AddChild(badge);
         badge.RefreshPosition();
         FrameTicker.Add(badge.Tick);
@@ -498,9 +510,9 @@ public static class AdviceOverlay
                     ZIndex = 20, ZAsRelative = true, MouseFilter = Control.MouseFilterEnum.Pass,
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                     ExpandedText = L($"{(isBest ? "★ " : "")}{tier}  {score.Final:F0}\n{ScoreExplanation.Breakdown(score)}\n{FullTags(score.TagText)}\n{score.Impact}"),
-                    StylePopup = popup => AdvisorTheme.Popup(popup, isBest ? AdvisorTheme.Wax : null)
+                    StylePopup = popup => AdvisorTheme.Popup(popup, isBest ? AdvisorTheme.Gold : AdvisorTheme.TierFrame(tier))
                 };
-                AdvisorTheme.Ribbon(cardBadge, isBest, 16);
+                AdvisorTheme.Ribbon(cardBadge, tier, isBest, 16);
                 holder.AddChild(cardBadge);
                 PlaceBelowCard(cardBadge, holder);
                 cardBadge.Activate();
@@ -518,7 +530,7 @@ public static class AdviceOverlay
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                 TooltipText = L($"{score.Name}\n{ScoreExplanation.Breakdown(score)}\n{score.TagText}\n{score.Impact}")
             };
-            AdvisorTheme.Ribbon(badge, isBest);
+            AdvisorTheme.Ribbon(badge, tier, isBest);
             host.AddChild(badge);
             MakeBadgeExpandable(badge, compactText, L($"{(isBest ? "★ " : "")}{tier}  {score.Final:F0}\n{ScoreExplanation.Breakdown(score)}\n{FullTags(score.TagText)}"), badge.Position, badge.Size);
         }
@@ -543,8 +555,7 @@ public static class AdviceOverlay
 
     private static void StyleBadge(Label badge, string tier, bool best, int fontSize)
     {
-        _ = tier;
-        AdvisorTheme.Ribbon(badge, best, fontSize);
+        AdvisorTheme.Ribbon(badge, tier, best, fontSize);
     }
 
     private const string OfflineTooltip = "Офлайн-режим: мод не обращается к сети и использует сохранённую статистику и локальную модель. Pick Coach и загрузка картинок отключаются.";
@@ -578,7 +589,7 @@ public static class AdviceOverlay
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                 // L3: price and the gold left after buying, next to the win-rate scale.
                 ExpandedText = L($"{score.Name}\n{ScoreExplanation.Breakdown(score)}{(note?.Invoke(score) is { Length: > 0 } priceLine ? "\n" + priceLine : "")}\n{FullTags(score.TagText)}\n{score.Impact}"),
-                StylePopup = popup => AdvisorTheme.Popup(popup, isBest ? AdvisorTheme.Wax : null)
+                StylePopup = popup => AdvisorTheme.Popup(popup, isBest ? AdvisorTheme.Gold : AdvisorTheme.TierFrame(tier))
             };
             StyleBadge(badge, tier, isBest, 14);
             slot.AddChild(badge);
@@ -1123,6 +1134,64 @@ public static class AdviceOverlay
         label.Text = L(currentRawText);
         label.CustomMinimumSize = new Vector2(TextWidth, HeightFor(label.Text));
     }
+    // The summary block: verdict, detail line, one row per option (tier chip, name, bar, score,
+    // note), deck needs as chips, then the heading of the detailed text below it.
+    private static void BuildSummary(Node host)
+    {
+        var panel = Find<VBoxContainer>(host, SummaryName);
+        if (panel is null) return;
+        foreach (var child in panel.GetChildren().ToArray()) { panel.RemoveChild(child); child.QueueFree(); }
+        var summary = currentSummary;
+        panel.Visible = summary is not null;
+        if (summary is null) return;
+        var verdict = new Label { Text = L(summary.Verdict), AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(TextWidth, 0) };
+        if (AdvisorTheme.Heading is { } heading) verdict.AddThemeFontOverride("font", heading);
+        verdict.AddThemeFontSizeOverride("font_size", 27);
+        verdict.AddThemeColorOverride("font_color", summary.Positive ? AdvisorTheme.Wax : AdvisorTheme.InkSoft);
+        var detail = new Label { Text = L(summary.Detail), AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(TextWidth, 0) };
+        detail.AddThemeFontSizeOverride("font_size", 15); detail.AddThemeColorOverride("font_color", AdvisorTheme.InkSoft);
+        panel.AddChild(verdict); panel.AddChild(detail);
+        var rows = new VBoxContainer(); rows.AddThemeConstantOverride("separation", 6);
+        foreach (var row in summary.Rows)
+        {
+            var line = new HBoxContainer { CustomMinimumSize = new Vector2(TextWidth, 30) };
+            line.AddThemeConstantOverride("separation", 10);
+            var chip = new Label { Text = row.Tier, CustomMinimumSize = new Vector2(34, 28), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            AdvisorTheme.Ribbon(chip, row.Tier, row.Best, 16);
+            var name = new Label { Text = (row.Best ? "★ " : "") + row.Name, CustomMinimumSize = new Vector2(190, 28), ClipText = true, VerticalAlignment = VerticalAlignment.Center };
+            if (row.Best && AdvisorTheme.Bold is { } bold) name.AddThemeFontOverride("font", bold);
+            var bar = new Control { CustomMinimumSize = new Vector2(150, 28), SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore };
+            var track = new ColorRect { Color = AdvisorTheme.PaperDark, Position = new Vector2(0, 10), Size = new Vector2(150, 9), MouseFilter = Control.MouseFilterEnum.Ignore };
+            var fill = new ColorRect { Color = AdvisorTheme.TierFrame(row.Tier), Position = new Vector2(0, 10), Size = new Vector2((float)Math.Clamp(row.Score, 0m, 100m) * 1.5f, 9), MouseFilter = Control.MouseFilterEnum.Ignore };
+            bar.AddChild(track); bar.AddChild(fill);
+            var score = new Label { Text = $"{row.Score:F0}", CustomMinimumSize = new Vector2(34, 28), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
+            if (AdvisorTheme.Bold is { } scoreFont) score.AddThemeFontOverride("font", scoreFont);
+            var note = new Label { Text = L(row.Note), CustomMinimumSize = new Vector2(96, 28), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, ClipText = true };
+            note.AddThemeFontSizeOverride("font_size", 14); note.AddThemeColorOverride("font_color", AdvisorTheme.InkSoft);
+            line.AddChild(chip); line.AddChild(name); line.AddChild(bar); line.AddChild(score); line.AddChild(note);
+            rows.AddChild(line);
+        }
+        panel.AddChild(rows);
+        if (summary.Chips.Count > 0)
+        {
+            var chips = new HFlowContainer { CustomMinimumSize = new Vector2(TextWidth, 0) };
+            chips.AddThemeConstantOverride("h_separation", 6); chips.AddThemeConstantOverride("v_separation", 6);
+            foreach (var text in summary.Chips)
+            {
+                var tag = new Label { Text = L(text) };
+                tag.AddThemeFontSizeOverride("font_size", 14);
+                tag.AddThemeStyleboxOverride("normal", AdvisorTheme.Box(AdvisorTheme.PaperDark, AdvisorTheme.PaperLine, 1, 10));
+                chips.AddChild(tag);
+            }
+            panel.AddChild(chips);
+        }
+        var rule = new ColorRect { Color = AdvisorTheme.PaperLine, CustomMinimumSize = new Vector2(TextWidth, 1), MouseFilter = Control.MouseFilterEnum.Ignore };
+        var more = new Label { Text = L("Подробный разбор") };
+        if (AdvisorTheme.Heading is { } moreFont) more.AddThemeFontOverride("font", moreFont);
+        more.AddThemeFontSizeOverride("font_size", 20);
+        panel.AddChild(rule); panel.AddChild(more);
+    }
+
     private static void Relocalize(Node host)
     {
         var label = Find<Label>(host, TextName);
@@ -1131,6 +1200,7 @@ public static class AdviceOverlay
             label.Text = L(currentRawText);
             label.CustomMinimumSize = new Vector2(TextWidth, HeightFor(label.Text));
         }
+        BuildSummary(host);
         var advice = Find<Button>(host, "BuildAdvisorAdviceTab"); if (advice is not null) advice.Text = L("Совет");
         var search = Find<Button>(host, "BuildAdvisorSearchTab"); if (search is not null) search.Text = L("Искать карты");
         var run = Find<Button>(host, "BuildAdvisorRunTab"); if (run is not null) run.Text = L("Анализ забега");
@@ -1192,7 +1262,7 @@ public static class AdviceOverlay
     private static bool MatchesTier(decimal score, long filter) => filter == 0 || Tier(score) == new[] { "", "S", "A", "B", "C", "D" }[Math.Clamp((int)filter, 0, 5)];
     private static string TypeName(string type) => type.Contains("attack", StringComparison.OrdinalIgnoreCase) ? "Атака" : type.Contains("power", StringComparison.OrdinalIgnoreCase) ? "Талант" : "Навык";
     private static string RarityName(string rarity) => CardTaxonomy.RarityName(rarity);
-    private static string Tier(decimal score) => score >= 90 ? "S" : score >= 78 ? "A" : score >= 65 ? "B" : score >= 50 ? "C" : "D";
+    private static string Tier(decimal score) => AdviceSummaries.Tier(score);
     private static Color TierColor(string tier) => tier switch { "S" => new Color("b43cff"), "A" => new Color("dd3344"), "B" => new Color("e49b28"), "C" => new Color("3187d8"), _ => new Color("59616c") };
     private static IEnumerable<Node> Descendants(Node root)
     {
@@ -1206,5 +1276,5 @@ public static class AdviceOverlay
     private static string L(string text) => ModLocalization.Text(text);
     // Wrapped height at font 17 in the narrow panel: ~60 characters per line, 25 px per line.
     private static float HeightFor(string text) =>
-        Math.Max(BodyHeight - 10, 40 + text.Split('\n').Sum(line => Math.Max(1, (int)Math.Ceiling(line.Length / 60d))) * 25);
+        Math.Max(200, 40 + text.Split('\n').Sum(line => Math.Max(1, (int)Math.Ceiling(line.Length / 60d))) * 25);
 }

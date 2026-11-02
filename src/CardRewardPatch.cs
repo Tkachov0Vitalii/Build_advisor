@@ -102,7 +102,7 @@ public static class CardRewardPatch
             PersonalRunDiary.RecordAdvice(assessment);
             var text = FormatAdvice(context, assessment, metrics, coach, coachPending) + metricsNote;
             AdviceOverlay.RenderBadges(screen, assessment.Offers, ids, HolderFor(screen));
-            AdviceOverlay.Render(screen, text, null, context);
+            AdviceOverlay.Render(screen, text, null, context, AdviceSummaries.ForCards(assessment));
             AdviceOverlay.SetRefreshAction(async () =>
             {
                 if (!GodotObject.IsInstanceValid(screen)) return;
@@ -115,7 +115,7 @@ public static class CardRewardPatch
                     if (!GodotObject.IsInstanceValid(screen)) return;
                     var refreshed = DeckBuildScoring.Evaluate(liveContext, ids, localizedCatalog, metrics, coachMap, currentUpgraded, ArchetypeAdvisor.Current(liveContext, coach).Direction);
                     AdviceOverlay.RenderBadges(screen, refreshed.Offers, ids, HolderFor(screen));
-                    AdviceOverlay.Render(screen, FormatAdvice(liveContext, refreshed, metrics, coach, false), null, liveContext);
+                    AdviceOverlay.Render(screen, FormatAdvice(liveContext, refreshed, metrics, coach, false), null, liveContext, AdviceSummaries.ForCards(refreshed));
                     AdviceOverlay.EnableCardSearch(screen, liveContext, () => BuildSearchEntries(RunContextReader.TryRead() ?? liveContext, localizedCatalog, metrics));
                 }
                 catch (Exception error) { GD.PrintErr("Build Advisor language refresh: " + error); }
@@ -169,7 +169,7 @@ public static class CardRewardPatch
             var assessment = DeckBuildScoring.Evaluate(RunContextReader.TryRead() ?? context, ids, catalog, metrics, coachMap, currentUpgraded, ArchetypeAdvisor.Current(RunContextReader.TryRead() ?? context, coach).Direction);
             PersonalRunDiary.RecordAdvice(assessment);
             AdviceOverlay.RenderBadges(screen, assessment.Offers, ids, HolderFor(screen));
-            AdviceOverlay.Render(screen, FormatAdvice(context, assessment, metrics, coach, false), null, context);
+            AdviceOverlay.Render(screen, FormatAdvice(context, assessment, metrics, coach, false), null, context, AdviceSummaries.ForCards(assessment));
             GD.Print("Build Advisor Pick Coach: " + (coach is null ? "no matching build" : $"loaded {coach.Archetype}, {coach.Offers.Count} offers"));
         }
         catch (OperationCanceledException) { }

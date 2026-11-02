@@ -25,6 +25,7 @@ grep -q "<Version>$version</Version>" "$root/BuildAdvisor.csproj" || { echo "csp
 grep -q "Current = \"$version\"" "$root/src/BuildAdvisorMod.cs" || { echo "ModVersion.Current != $version" >&2; exit 1; }
 grep -q "^## $version " "$root/CHANGELOG.md" || { echo "CHANGELOG has no $version entry" >&2; exit 1; }
 grep -q "Build Advisor $version" "$root/README.md" || { echo "README title != $version" >&2; exit 1; }
+python3 "$root/tools/check_release_metadata.py"
 
 echo "== Build $version"
 dotnet build "$root/BuildAdvisor.csproj" -c Release -p:Sts2ManagedDir="$managed" -warnaserror -nologo -v quiet
@@ -40,14 +41,23 @@ echo "== Package"
 package="$root/bin/Release/net9.0/package/BuildAdvisor"
 stage="$work/zip"; mkdir -p "$stage/build-advisor" "$out"
 cp "$package/build-advisor.dll" "$package/build-advisor.json" "$package/build-advisor-run-priors.data" \
-   "$package/segment-risk-v1.data" "$package/score-weights-v1.data" "$package/tandrex-emblem.png" "$stage/build-advisor/"
+   "$package/segment-risk-v1.data" "$package/score-weights-v1.data" "$stage/build-advisor/"
 mkdir -p "$stage/build-advisor/fonts" && cp "$package/fonts/"* "$stage/build-advisor/fonts/"
-cp "$root/README.md" "$root/CHANGELOG.md" "$root/INSTALL_RU.md" "$root/INSTALL_EN.md" \
-   "$root/LICENSE" "$root/THIRD_PARTY_NOTICES.md" "$stage/"
+cp "$root/README.md" "$root/README_RU.md" "$root/CHANGELOG.md" "$root/INSTALL_RU.md" "$root/INSTALL_EN.md" \
+   "$root/LICENSE" "$root/THIRD_PARTY_NOTICES.md" "$stage/build-advisor/"
 zip_path="$out/BuildAdvisor-$version.zip"
 rm -f "$zip_path"
 (cd "$stage" && zip -qrX "$zip_path" .)
-(cd "$out" && sha256sum "BuildAdvisor-$version.zip" > SHA256SUMS.txt &&
+# Steam Workshop workspace for the Mega Crit uploader: workshop.json, image.png, previews/,
+# content/ = the mod files (the same files as the build-advisor folder of the user ZIP).
+ws="$work/workshop/BuildAdvisor-workshop"; mkdir -p "$ws/content"
+cp -r "$root/publish/workshop/workshop.json" "$root/publish/workshop/image.png" "$root/publish/workshop/README.md" "$root/publish/workshop/previews" "$ws/"
+cp -r "$stage/build-advisor/." "$ws/content/"
+rm -f "$ws/content/"README*.md "$ws/content/CHANGELOG.md" "$ws/content/"INSTALL_*.md
+workshop_zip="$out/BuildAdvisor-$version-workshop.zip"
+rm -f "$workshop_zip"
+(cd "$work/workshop" && zip -qrX "$workshop_zip" .)
+(cd "$out" && sha256sum "BuildAdvisor-$version.zip" "BuildAdvisor-$version-workshop.zip" > SHA256SUMS.txt &&
   (cd "$stage/build-advisor" && sha256sum build-advisor.dll) >> SHA256SUMS.txt)
 rm -rf "$work"
 echo "== Done: $zip_path"

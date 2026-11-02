@@ -22,9 +22,10 @@
 
 - [ ] `build-advisor.dll`;
 - [ ] `build-advisor.json`;
-- [ ] `build-advisor-run-priors.data`;
-- [ ] `tandrex-emblem.png`;
-- [ ] README и CHANGELOG;
+- [ ] `build-advisor-run-priors.data`, `segment-risk-v1.data`, `score-weights-v1.data`;
+- [ ] `fonts/` (PT Serif, Forum, Cinzel и OFL-лицензии);
+- [ ] README, README_RU, CHANGELOG, INSTALL, LICENSE, THIRD_PARTY_NOTICES;
+- [ ] архив Workshop: `workshop.json`, `image.png` < 1 МБ, `previews/`, `content/` без README/CHANGELOG/INSTALL;
 - [ ] нет `BuildAdvisor.json`, старой DLL, тестового harness и исходных забегов.
 
 ## После установки
@@ -34,3 +35,10 @@
 - [ ] SHA-256 установленной DLL совпадает со сборкой;
 - [ ] версия отображается как ожидается;
 - [ ] свежий лог не содержит исключений Build Advisor.
+
+## Публикация
+
+- [ ] `main` отправлен на GitHub;
+- [ ] `tools\publish_github_release.ps1` создал тег и релиз с обоими архивами и SHA256SUMS;
+- [ ] Steam Workshop обновлён через `ModUploader.exe upload -w` (сохранён `mod_id.txt`), `changeNote` заполнен;
+- [ ] страница Nexus обновлена (файл, версия, описание из `publish/nexus-description.bbcode`).

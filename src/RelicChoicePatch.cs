@@ -61,7 +61,8 @@ public static class RelicChoicePatch
         IReadOnlyDictionary<string, EntityMetric> metrics, IReadOnlyDictionary<string, string>? names, decimal? risk, string note)
     {
         var ranked = RelicAdvisor.Rank(context, ids, metrics, names, risk);
-        AdviceOverlay.Render(screen, "BUILD ADVISOR · реликвии\n" + RelicAdvisor.Format(context, ranked) + note, null, context);
+        AdviceOverlay.Render(screen, "BUILD ADVISOR · реликвии\n" + RelicAdvisor.Format(context, ranked) + note, null, context,
+            AdviceSummaries.ForChoice("Реликвия", ranked));
         var byId = ranked.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
         AdviceOverlay.RenderSelectionBadges(screen, holders
             .Where(x => byId.ContainsKey(SpireCodexMetricsClient.NormalizeId(x.Id)))

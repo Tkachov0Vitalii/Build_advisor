@@ -92,9 +92,11 @@ public static class MerchantPatch
             var plan = ShopPlanBuilder.Create(context, cardItems, relicItems, catalog, cardMetrics, relicMetrics, relicNames, potionItems, potionMetrics, potionNames);
             if (IsCurrent(session, __instance))
             {
-                AdviceOverlay.Render(__instance, "BUILD ADVISOR · магазин · " + bracket.ToUpperInvariant() + "\n" + plan);
                 // M9: relic slots get the same badges as cards.
-                var relicScores = relics.Select(id => RelicAdvisor.Score(context, id, relicMetrics, relicNames));
+                var relicScores = relics.Select(id => RelicAdvisor.Score(context, id, relicMetrics, relicNames)).ToArray();
+                var shopOffers = DeckBuildScoring.Evaluate(context, cards, catalog, cardMetrics).Offers.Concat(relicScores).ToArray();
+                AdviceOverlay.Render(__instance, "BUILD ADVISOR · магазин · " + bracket.ToUpperInvariant() + "\n" + plan, null, context,
+                    AdviceSummaries.ForChoice("Лучшая покупка", shopOffers, $"Золото: {context.Gold} · подробный план покупок ниже"));
                 RenderCardBadges(__instance, cardSlots.Concat(allItems.Where(x => x.Kind == "relic")).ToArray(),
                     DeckBuildScoring.Evaluate(context, cards, catalog, cardMetrics).Offers.Concat(relicScores).ToArray(), context.Gold);
             }

@@ -1,9 +1,9 @@
 {
   "id": "build-advisor",
   "name": "Build Advisor",
-  "author": "Build Advisor contributors",
-  "description": "Cross-platform RU/EN deck advisor: context-aware card, relic, shop and run analysis.",
-  "version": "6.24.0",
+  "author": "Tkachov0Vitalii",
+  "description": "RU/EN deck-building advisor: rates card rewards, shop, relics, campfire, events and the map route against your deck.",
+  "version": "7.0.0",
   "has_pck": false,
   "has_dll": true,
   "affects_gameplay": false

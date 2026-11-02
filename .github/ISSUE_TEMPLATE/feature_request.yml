@@ -1,0 +1,14 @@
+name: Idea / Идея
+description: A new screen to advise on or a better advice / Новый экран или улучшение совета
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea / Идея
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it helps / Чем поможет

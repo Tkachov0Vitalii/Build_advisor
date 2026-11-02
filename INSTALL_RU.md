@@ -1,36 +1,43 @@
-# Установка Build Advisor 6.24.0
+# Установка Build Advisor 7.0.0
 
-Build Advisor использует один пакет на Windows, Linux и macOS. Архив не содержит файлов игры.
+Один и тот же архив работает в Windows, Linux и macOS. Файлы игры в него не входят.
 
-## Быстрая установка
+## Steam Workshop
 
-1. Полностью закройте Slay the Spire 2.
-2. Распакуйте папку `build-advisor` из архива в папку `mods` установленной игры.
-3. DLL должна находиться по пути `…/mods/build-advisor/build-advisor.dll`.
-4. Запустите игру, откройте меню модов, включите **Build Advisor** и перезапустите игру, если загрузчик этого попросит.
-5. В забеге нажмите круглую иконку мода. Язык меняется списком **Русский / English** в верхней строке и сохраняется между запусками.
+Подпишитесь на **Build Advisor** в мастерской Steam игры Slay the Spire 2, запустите игру и выберите **Modded**. Steam сам установит и обновит мод.
 
-## Где находится `mods`
+## Ручная установка (GitHub Releases, Nexus Mods)
 
-- **Windows (Steam):** `C:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2\mods\`
-- **Linux (Steam):** `~/.local/share/Steam/steamapps/common/Slay the Spire 2/mods/`
-- **macOS (Steam):** `~/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/`
-
-Для другой библиотеки Steam: правой кнопкой по игре → **Управление → Просмотреть локальные файлы**. Найдите папку `mods` рядом с исполняемым файлом или создайте её.
+1. Закройте игру.
+2. Распакуйте `BuildAdvisor-7.0.0.zip` в папку `mods` игры (создайте её рядом с исполняемым файлом, если её нет). Должно получиться:
 
 ```text
-build-advisor/
-  build-advisor.dll
-  build-advisor.json
-  build-advisor-run-priors.data
-  segment-risk-v1.data
-  tandrex-emblem.png
+mods/
+  build-advisor/
+    build-advisor.dll
+    build-advisor.json
+    build-advisor-run-priors.data
+    segment-risk-v1.data
+    score-weights-v1.data
+    fonts/            PT Serif, Forum, Cinzel и лицензии
+    README.md, CHANGELOG.md, LICENSE …
 ```
 
-Не устанавливайте две версии одновременно и не оставляйте второй манифест с тем же `id: build-advisor`.
+3. Запустите игру и выберите **Modded**.
+4. В забеге нажмите красную печать **BD** у левого края экрана или **F8**. Язык (Русский / English) — внизу панели.
 
-## Обновление, удаление и ошибки
+Папка `mods`:
 
-Для обновления закройте игру и замените пять файлов. Для удаления удалите только `mods/build-advisor`. Настройки и локальная история лежат в системном каталоге локальных данных приложения `BuildAdvisor`, а сетевой кеш — в каталоге данных игры; при обновлении удалять их не нужно.
+- **Windows:** `C:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2\mods\`
+- **Linux:** `~/.local/share/Steam/steamapps/common/Slay the Spire 2/mods/`
+- **macOS:** `~/Library/Application Support/Steam/steamapps/common/Slay the Spire 2/SlayTheSpire2.app/Contents/MacOS/mods/`
 
-Если мод не запускается, проверьте отсутствие вложения `build-advisor/build-advisor`, единственность установленной версии и приложите к сообщению свежий лог игры, ОС, архитектуру процессора и версию игры. На macOS изменение `.app` модами может вызвать предупреждение Gatekeeper: используйте доверенный архив и не отключайте системную защиту целиком.
+Для другой библиотеки: Steam → **Управление → Просмотреть локальные файлы**.
+
+## Обновление
+
+Закройте игру, удалите старую папку `mods/build-advisor` (и все старые копии, включая вложенную `build-advisor/build-advisor`), распакуйте новый архив. Две копии держать нельзя — игра загрузит обе. Настройки и кэш хранятся вне папки мода и сохраняются.
+
+## Если что-то не так
+
+В журнале игры `godot.log` (Windows: `%APPDATA%\SlayTheSpire2\logs\`) должна быть строка `Build Advisor 7.0.0 loaded; all patches installed; regression matrix passed.` В сообщение об ошибке на GitHub приложите этот журнал, скриншот, ОС и версию игры.
