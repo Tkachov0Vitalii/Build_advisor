@@ -51,7 +51,7 @@ rm -f "$zip_path"
 # Steam Workshop workspace for the Mega Crit uploader: workshop.json, image.png, previews/,
 # content/ = the mod files (the same files as the build-advisor folder of the user ZIP).
 ws="$work/workshop/BuildAdvisor-workshop"; mkdir -p "$ws/content"
-cp -r "$root/publish/workshop/workshop.json" "$root/publish/workshop/image.png" "$root/publish/workshop/README.md" "$root/publish/workshop/previews" "$ws/"
+cp -r "$root/publish/workshop/workshop.json" "$root/publish/workshop/image.png" "$root/publish/workshop/README.md" "$root/publish/workshop/mod_id.txt" "$root/publish/workshop/previews" "$ws/"
 cp -r "$stage/build-advisor/." "$ws/content/"
 rm -f "$ws/content/"README*.md "$ws/content/CHANGELOG.md" "$ws/content/"INSTALL_*.md
 workshop_zip="$out/BuildAdvisor-$version-workshop.zip"

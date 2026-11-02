@@ -73,7 +73,7 @@ try {
     $wsRoot = Join-Path $work "workshop"
     $ws = Join-Path $wsRoot "BuildAdvisor-workshop"
     New-Item -ItemType Directory -Force -Path (Join-Path $ws "content") | Out-Null
-    foreach ($file in "workshop.json", "image.png", "README.md") { Copy-Item (Join-Path $root "publish/workshop/$file") $ws }
+    foreach ($file in "workshop.json", "image.png", "README.md", "mod_id.txt") { Copy-Item (Join-Path $root "publish/workshop/$file") $ws }
     Copy-Item -Recurse (Join-Path $root "publish/workshop/previews") $ws
     Copy-Item -Recurse (Join-Path $modFolder "*") (Join-Path $ws "content")
     Get-ChildItem (Join-Path $ws "content") -File | Where-Object { $_.Name -match '^(README.*|CHANGELOG|INSTALL_.*)\.md$' } | Remove-Item
