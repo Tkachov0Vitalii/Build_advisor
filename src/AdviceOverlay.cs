@@ -175,7 +175,7 @@ public static class AdviceOverlay
         host.AddChild(toggle); host.AddChild(page);
         toggle.Pressed += () => page.Visible = !page.Visible;
         close.Pressed += () => page.Hide();
-        host.AddChild(new LiveUpdater { Name = "BuildAdvisorLiveUpdater" });
+        StartLiveUpdates(host);
         SyncArchetypeChooser(host, context);
         UpdateLive(host);
     }
@@ -247,6 +247,7 @@ public static class AdviceOverlay
         };
         host.AddChild(sync);
         sync.Sync();
+        FrameTicker.Add(sync.Tick);
     }
 
     private sealed class SelectionBadgeSync : Node
@@ -259,15 +260,16 @@ public static class AdviceOverlay
         public bool Multiple { get; init; }
         public string ActionLabel { get; init; } = "";
         private readonly Dictionary<Control, (Label Badge, string Id)> badges = new();
-        private double elapsed;
+        private ulong next;
         private int counter;
 
-        public override void _Process(double delta)
+        public bool Tick()
         {
-            elapsed += delta;
-            if (elapsed < .1) return;
-            elapsed = 0;
+            if (!GodotObject.IsInstanceValid(this) || IsQueuedForDeletion()) return false;
+            if (Time.GetTicksMsec() < next) return true;
+            next = Time.GetTicksMsec() + 100;
             Sync();
+            return GodotObject.IsInstanceValid(this) && !IsQueuedForDeletion();
         }
 
         public void Sync()
@@ -309,7 +311,9 @@ public static class AdviceOverlay
             Best = scores.Select(x => x.Final).DefaultIfEmpty(0m).Max(), Multiple = scores.Count > 1, ActionLabel = actionLabel
         };
         GlobalHost(screen).AddChild(sync);
+        sync.TreeExiting += sync.FreeAll;
         sync.Sync();
+        FrameTicker.Add(sync.Tick);
         GD.Print($"Build Advisor grid badges: {scores.Count} scored cards, {holders().Count()} holders shown");
     }
 
@@ -324,19 +328,18 @@ public static class AdviceOverlay
         public bool Multiple { get; init; }
         public string ActionLabel { get; init; } = "";
         private readonly Dictionary<Control, (Label Badge, string Id)> badges = new();
-        private double elapsed;
+        private ulong next;
 
-        public override void _Process(double delta)
+        public bool Tick()
         {
-            elapsed += delta;
-            if (elapsed < .1) return;
-            elapsed = 0;
+            if (!GodotObject.IsInstanceValid(this) || IsQueuedForDeletion()) return false;
+            if (Time.GetTicksMsec() < next) return true;
+            next = Time.GetTicksMsec() + 100;
             Sync();
+            return GodotObject.IsInstanceValid(this) && !IsQueuedForDeletion();
         }
 
-        public override void _ExitTree() => FreeAll();
-
-        private void FreeAll()
+        internal void FreeAll()
         {
             foreach (var entry in badges.Values)
                 if (GodotObject.IsInstanceValid(entry.Badge)) { entry.Badge.GetParent()?.RemoveChild(entry.Badge); entry.Badge.QueueFree(); }
@@ -387,6 +390,7 @@ public static class AdviceOverlay
             };
             badge.AddThemeFontSizeOverride("font_size", 15);
             holder.AddChild(badge);
+            badge.Activate();
             return badge;
         }
 
@@ -395,7 +399,14 @@ public static class AdviceOverlay
             var tier = Tier(score.Final);
             var marker = score.Final == Best && Multiple ? "★" : "◆";
             badge.Text = string.IsNullOrWhiteSpace(ActionLabel) ? $"{marker} {tier}  {score.Final:F0}" : $"{marker} {L(ActionLabel)} {score.Final:F0}";
-            badge.TooltipText = L($"{score.Name}: {score.Final:F0}/100\n{ScoreExplanation.Formula(score)}\n{score.Reason}");
+            var details = L($"{score.Name}: {score.Final:F0}/100\n{ScoreExplanation.Formula(score)}\n{score.Reason}");
+            var best = score.Final == Best && Multiple;
+            if (badge is AttachedBadge attached)
+            {
+                attached.ExpandedText = details;
+                attached.StylePopup = popup => StyleBadge(popup, tier, best, 15);
+            }
+            else badge.TooltipText = details;
             var color = TierColor(tier);
             badge.AddThemeColorOverride("font_color", color);
             var box = BadgeBox(score.Final == Best && Multiple ? new Color("f2c94c") : color);
@@ -437,6 +448,7 @@ public static class AdviceOverlay
         badge.AddThemeStyleboxOverride("normal", BadgeBox(TierColor(tier)));
         host.AddChild(badge);
         badge.RefreshPosition();
+        FrameTicker.Add(badge.Tick);
         MakeBadgeExpandable(badge, compactText,
             L($"{marker} {(string.IsNullOrWhiteSpace(actionLabel) ? tier : actionLabel)}  {score.Final:F0}\n{(string.IsNullOrWhiteSpace(actionLabel) ? ScoreExplanation.Breakdown(score) : ScoreExplanation.Formula(score))}\n{FullTags(score.TagText)}"),
             badge.Position, badge.Size);
@@ -467,7 +479,6 @@ public static class AdviceOverlay
             var isBest = score.Final == best && values.Length > 1;
             var shortTags = ShortTags(score.TagText);
             var compactText = $"{(isBest ? "★" : "◆")} {tier}  {score.Final:F0}\n{shortTags}";
-            var tooltip = L($"{score.Name}\n{ScoreExplanation.Breakdown(score)}\n{FullTags(score.TagText)}\n{score.Impact}");
             var anchor = holderFor?.Invoke(score.Id);
             if (anchor is { } attached && GodotObject.IsInstanceValid(attached.Holder))
             {
@@ -480,11 +491,13 @@ public static class AdviceOverlay
                     Name = $"BuildAdvisorTier{index}", Text = compactText, Size = new Vector2(148, 58),
                     ZIndex = 20, ZAsRelative = true, MouseFilter = Control.MouseFilterEnum.Pass,
                     HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-                    TooltipText = tooltip
+                    ExpandedText = L($"{(isBest ? "★" : "◆")} {tier}  {score.Final:F0}\n{ScoreExplanation.Breakdown(score)}\n{FullTags(score.TagText)}\n{score.Impact}"),
+                    StylePopup = popup => StyleBadge(popup, tier, isBest, 15)
                 };
                 StyleBadge(cardBadge, tier, isBest, 15);
                 holder.AddChild(cardBadge);
                 PlaceAboveCard(cardBadge, holder);
+                cardBadge.Activate();
                 continue;
             }
             // Fallback when the screen does not expose its holders: the stable centred layout.
@@ -519,6 +532,15 @@ public static class AdviceOverlay
         var valid = card is not null && GodotObject.IsInstanceValid(card) && card.Size.Y > 0;
         var top = AttachedBadges.CardTopCentre(valid ? card!.Position : Vector2.Zero, valid ? card!.Size : new Vector2(300, 422), valid ? card!.Scale : Vector2.One);
         badge.Position = AttachedBadges.Above(top, badge.Size, 8f);
+    }
+
+    private static void StylePopup(Label popup, Color color)
+    {
+        popup.AddThemeFontSizeOverride("font_size", 15);
+        popup.AddThemeColorOverride("font_color", new Color("e8edf2"));
+        var box = BadgeBox(color);
+        box.CornerRadiusTopLeft = box.CornerRadiusTopRight = box.CornerRadiusBottomLeft = box.CornerRadiusBottomRight = 10;
+        popup.AddThemeStyleboxOverride("normal", box);
     }
 
     private static void StyleBadge(Label badge, string tier, bool best, int fontSize)
@@ -561,11 +583,13 @@ public static class AdviceOverlay
                 MouseFilter = Control.MouseFilterEnum.Pass,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                 // L3: price and the gold left after buying, next to the win-rate scale.
-                TooltipText = L($"{score.Name}\n{ScoreExplanation.Breakdown(score)}{(note?.Invoke(score) is { Length: > 0 } priceLine ? "\n" + priceLine : "")}\n{FullTags(score.TagText)}\n{score.Impact}")
+                ExpandedText = L($"{score.Name}\n{ScoreExplanation.Breakdown(score)}{(note?.Invoke(score) is { Length: > 0 } priceLine ? "\n" + priceLine : "")}\n{FullTags(score.TagText)}\n{score.Impact}"),
+                StylePopup = popup => StyleBadge(popup, tier, isBest, 15)
             };
             StyleBadge(badge, tier, isBest, 14);
             slot.AddChild(badge);
             PlaceAboveSlot(badge, slot);
+            badge.Activate();
         }
     }
 
@@ -603,7 +627,7 @@ public static class AdviceOverlay
             var badge = new Label
             {
                 Name = MapBadgePrefix + index++, Text = L(text), Size = size, ZIndex = 30, ZAsRelative = true,
-                MouseFilter = Control.MouseFilterEnum.Pass, TooltipText = L(tooltip),
+                MouseFilter = Control.MouseFilterEnum.Pass,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                 // NMapPoint scales on hover; labels keep their size relative to the point.
                 Position = new Vector2(point.Size.X / 2f - size.X / 2f, point.Size.Y + 2f)
@@ -614,6 +638,8 @@ public static class AdviceOverlay
             box.BorderWidthLeft = box.BorderWidthRight = box.BorderWidthTop = box.BorderWidthBottom = best ? 3 : 1;
             box.CornerRadiusTopLeft = box.CornerRadiusTopRight = box.CornerRadiusBottomLeft = box.CornerRadiusBottomRight = 8;
             badge.AddThemeStyleboxOverride("normal", box);
+            var details = L(tooltip);
+            AttachedBadges.EnablePopup(badge, () => details, popup => StylePopup(popup, color));
             point.AddChild(badge);
         }
     }
@@ -652,9 +678,10 @@ public static class AdviceOverlay
                 Target = target, IsShown = isShown, Placement = placement, Name = prefix + index++,
                 Text = L(text), Size = new Vector2(best ? width + 14 : width, height), ZIndex = 240,
                 MouseFilter = Control.MouseFilterEnum.Pass,
-                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-                TooltipText = L(tooltip)
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
             };
+            var details = L(tooltip);
+            AttachedBadges.EnablePopup(badge, () => details, popup => StylePopup(popup, color));
             badge.AddThemeFontSizeOverride("font_size", fontSize);
             badge.AddThemeColorOverride("font_color", color);
             var box = BadgeBox(best ? new Color("f2c94c") : new Color(color, .7f));
@@ -663,6 +690,7 @@ public static class AdviceOverlay
             badge.AddThemeStyleboxOverride("normal", box);
             host.AddChild(badge);
             badge.RefreshPosition();
+            FrameTicker.Add(badge.Tick);
         }
     }
 
@@ -681,10 +709,11 @@ public static class AdviceOverlay
         public Func<bool> IsShown { get; init; } = () => true;
         public TagPlacement Placement { get; init; }
 
-        public override void _Process(double delta)
+        public bool Tick()
         {
-            _ = delta;
+            if (!GodotObject.IsInstanceValid(this) || IsQueuedForDeletion()) return false;
             RefreshPosition();
+            return !IsQueuedForDeletion();
         }
 
         public void RefreshPosition()
@@ -715,10 +744,11 @@ public static class AdviceOverlay
         public Node? SelectionScreen { get; init; }
         public bool PauseFollowing { get; set; }
 
-        public override void _Process(double delta)
+        public bool Tick()
         {
-            _ = delta;
+            if (!GodotObject.IsInstanceValid(this) || IsQueuedForDeletion()) return false;
             if (!PauseFollowing) RefreshPosition();
+            return !IsQueuedForDeletion();
         }
 
         public void RefreshPosition()
@@ -1144,23 +1174,27 @@ public static class AdviceOverlay
         if (page is not null) page.Visible = !page.Visible;
     }
 
-    private sealed class LiveUpdater : Node
+    // The hotkey and the once-a-second run line (6.22.7: a ticker; the LiveUpdater._Process
+    // override was never called by the engine, so F8 never worked).
+    private static void StartLiveUpdates(Node host)
     {
-        private double elapsed;
-        private bool hotkeyDown;
-        public override void _Process(double delta)
+        var hotkeyDown = false;
+        ulong nextUpdate = 0;
+        FrameTicker.Add(() =>
         {
-            // Polled once per frame with edge detection: one press toggles once, holding the key
-            // does not flicker, and no input event is consumed from the game.
-            var down = Input.IsKeyPressed(PanelHotkey);
-            if (down && !hotkeyDown && GetParent() is { } host) TogglePanel(host);
+            if (!GodotObject.IsInstanceValid(host) || !host.IsInsideTree()) return false;
+            // Polled with edge detection: one press toggles once, holding the key does not
+            // flicker, and no input event is consumed from the game.
+            var down = Input.IsKeyPressed(PanelHotkey) || Input.IsPhysicalKeyPressed(PanelHotkey);
+            if (down && !hotkeyDown) TogglePanel(host);
             hotkeyDown = down;
-            elapsed += delta;
-            if (elapsed < 1) return;
-            elapsed = 0;
-            UpdateLive(GetParent());
-        }
+            if (Time.GetTicksMsec() < nextUpdate) return true;
+            nextUpdate = Time.GetTicksMsec() + 1000;
+            UpdateLive(host);
+            return true;
+        });
     }
+
     private static bool MatchesType(CardDefinition card, long filter) => filter switch { 1 => card.Type.Contains("attack", StringComparison.OrdinalIgnoreCase), 2 => card.Type.Contains("skill", StringComparison.OrdinalIgnoreCase), 3 => card.Type.Contains("power", StringComparison.OrdinalIgnoreCase), _ => true };
     private static bool MatchesRarity(CardDefinition card, long filter) => filter switch { 1 => CardTaxonomy.RarityName(card.Rarity) == "Обычная", 2 => CardTaxonomy.RarityName(card.Rarity) == "Необычная", 3 => CardTaxonomy.RarityName(card.Rarity) == "Редкая", _ => true };
     private static bool MatchesTier(decimal score, long filter) => filter == 0 || Tier(score) == new[] { "", "S", "A", "B", "C", "D" }[Math.Clamp((int)filter, 0, 5)];

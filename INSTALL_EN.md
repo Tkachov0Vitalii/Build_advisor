@@ -1,4 +1,4 @@
-# Installing Build Advisor 6.22.6
+# Installing Build Advisor 6.22.7
 
 Build Advisor uses the same package on Windows, Linux, and macOS. No game files are redistributed.
 

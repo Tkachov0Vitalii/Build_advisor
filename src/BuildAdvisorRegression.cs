@@ -41,6 +41,7 @@ internal static class BuildAdvisorRegression
             EventCardActionsUseTheCorrectDirection();
             ShopBadgesStayAboveTheirSlots();
             PooledHolderBadgesLeaveForeignScreens();
+            FrameTasksAndHoverCardsWithoutGodotVirtuals();
             ArchetypeSelectionResetsBetweenRuns();
             ManualArchetypeOverridesGenericPowerAndLateBloat();
             StrongEarlyCardDetectsArchetype();
@@ -582,6 +583,31 @@ internal static class BuildAdvisorRegression
         var reward = BuildAdvisor.UI.AttachedBadges.Above(top, new Godot.Vector2(148, 58), 8f);
         if (Math.Abs(top.Y + 168.8f) > .01f || Math.Abs(reward.X + 74f) > .01f || Math.Abs(reward.Y + 234.8f) > .01f)
             throw new InvalidOperationException($"Reward badge does not sit above the card: {top}; {reward}.");
+    }
+
+    private static void FrameTasksAndHoverCardsWithoutGodotVirtuals()
+    {
+        // Frame work runs from a task list, not _Process overrides (never called for mod classes).
+        var list = new BuildAdvisor.UI.TickList();
+        var runs = 0; var stopAfter = 2;
+        list.Add(() => ++runs < stopAfter);
+        list.Add(() => throw new InvalidOperationException("broken task"));
+        var late = 0;
+        list.Add(() => { list.Add(() => { late++; return true; }); return false; });
+        list.Run();
+        if (runs != 1 || late != 0 || list.Count != 2)
+            throw new InvalidOperationException($"Frame tasks: first frame ran {runs}, late {late}, kept {list.Count}.");
+        list.Run(); list.Run();
+        if (runs != 2 || late != 2 || list.Count != 1)
+            throw new InvalidOperationException($"Frame tasks were not dropped or added correctly: {runs}, {late}, {list.Count}.");
+
+        // Hover card: above the badge, below it near the top edge, always inside the screen.
+        var viewport = new Godot.Vector2(1920, 1080);
+        var size = BuildAdvisor.UI.AttachedBadges.PopupSize("a\nb\nc");
+        var above = BuildAdvisor.UI.AttachedBadges.PopupPosition(new Godot.Vector2(900, 500), new Godot.Vector2(120, 34), size, viewport);
+        var below = BuildAdvisor.UI.AttachedBadges.PopupPosition(new Godot.Vector2(10, 20), new Godot.Vector2(120, 34), size, viewport);
+        if (size.Y != 90 || Math.Abs(above.X - 630f) > .01f || Math.Abs(above.Y - 402f) > .01f || below.X != 8f || Math.Abs(below.Y - 62f) > .01f)
+            throw new InvalidOperationException($"Hover card placement: {size}; {above}; {below}.");
     }
 
     private static void PooledHolderBadgesLeaveForeignScreens()
