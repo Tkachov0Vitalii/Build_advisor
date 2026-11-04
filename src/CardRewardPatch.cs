@@ -14,6 +14,28 @@ public static class CardRewardPatch
 {
     private static IReadOnlySet<string> currentUpgraded = new HashSet<string>();
     private static IReadOnlyList<object> currentOptions = [];
+    private static IReadOnlyList<object> currentAlternatives = [];
+
+    // 7.1: ribbons on the cards and on the Skip button, always together.
+    private static void Badges(Node screen, BuildAssessment assessment, IReadOnlyList<string> ids)
+    {
+        AdviceOverlay.RenderBadges(screen, assessment.Offers, ids, HolderFor(screen));
+        if (SkipButton(screen) is { } skip) AdviceOverlay.RenderSkipBadge(screen, skip, TakeSkipModel.Evaluate(assessment));
+    }
+
+    // Index of the "Skip" alternative (CardRewardAlternative.OptionId) among the extra options.
+    internal static int SkipIndex(IReadOnlyList<string> optionIds) =>
+        optionIds.Select((id, index) => (id, index)).FirstOrDefault(x => string.Equals(x.id, "Skip", StringComparison.OrdinalIgnoreCase), (id: "", index: -1)).index;
+
+    // RefreshOptions frees the previous buttons and adds one NCardRewardAlternativeButton per extra
+    // option, in order; the freed ones stay children until the end of the frame.
+    private static (Control Button, int Index)? SkipButton(Node screen)
+    {
+        var index = SkipIndex(currentAlternatives.Select(x => ReflectionIds.Member(x, "OptionId") as string ?? "").ToArray());
+        if (index < 0 || ReflectionIds.Member(screen, "_rewardAlternativesContainer") is not Control container || !GodotObject.IsInstanceValid(container)) return null;
+        var buttons = container.GetChildren().OfType<NCardRewardAlternativeButton>().Where(x => GodotObject.IsInstanceValid(x) && !x.IsQueuedForDeletion()).ToArray();
+        return index < buttons.Length ? (buttons[index], index) : null;
+    }
 
     // The holder that shows an offered card, for badges drawn as children of the holder.
     private static Func<string, (Control Holder, object Model)?> HolderFor(Node screen) => id =>
@@ -45,6 +67,7 @@ public static class CardRewardPatch
         var token = activeRequest.Token;
         var optionObjects = options.Cast<object>().ToArray();
         currentOptions = optionObjects;
+        currentAlternatives = __args.Skip(1).FirstOrDefault() is System.Collections.IEnumerable extra ? extra.Cast<object>().ToArray() : [];
         RunContextReader.ObserveCards(optionObjects);
         var ids = ReflectionIds.FindIds(optionObjects); if (ids.Count == 0) ids = ReflectionIds.FindIds(screen);
         // M5: reward cards can be offered already upgraded (relics, ascension modifiers).
@@ -65,7 +88,7 @@ public static class CardRewardPatch
         if (context is not null && cachedCatalog.Count > 0)
         {
             var emptyMetrics = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase);
-            AdviceOverlay.RenderBadges(screen, DeckBuildScoring.Evaluate(context, ids, cachedCatalog, emptyMetrics, null, currentUpgraded).Offers, ids, HolderFor(screen));
+            Badges(screen, DeckBuildScoring.Evaluate(context, ids, cachedCatalog, emptyMetrics, null, currentUpgraded), ids);
             AdviceOverlay.EnableCardSearch(screen, context, () => BuildSearchEntries(RunContextReader.TryRead() ?? context, cachedCatalog, emptyMetrics));
         }
         try
@@ -101,7 +124,7 @@ public static class CardRewardPatch
             var assessment = DeckBuildScoring.Evaluate(context, ids, catalog, metrics, coachMap, currentUpgraded, ArchetypeAdvisor.Current(context, coach).Direction);
             PersonalRunDiary.RecordAdvice(assessment);
             var text = FormatAdvice(context, assessment, metrics, coach, coachPending) + metricsNote;
-            AdviceOverlay.RenderBadges(screen, assessment.Offers, ids, HolderFor(screen));
+            Badges(screen, assessment, ids);
             AdviceOverlay.Render(screen, text, null, context, AdviceSummaries.ForCards(assessment));
             AdviceOverlay.SetRefreshAction(async () =>
             {
@@ -114,7 +137,7 @@ public static class CardRewardPatch
                     var localizedCatalog = await Catalog.GetAsync();
                     if (!GodotObject.IsInstanceValid(screen)) return;
                     var refreshed = DeckBuildScoring.Evaluate(liveContext, ids, localizedCatalog, metrics, coachMap, currentUpgraded, ArchetypeAdvisor.Current(liveContext, coach).Direction);
-                    AdviceOverlay.RenderBadges(screen, refreshed.Offers, ids, HolderFor(screen));
+                    Badges(screen, refreshed, ids);
                     AdviceOverlay.Render(screen, FormatAdvice(liveContext, refreshed, metrics, coach, false), null, liveContext, AdviceSummaries.ForCards(refreshed));
                     AdviceOverlay.EnableCardSearch(screen, liveContext, () => BuildSearchEntries(RunContextReader.TryRead() ?? liveContext, localizedCatalog, metrics));
                 }
@@ -130,25 +153,40 @@ public static class CardRewardPatch
 
     private static async Task TryAutoPickAsync(NCardRewardSelectionScreen screen, IReadOnlyList<object> options, BuildAssessment assessment, CancellationToken token)
     {
-        if (!AutoPickSettings.Enabled || !AutoPickSettings.ShouldPick(assessment) || AutoPicked.TryGetValue(screen, out _)) return;
-        var best = assessment.Offers.OrderByDescending(x => x.Final).FirstOrDefault();
-        if (best is null) return;
-        var option = options.FirstOrDefault(item => string.Equals(SpireCodexMetricsClient.NormalizeId(ReflectionIds.FindId(item) ?? ""), SpireCodexMetricsClient.NormalizeId(best.Id), StringComparison.OrdinalIgnoreCase));
-        if (option is null || ReflectionIds.Member(option, "Card") is not CardModel card) return;
+        if (!AutoPickSettings.Enabled || AutoPicked.TryGetValue(screen, out _)) return;
+        var decision = AutoPickSettings.Decide(assessment);
+        if (decision.Action == AutoPickAction.None) return;
+        CardModel? card = null;
+        if (decision.Action == AutoPickAction.Take)
+        {
+            var option = options.FirstOrDefault(item => string.Equals(SpireCodexMetricsClient.NormalizeId(ReflectionIds.FindId(item) ?? ""), SpireCodexMetricsClient.NormalizeId(decision.Card!.Id), StringComparison.OrdinalIgnoreCase));
+            card = option is null ? null : ReflectionIds.Member(option, "Card") as CardModel;
+            if (card is null) return;
+        }
+        else if (SkipButton(screen) is null) return; // this reward cannot be skipped
 
         AutoPicked.Add(screen, AutoPickedMarker);
         try
         {
-            // Lets the player see both the result and the choice; cancellation protects screen changes.
+            // Lets the player see the advice and the choice; cancellation protects screen changes.
             await Task.Delay(900, token);
             if (token.IsCancellationRequested || !AutoPickSettings.Enabled || !GodotObject.IsInstanceValid(screen) || !screen.IsInsideTree()) return;
-            var holder = screen.GetCardHolder(card);
-            if (holder is null) return;
-            // SelectCard is intentionally private in the game UI. Invoking that same handler
-            // preserves its normal reward bookkeeping instead of simulating a mouse click.
-            var select = screen.GetType().GetMethod("SelectCard", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            select?.Invoke(screen, [holder]);
-            GD.Print($"Build Advisor auto-picked {best.Id} ({best.Final:F0}/100).");
+            const BindingFlags Any = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+            if (card is not null)
+            {
+                var holder = screen.GetCardHolder(card);
+                if (holder is null) return;
+                // SelectCard is private in the game UI. Invoking the same handler as a click keeps
+                // the normal reward bookkeeping instead of simulating mouse input.
+                screen.GetType().GetMethod("SelectCard", Any)?.Invoke(screen, [holder]);
+                GD.Print($"Build Advisor auto-picked {decision.Card!.Id} ({decision.Card.Final:F0}/100).");
+            }
+            else if (SkipButton(screen) is { } skip)
+            {
+                // The Skip button's own handler (OnAlternateRewardSelected(index)), as a click does.
+                screen.GetType().GetMethod("OnAlternateRewardSelected", Any)?.Invoke(screen, [skip.Index]);
+                GD.Print("Build Advisor auto-skipped the card reward.");
+            }
         }
         catch (OperationCanceledException) { }
         catch (Exception error) { GD.PrintErr("Build Advisor auto-pick: " + error); }
@@ -168,7 +206,7 @@ public static class CardRewardPatch
             var coachMap = coach?.Offers.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
             var assessment = DeckBuildScoring.Evaluate(RunContextReader.TryRead() ?? context, ids, catalog, metrics, coachMap, currentUpgraded, ArchetypeAdvisor.Current(RunContextReader.TryRead() ?? context, coach).Direction);
             PersonalRunDiary.RecordAdvice(assessment);
-            AdviceOverlay.RenderBadges(screen, assessment.Offers, ids, HolderFor(screen));
+            Badges(screen, assessment, ids);
             AdviceOverlay.Render(screen, FormatAdvice(context, assessment, metrics, coach, false), null, context, AdviceSummaries.ForCards(assessment));
             GD.Print("Build Advisor Pick Coach: " + (coach is null ? "no matching build" : $"loaded {coach.Archetype}, {coach.Offers.Count} offers"));
         }
@@ -183,7 +221,7 @@ public static class CardRewardPatch
             var catalog = await catalogTask;
             var emptyMetrics = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase);
             AdviceOverlay.EnableCardSearch(screen, context, () => BuildSearchEntries(RunContextReader.TryRead() ?? context, catalog, emptyMetrics));
-            if (GodotObject.IsInstanceValid(screen)) AdviceOverlay.RenderBadges(screen, DeckBuildScoring.Evaluate(context, ids, catalog, emptyMetrics, null, currentUpgraded).Offers, ids, HolderFor(screen));
+            if (GodotObject.IsInstanceValid(screen)) Badges(screen, DeckBuildScoring.Evaluate(context, ids, catalog, emptyMetrics, null, currentUpgraded), ids);
         }
         catch { /* The main request shows the fallback if the catalogue is unavailable. */ }
     }

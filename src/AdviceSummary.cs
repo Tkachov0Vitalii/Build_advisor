@@ -42,4 +42,12 @@ internal static class AdviceSummaries
         return new AdviceSummary($"{verdictPrefix}: {best.Name}", true,
             detail.Length > 0 ? detail : $"{best.Score:F0}/100 · тир {best.Tier}", rows, []);
     }
+
+    // 7.1: the hover text of the Skip button ribbon.
+    internal static string SkipExplanation(TakeSkipVerdict verdict) => verdict.Best is null
+        ? "Пропуск: награда ещё не оценена."
+        : verdict.Take
+            ? $"Пропуск: 0 п.п. к победе.\nЛучше взять {verdict.Best.Name}: {TakeSkipModel.Format(verdict.WinDelta)} п.п. к победе против пропуска (уверенность {verdict.Evidence})."
+            : $"Совет: пропустить награду.\nЛучшая карта {verdict.Best.Name} даёт {TakeSkipModel.Format(verdict.WinDelta)} п.п. — меньше порога пользы; лишняя карта разбавляет колоду.";
+
 }

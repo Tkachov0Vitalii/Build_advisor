@@ -1,4 +1,4 @@
-# Установка Build Advisor 7.0.0
+# Установка Build Advisor 7.1.0
 
 Один и тот же архив работает в Windows, Linux и macOS. Файлы игры в него не входят.
 
@@ -9,7 +9,7 @@
 ## Ручная установка ([GitHub Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases), [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588))
 
 1. Закройте игру.
-2. Распакуйте `BuildAdvisor-7.0.0.zip` в папку `mods` игры (создайте её рядом с исполняемым файлом, если её нет). Должно получиться:
+2. Распакуйте `BuildAdvisor-7.1.0.zip` в папку `mods` игры (создайте её рядом с исполняемым файлом, если её нет). Должно получиться:
 
 ```text
 mods/
@@ -40,4 +40,4 @@ mods/
 
 ## Если что-то не так
 
-В журнале игры `godot.log` (Windows: `%APPDATA%\SlayTheSpire2\logs\`) должна быть строка `Build Advisor 7.0.0 loaded; all patches installed; regression matrix passed.` В сообщение об ошибке на GitHub приложите этот журнал, скриншот, ОС и версию игры.
+В журнале игры `godot.log` (Windows: `%APPDATA%\SlayTheSpire2\logs\`) должна быть строка `Build Advisor 7.1.0 loaded; all patches installed; regression matrix passed.` В сообщение об ошибке на GitHub приложите этот журнал, скриншот, ОС и версию игры.

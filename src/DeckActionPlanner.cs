@@ -63,6 +63,33 @@ internal static class DeckActionPlanner
         _ => "сохранить золото"
     };
 
+    // 7.1: the shop's card-removal slot gets a ribbon like the items. Curses and statuses are the
+    // clearest target; a starter Strike/Defend matters more once the deck is above the size
+    // expected for the floor (the same deck-size prior as the removal action above).
+    internal sealed record RemovalAdvice(string? Target, string Tier, string Reason);
+
+    internal static RemovalAdvice Removal(RunContext context, IReadOnlyDictionary<string, CardDefinition> catalog)
+    {
+        var target = RemovalCandidate(context.Cards, catalog);
+        if (target is null) return new(null, "D", "явной цели для удаления нет — сохраните золото на покупку");
+        var cards = context.Cards.Select(id => catalog.TryGetValue(SpireCodexMetricsClient.NormalizeId(id), out var card) ? card : null).Where(x => x is not null).Cast<CardDefinition>();
+        if (cards.Any(x => x.Name == target && (x.Type.Contains("curse", StringComparison.OrdinalIgnoreCase) || x.Type.Contains("status", StringComparison.OrdinalIgnoreCase))))
+            return new(target, "S", "проклятие или статус в колоде — удаление почти всегда лучшая покупка");
+        var expected = RunHistoryInsights.ExpectedDeckSize(context.Character, context.Floor);
+        return context.Cards.Count >= expected
+            ? new(target, "A", $"колода больше ориентира для этажа ({context.Cards.Count}/{expected}) — базовая карта снижает качество добора")
+            : new(target, "B", "базовая карта слабее остальных, но колода ещё небольшая — удаляйте, если не жертвуете ключевой покупкой");
+    }
+
+    // 7.1 (Meat Cleaver "cook" at the campfire): how many of two removals hit a clear target.
+    internal static int RemovalTargets(IEnumerable<string> ids, IReadOnlyDictionary<string, CardDefinition> catalog)
+    {
+        var cards = ids.Select(id => catalog.TryGetValue(SpireCodexMetricsClient.NormalizeId(id), out var card) ? card : null).Where(x => x is not null).Cast<CardDefinition>().ToArray();
+        var curses = cards.Count(x => x.Type.Contains("curse", StringComparison.OrdinalIgnoreCase) || x.Type.Contains("status", StringComparison.OrdinalIgnoreCase));
+        var starters = cards.Count(CardTaxonomy.IsStarterStrikeOrDefend);
+        return Math.Min(2, curses + starters);
+    }
+
     private static string? RemovalCandidate(IEnumerable<string> ids, IReadOnlyDictionary<string, CardDefinition> catalog)
     {
         var cards = ids.Select(id => catalog.TryGetValue(SpireCodexMetricsClient.NormalizeId(id), out var card) ? card : null).Where(x => x is not null).Cast<CardDefinition>().ToArray();

@@ -6,7 +6,7 @@ body:
     id: version
     attributes:
       label: Mod and game version / Версия мода и игры
-      placeholder: "Build Advisor 7.0.0, game v0.107.1"
+      placeholder: "Build Advisor 7.1.0, game v0.107.1"
     validations:
       required: true
   - type: textarea

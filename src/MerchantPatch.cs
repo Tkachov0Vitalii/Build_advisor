@@ -1,5 +1,7 @@
 using Godot;
 using HarmonyLib;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using MegaCrit.Sts2.Core.Nodes.Screens.Shops;
 using BuildAdvisor.Data;
 using BuildAdvisor.UI;
@@ -21,6 +23,8 @@ public static class MerchantPatch
         catch (Exception error) { GD.PrintErr($"Build Advisor shop {what} metrics: {error.Message}"); return new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase); }
     }
     private static long openSession;
+    // 7.1: auto-pick buys the plan's basket once per shop visit (purchases re-run AfterOpen).
+    private static readonly ConditionalWeakTable<NMerchantInventory, object> AutoBought = new();
 
     internal static void Invalidate() => Interlocked.Increment(ref openSession);
     private static bool IsCurrent(long session, GodotObject instance) =>
@@ -39,7 +43,7 @@ public static class MerchantPatch
         AdviceOverlay.ClearShopBadges(__instance);
         AdviceOverlay.SetRefreshAction(() => AfterOpen(__instance));
         var allItems = ReadSlots(inventory).ToArray();
-        for (var attempt = 0; allItems.Length == 0 && attempt < 24; attempt++)
+        for (var attempt = 0; allItems.All(x => x.Kind == "removal") && attempt < 24; attempt++)
         {
             await Task.Delay(125);
             if (!IsCurrent(session, __instance)) return;
@@ -60,7 +64,7 @@ public static class MerchantPatch
         if (context is not null && cachedCatalog.Count > 0)
         {
             var localAssessment = DeckBuildScoring.Evaluate(context, cards, cachedCatalog, new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase));
-            RenderCardBadges(__instance, cardSlots, localAssessment.Offers, context?.Gold ?? 0);
+            RenderCardBadges(__instance, cardSlots, localAssessment.Offers, context?.Gold ?? 0, Removal(allItems, context!, cachedCatalog));
         }
         try
         {
@@ -82,14 +86,15 @@ public static class MerchantPatch
             // complete local evaluation as soon as the catalogue is ready, then enrich it.
             var catalog = await catalogTask;
             if (IsCurrent(session, __instance))
-                RenderCardBadges(__instance, cardSlots, DeckBuildScoring.Evaluate(context, cards, catalog, new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase)).Offers, context.Gold);
+                RenderCardBadges(__instance, cardSlots, DeckBuildScoring.Evaluate(context, cards, catalog, new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase)).Offers, context.Gold, Removal(allItems, context, catalog));
             var cardMetrics = await OrEmpty(cardMetricsTask, "card");
             var relicMetrics = await OrEmpty(relicMetricsTask, "relic");
             var potionMetrics = await OrEmpty(potionMetricsTask, "potion");
             var relicNames = await relicCatalogTask;
             var potionNames = await potionNamesTask;
             if (!IsCurrent(session, __instance)) return;
-            var plan = ShopPlanBuilder.Create(context, cardItems, relicItems, catalog, cardMetrics, relicMetrics, relicNames, potionItems, potionMetrics, potionNames);
+            var removalPrice = allItems.FirstOrDefault(x => x.Kind == "removal").Item?.Price ?? 0;
+            var plan = ShopPlanBuilder.Create(context, cardItems, relicItems, catalog, cardMetrics, relicMetrics, relicNames, potionItems, potionMetrics, potionNames, removalPrice);
             if (IsCurrent(session, __instance))
             {
                 // M9: relic slots get the same badges as cards.
@@ -98,13 +103,51 @@ public static class MerchantPatch
                 AdviceOverlay.Render(__instance, "BUILD ADVISOR · магазин · " + bracket.ToUpperInvariant() + "\n" + plan, null, context,
                     AdviceSummaries.ForChoice("Лучшая покупка", shopOffers, $"Золото: {context.Gold} · подробный план покупок ниже"));
                 RenderCardBadges(__instance, cardSlots.Concat(allItems.Where(x => x.Kind == "relic")).ToArray(),
-                    DeckBuildScoring.Evaluate(context, cards, catalog, cardMetrics).Offers.Concat(relicScores).ToArray(), context.Gold);
+                    DeckBuildScoring.Evaluate(context, cards, catalog, cardMetrics).Offers.Concat(relicScores).ToArray(), context.Gold, Removal(allItems, context, catalog));
+                if (AutoPickSettings.Enabled && !AutoBought.TryGetValue(inventory, out _))
+                {
+                    AutoBought.Add(inventory, AutoBoughtMarker);
+                    var basket = ShopPlanBuilder.BasketIds(context, cardItems, relicItems, catalog, cardMetrics, relicMetrics, relicNames, removalPrice);
+                    if (basket.Count > 0) _ = AutoBuyAsync(inventory, basket);
+                }
             }
         }
         catch (Exception error) { if (IsCurrent(session, __instance)) AdviceOverlay.Render(__instance, "BUILD ADVISOR · магазин\n" + local + "\n\nСетевые данные недоступны — показан локальный совет."); GD.PrintErr($"Build Advisor shop: {error}"); }
     }
 
-    private static void RenderCardBadges(Node screen, IReadOnlyList<(string Kind, ShopItem Item, Control Slot)> slots, IReadOnlyList<OfferScore> scores, int gold)
+    private static readonly object AutoBoughtMarker = new();
+
+    private static (Control Slot, DeckActionPlanner.RemovalAdvice Advice, int Price)? Removal(
+        IEnumerable<(string Kind, ShopItem Item, Control Slot)> items, RunContext context, IReadOnlyDictionary<string, CardDefinition> catalog)
+    {
+        var slot = items.FirstOrDefault(x => x.Kind == "removal");
+        return slot.Slot is null || catalog.Count == 0 ? null : (slot.Slot, DeckActionPlanner.Removal(context, catalog), slot.Item.Price);
+    }
+
+    // 7.1: buys the plan's basket the way a click does (NMerchantSlot.OnSelected → OnTryPurchase),
+    // one item at a time, re-reading the slots: a purchase can restock or move them.
+    private static async Task AutoBuyAsync(NMerchantInventory inventory, IReadOnlyList<string> ids)
+    {
+        try
+        {
+            await Task.Delay(1200);
+            foreach (var id in ids)
+            {
+                if (!AutoPickSettings.Enabled || !GodotObject.IsInstanceValid(inventory) || !inventory.IsInsideTree() || !inventory.IsOpen) return;
+                var target = SpireCodexMetricsClient.NormalizeId(id);
+                var slot = ReadSlots(inventory).FirstOrDefault(x => x.Kind is "card" or "relic" && SpireCodexMetricsClient.NormalizeId(x.Item.Id) == target).Slot;
+                var entry = slot is null ? null : ReflectionIds.Member(slot, "Entry");
+                if (slot is null || entry is null || ReflectionIds.Member(entry, "IsStocked") is false || ReflectionIds.Member(entry, "EnoughGold") is false) continue;
+                if (slot.GetType().GetMethod("OnSelected", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)?.Invoke(slot, null) is Task purchase) await purchase;
+                GD.Print($"Build Advisor auto-bought {id}.");
+                await Task.Delay(700);
+            }
+        }
+        catch (Exception error) { GD.PrintErr("Build Advisor auto-buy: " + error); }
+    }
+
+    private static void RenderCardBadges(Node screen, IReadOnlyList<(string Kind, ShopItem Item, Control Slot)> slots, IReadOnlyList<OfferScore> scores, int gold,
+        (Control Slot, DeckActionPlanner.RemovalAdvice Advice, int Price)? removal = null)
     {
         var byId = scores.GroupBy(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase)
             .ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
@@ -113,6 +156,7 @@ public static class MerchantPatch
         AdviceOverlay.RenderShopBadges(screen, slots.Select(x => (x.Slot, byId.GetValueOrDefault(SpireCodexMetricsClient.NormalizeId(x.Item.Id))))
             .Where(x => x.Item2 is not null).Select(x => (x.Slot, x.Item2!)),
             score => PriceNote(prices.GetValueOrDefault(SpireCodexMetricsClient.NormalizeId(score.Id)), gold));
+        if (removal is { } r) AdviceOverlay.RenderRemovalBadge(screen, r.Slot, r.Advice, PriceNote(r.Price, gold));
     }
 
     // L3: what a purchase leaves for a removal, potions or the next shop.
@@ -131,6 +175,12 @@ public static class MerchantPatch
             var kind = type.Contains("MerchantCardEntry", StringComparison.Ordinal) ? "card"
                 : type.Contains("MerchantRelicEntry", StringComparison.Ordinal) ? "relic"
                 : type.Contains("MerchantPotionEntry", StringComparison.Ordinal) ? "potion" : null;
+            if (type.Contains("MerchantCardRemovalEntry", StringComparison.Ordinal))
+            {
+                if (slot is Control removal && entry is not null && ReflectionIds.Member(entry, "Used") is not true)
+                    yield return ("removal", new ShopItem("CARD_REMOVAL", ReflectionIds.FindDirectInt(entry, "Cost") ?? 0), removal);
+                continue;
+            }
             if (kind is null) continue;
             var visual = ReflectionIds.Member(slot, "Visual");
             var id = visual is null ? ReflectionIds.FindId(entry!) : ReflectionIds.FindId(visual) ?? ReflectionIds.FindId(entry!);

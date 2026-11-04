@@ -1,4 +1,4 @@
-# Build Advisor 7.0.0 for Slay the Spire 2
+# Build Advisor 7.1.0 for Slay the Spire 2
 
 [Русская версия](README_RU.md) · [Changelog](CHANGELOG.md) · [Install](INSTALL_EN.md) · [Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases) · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3832174623) · [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588)
 
@@ -10,16 +10,16 @@ An in-game deck-building advisor. It rates every card reward, shop item, relic c
 
 ## Features
 
-- **Card rewards** — a ribbon under each card: tier S–D, score 0–100 and the expected change of the win rate against skipping. Hover a ribbon for the full breakdown (community base, every deck adjustment, the result).
+- **Card rewards** — a ribbon under each card: tier S–D, score 0–100 and the expected change of the win rate against skipping; the **Skip** button gets its own ribbon (★ when skipping is the advice). Hover a ribbon for the full breakdown (community base, every deck adjustment, the result).
 - **Advice panel** — the wax seal **BD** at the left edge of the screen or **F8**. A verdict on top ("Take Clash" / "Better skip"), ranked options with coloured tiers, deck needs and archetypes, then the detailed breakdown. Tabs: advice, card search, run analysis, tag reference.
-- **Shop** — ribbons on cards and relics, the best buy and a purchase plan that fits your gold.
-- **Campfire and events** — upgrade, removal, transform and enchant priorities on the deck grid; community win-rate verdicts on event options, including Ancients.
+- **Shop** — ribbons on cards, relics and the **card removal** service, the best buy and a purchase plan that fits your gold (a high-priority removal is paid first).
+- **Campfire and events** — rest or upgrade (and which card), plus the options relics add: Shovel (dig), Girya (lift), Meat Cleaver (cook), Pael's Growth (clone), Pumpkin Candle (kindle), Byrdonis Egg (hatch), co-op mend; rest rewards from Dream Catcher, Tiny Mailbox, Stone Humidifier; the order of all options with Miniature Tent. Upgrade, removal, transform and enchant priorities on the deck grid; community win-rate verdicts on event options, including Ancients.
 - **Relics, potions, map** — relic choice ratings, potion advice on the rewards screen, expected damage and HP after each map node with the recommended path.
 - **Archetypes** — community winning decks (Spire Codex Pick Coach) or your own manual direction.
 - **Co-op** — reads teammates' decks: protect a fragile teammate, empower an attacker, avoid copying a teammate's engine.
-- **Run review** at the end of a run, **offline mode**, optional **auto-pick** (off by default).
+- **Run review** at the end of a run, **offline mode**, optional **auto-pick** (off by default): it does what the panel advises — takes the recommended card or skips the reward, and buys the shop plan's basket.
 
-The mod never plays for you and does not change the game's rules (`affects_gameplay: false`). Advice is statistics, not a guarantee.
+Unless you turn on auto-pick, the mod never acts for you; it does not change the game's rules (`affects_gameplay: false`). Advice is statistics, not a guarantee.
 
 ## Where the numbers come from
 
@@ -29,9 +29,9 @@ The mod never plays for you and does not change the game's rules (`affects_gamep
 ## Install
 
 - **[Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3832174623)** — subscribe to Build Advisor, start the game, choose *Modded*.
-- **Manual ([GitHub Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases) / [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588))** — extract `BuildAdvisor-7.0.0.zip` into `Slay the Spire 2/mods/` (you get `mods/build-advisor/build-advisor.dll`); start the game and choose *Modded*. Details: [INSTALL_EN.md](INSTALL_EN.md).
+- **Manual ([GitHub Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases) / [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588))** — extract `BuildAdvisor-7.1.0.zip` into `Slay the Spire 2/mods/` (you get `mods/build-advisor/build-advisor.dll`); start the game and choose *Modded*. Details: [INSTALL_EN.md](INSTALL_EN.md).
 
-The game log (`%APPDATA%\SlayTheSpire2\logs\godot.log`) shows `Build Advisor 7.0.0 loaded; all patches installed; regression matrix passed.`
+The game log (`%APPDATA%\SlayTheSpire2\logs\godot.log`) shows `Build Advisor 7.1.0 loaded; all patches installed; regression matrix passed.`
 
 ## Build from source
 

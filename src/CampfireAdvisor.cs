@@ -36,31 +36,138 @@ internal static class CampfireAdvisor
         return decimal.Round(value, 1);
     }
 
-    public static Advice Advise(RunContext context, IReadOnlyList<string> options, decimal? healAmount, decimal? segmentRisk,
-        (string Name, decimal Value)? upgrade, IReadOnlyDictionary<string, CampfireMetric>? metrics = null)
+    // 7.1: what relics add to the campfire. The game adds options through
+    // RelicModel.TryModifyRestSiteOptions (Shovel → DIG, Girya → LIFT, Meat Cleaver → COOK,
+    // Pael's Growth → CLONE, Pumpkin Candle → KINDLE, Byrdonis Egg → HATCH, co-op → MEND), keeps
+    // the rest open after a choice with Miniature Tent (ShouldDisableRemainingRestSiteOptions) and
+    // adds rewards to resting (Dream Catcher: a card reward, Tiny Mailbox: two potions, Stone
+    // Humidifier: +5 max HP; Regal Pillow's +15 heal is already in the heal amount).
+    internal sealed record CampfireExtras(int? GiryaLifts = null, int CloneCards = 0, int? KindleLeft = null,
+        int RemovalTargets = 0, decimal? WeakestTeammateHp = null)
     {
+        public static readonly CampfireExtras None = new();
+    }
+
+    internal const string Dig = "DIG";
+    internal const string Lift = "LIFT";
+    internal const string Cook = "COOK";
+    internal const string Clone = "CLONE";
+    internal const string Hatch = "HATCH";
+    internal const string Kindle = "KINDLE";
+    internal const string Mend = "MEND";
+
+    internal static bool HasRelic(RunContext context, string compactId) =>
+        context.Relics.Any(id => SpireCodexMetricsClient.NormalizeId(id).Replace("_", "") == compactId);
+
+    internal static string OptionName(string id) => id switch
+    {
+        Heal => "отдых", Smith => "улучшение", Dig => "копать (лопата)", Lift => "тренировка (гиря)",
+        Cook => "готовить (тесак)", Clone => "клонировать карты", Hatch => "высидеть яйцо", Kindle => "разжечь свечу",
+        Mend => "лечить союзника", _ => id.ToLowerInvariant()
+    };
+
+    // Rest-only rewards in points: a card reward ≈ 4, two potions ≈ 3, +5 max HP ≈ 3.
+    internal static (decimal Points, string Note) RestBonus(RunContext context)
+    {
+        var points = 0m; var notes = new List<string>();
+        if (HasRelic(context, "DREAMCATCHER")) { points += 4m; notes.Add("ловец снов: награда картой"); }
+        if (HasRelic(context, "TINYMAILBOX")) { points += 3m; notes.Add("почтовый ящик: 2 зелья"); }
+        if (HasRelic(context, "STONEHUMIDIFIER")) { points += 3m; notes.Add("увлажнитель: +5 к макс. HP"); }
+        return (points, string.Join(", ", notes));
+    }
+
+    // Value of one option on the 0-100 action point scale shared with rest and upgrade.
+    internal static (decimal Value, string Why) OptionValue(string id, RunContext context, CampfireExtras extras)
+    {
+        var late = context.Act >= 3 ? -3m : context.Act <= 1 ? 3m : 0m;
+        switch (id)
+        {
+            case Dig:
+                return (12m + late, "случайная реликвия — обычно сильнее среднего улучшения, особенно в начале забега");
+            case Lift:
+            {
+                var left = extras.GiryaLifts is { } done ? Math.Max(0, 3 - done) : 3;
+                var attacks = Math.Min(6m, context.AttackCards / 2m);
+                return left <= 0 ? (0m, "гиря уже поднята 3 раза")
+                    : (8m + attacks + late * 2m / 3m, $"+1 сила в каждом бою до конца забега (подъёмов осталось {left}); ценнее с большим числом атак");
+            }
+            case Cook:
+            {
+                var targets = Math.Min(2, extras.RemovalTargets);
+                var value = targets * 9m + 3m - (2 - targets) * 6m;
+                return (value, targets == 2 ? "удаляет 2 слабые карты и даёт +9 к макс. HP"
+                    : targets == 1 ? "удаляет 1 слабую карту, вторая — хорошая; +9 к макс. HP"
+                    : "в колоде нет слабых карт для удаления — потеряете хорошие");
+            }
+            case Clone:
+                return extras.CloneCards <= 0 ? (0m, "в колоде нет карт с зачарованием «Клон»")
+                    : (Math.Min(24m, extras.CloneCards * 7m), $"копирует {extras.CloneCards} карт(ы) с зачарованием «Клон»");
+            case Hatch:
+                return (14m + late, "питомец-реликвия на весь забег");
+            case Kindle:
+            {
+                var left = extras.KindleLeft ?? 0;
+                return (Math.Max(0m, (5 - left) * 3.5m), left <= 0 ? "свеча погасла: +1 энергия на 5 боёв" : $"свеча горит ещё {left} боёв — разжечь сейчас добавит {5 - left}");
+            }
+            case Mend:
+            {
+                if (extras.WeakestTeammateHp is not { } share) return (0m, "здоровье союзников не прочитано");
+                var value = share <= 1m / 3m ? 20m : Math.Max(0m, (1m - share) * 12m);
+                return (decimal.Round(value, 1), $"самый раненый союзник: {share * 100m:0}% HP");
+            }
+            default:
+                return (0m, "особый вариант — сравните по описанию");
+        }
+    }
+
+    public static Advice Advise(RunContext context, IReadOnlyList<string> options, decimal? healAmount, decimal? segmentRisk,
+        (string Name, decimal Value)? upgrade, IReadOnlyDictionary<string, CampfireMetric>? metrics = null, CampfireExtras? extras = null)
+    {
+        extras ??= CampfireExtras.None;
         var ids = options.Select(x => x.ToUpperInvariant()).Distinct().ToArray();
         var risk = segmentRisk ?? .2m;
         // The game heals 30% of max HP by default; relics change it, so the real amount wins when read.
         var heal = healAmount ?? Math.Round(context.MaxHp * .3m);
-        var rest = ids.Contains(Heal) ? RestValue(context, heal, risk) : 0m;
+        var restBonus = RestBonus(context);
+        var rest = ids.Contains(Heal) ? RestValue(context, heal, risk) + restBonus.Points : 0m;
         var smith = ids.Contains(Smith) && upgrade is { } best ? best.Value : 0m;
+        var values = new Dictionary<string, (decimal Value, string Why)>();
+        if (ids.Contains(Heal)) values[Heal] = (rest, restBonus.Note);
+        if (ids.Contains(Smith)) values[Smith] = (smith, upgrade is { } u ? "улучшить " + u.Name : "нет карты для улучшения");
+        foreach (var id in ids.Where(x => x is not Heal and not Smith)) values[id] = OptionValue(id, context, extras);
+
+        var ranked = values.OrderByDescending(x => x.Value.Value).ThenBy(x => x.Key == Smith ? 0 : x.Key == Heal ? 1 : 2).ToArray();
         string? recommended = null;
-        if (ids.Contains(Heal) && (rest > smith || !ids.Contains(Smith) || upgrade is null) && rest > 0) recommended = Heal;
-        else if (ids.Contains(Smith) && upgrade is not null) recommended = Smith;
+        if (ranked.Length > 0 && ranked[0].Value.Value > 0 && !(ranked[0].Key == Smith && upgrade is null)) recommended = ranked[0].Key;
         else if (ids.Contains(Heal)) recommended = Heal;
+        else if (ids.Contains(Smith) && upgrade is not null) recommended = Smith;
+        var tent = HasRelic(context, "MINIATURETENT");
 
         var lines = new List<string>();
         var hpLine = context.MaxHp > 0 ? $"HP {context.Hp}/{context.MaxHp} · отдых восстановит {Math.Min(heal, Math.Max(0, context.MaxHp - context.Hp)):0}" : "HP не прочитано";
         lines.Add(hpLine + (segmentRisk is { } r ? $" · риск следующих узлов {r * 100m:0}%" : ""));
+        var runnerUp = ranked.FirstOrDefault(x => x.Key != recommended);
+        var against = runnerUp.Key is null ? "" : $" против {runnerUp.Value.Value:0.#} у варианта «{OptionName(runnerUp.Key)}»";
         if (recommended == Heal)
-            lines.Add($"Совет: отдых ({rest:0.#} балла против {smith:0.#} у улучшения)" + (context.Hp * 3 <= context.MaxHp ? " — HP ниже трети, следующий тяжёлый бой опасен." : "."));
+            lines.Add($"Совет: отдых ({rest:0.#} балла{against})" + (context.Hp * 3 <= context.MaxHp ? " — HP ниже трети, следующий тяжёлый бой опасен." : "."));
         else if (recommended == Smith && upgrade is { } chosen)
-            lines.Add($"Совет: улучшить {chosen.Name} ({smith:0.#} балла против {rest:0.#} у отдыха).");
+            lines.Add($"Совет: улучшить {chosen.Name} ({smith:0.#} балла{against}).");
+        else if (recommended is not null)
+            lines.Add($"Совет: {OptionName(recommended)} ({values[recommended].Value:0.#} балла{against}) — {values[recommended].Why}.");
         else
             lines.Add("Совет: отдых и улучшение недоступны — сравните особые варианты по описанию.");
         if (ids.Contains(Smith) && upgrade is null) lines.Add("Подходящей карты для улучшения не найдено.");
         else if (recommended == Heal && upgrade is { } skipped) lines.Add($"Лучшее улучшение, если HP хватает: {skipped.Name}.");
+        if (restBonus.Points > 0 && ids.Contains(Heal)) lines.Add($"Отдых также даёт: {restBonus.Note} (+{restBonus.Points:0} балла).");
+        var special = ids.Where(x => x is not Heal and not Smith).ToArray();
+        if (special.Length > 0)
+        {
+            lines.Add("Варианты от реликвий:");
+            lines.AddRange(special.Select(id => $"• {OptionName(id)}: {values[id].Value:0.#} балла — {values[id].Why}"));
+        }
+        if (tent && ranked.Length > 1)
+            lines.Add("Миниатюрная палатка: после выбора остальные варианты не блокируются — используйте все по порядку: " +
+                      string.Join(" → ", ranked.Where(x => x.Value.Value > 0 || x.Key == Heal).Select(x => OptionName(x.Key))) + ".");
 
         if (metrics is { Count: > 0 })
         {

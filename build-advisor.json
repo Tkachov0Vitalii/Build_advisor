@@ -3,7 +3,7 @@
   "name": "Build Advisor",
   "author": "Tkachov0Vitalii",
   "description": "RU/EN deck-building advisor: rates card rewards, shop, relics, campfire, events and the map route against your deck.",
-  "version": "7.0.0",
+  "version": "7.1.0",
   "has_pck": false,
   "has_dll": true,
   "affects_gameplay": false

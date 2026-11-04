@@ -33,7 +33,9 @@ internal static class BuildAdvisorRegression
             CompoundBloatPenaltyGrowsByAct();
             LearnedChoiceAdjustmentIsBounded();
             LearnedSkipModelIsAvailableAndDirectional();
-            AutoPickIsConservative();
+            AutoPickFollowsTheVerdict();
+            ShopBasketAndRemovalAdvice();
+            CampfireRelicOptions();
             BossThreatRefinesInsteadOfDominating();
             SegmentRiskIsCalibratedAndDirectional();
             ActionPlanExplainsAlternatives();
@@ -645,18 +647,106 @@ internal static class BuildAdvisorRegression
             throw new InvalidOperationException("Missing learned context changed the score.");
     }
 
-    private static void AutoPickIsConservative()
+    // 7.1: auto-pick does what the panel says. 7.0 acted only on score ≥ 90 with a 20-point lead
+    // and almost never picked; a "better skip" verdict did nothing at all.
+    private static void AutoPickFollowsTheVerdict()
     {
-        var confident = new BuildAssessment("", [], [], 1m, 8, [
+        var clear = new BuildAssessment("", [], [], 1m, 8, [
             new OfferScore("BEST", "Best", 94m, 80m, 14m, "attack", "", .8m),
             new OfferScore("OTHER", "Other", 70m, 68m, 2m, "", "", .8m)]);
-        if (!AutoPickSettings.ShouldPick(confident)) throw new InvalidOperationException("Auto-pick rejected a clear, high-confidence winner.");
-        var close = confident with { Offers = [confident.Offers[0], confident.Offers[1] with { Final = 80m }] };
-        var skip = confident with { SkipScore = 12 };
-        var merelyGood = confident with { Offers = [confident.Offers[0] with { Final = 89m }, confident.Offers[1]] };
-        var unknown = confident with { Offers = [confident.Offers[0] with { Confidence = .1m }, confident.Offers[1]] };
-        if (AutoPickSettings.ShouldPick(close) || AutoPickSettings.ShouldPick(skip) || AutoPickSettings.ShouldPick(merelyGood) || AutoPickSettings.ShouldPick(unknown))
-            throw new InvalidOperationException("Auto-pick safety gate accepted a disputed option.");
+        var good = clear with { Offers = [clear.Offers[0] with { Final = 72m, Community = 70m }, clear.Offers[1] with { Final = 60m, Community = 60m }] };
+        var weak = clear with { Offers = [clear.Offers[0] with { Final = 22m, Community = 22m }, clear.Offers[1] with { Final = 18m, Community = 18m }] };
+        var take = AutoPickSettings.Decide(clear);
+        if (take.Action != AutoPickAction.Take || take.Card?.Id != "BEST")
+            throw new InvalidOperationException("Auto-pick did not take the clear winner.");
+        if (AutoPickSettings.Decide(good) is not { Action: AutoPickAction.Take, Card.Id: "BEST" })
+            throw new InvalidOperationException("Auto-pick ignored a card the panel says to take (the 7.0 gate).");
+        if (AutoPickSettings.Decide(weak).Action != AutoPickAction.Skip || TakeSkipModel.Evaluate(weak).Take)
+            throw new InvalidOperationException("Auto-pick did not skip when the panel says \"better skip\".");
+        if (AutoPickSettings.Decide(clear with { Offers = [] }).Action != AutoPickAction.None)
+            throw new InvalidOperationException("Auto-pick acted on an unread reward.");
+        if (CardRewardPatch.SkipIndex(["Skip", "REROLL"]) != 0 || CardRewardPatch.SkipIndex(["REROLL", "Skip"]) != 1 || CardRewardPatch.SkipIndex(["REROLL"]) != -1)
+            throw new InvalidOperationException("The Skip button is not found among the reward alternatives.");
+        var skipText = AdviceSummaries.SkipExplanation(TakeSkipModel.Evaluate(weak)) + AdviceSummaries.SkipExplanation(TakeSkipModel.Evaluate(clear));
+        if (!skipText.Contains("Совет: пропустить") || !skipText.Contains("Лучше взять Best"))
+            throw new InvalidOperationException("Skip ribbon text is wrong: " + skipText);
+        if (HasCyrillic(ModLocalization.Translate(skipText + "пропуск · -1.0 п.п." + "★ пропуск", AdvisorLanguage.English)))
+            throw new InvalidOperationException("Skip ribbon is not translated: " + ModLocalization.Translate(skipText, AdvisorLanguage.English));
+    }
+
+    // 7.1: the shop basket is data (auto-pick buys it); a high-priority removal is paid first;
+    // the removal slot gets a tier.
+    private static void ShopBasketAndRemovalAdvice()
+    {
+        (string, decimal, int)[] items = [("A", 90m, 150), ("B", 70m, 100), ("C", 60m, 60), ("D", 40m, 10)];
+        var basket = ShopPlanBuilder.BasketIndices(220, items);
+        if (!basket.SequenceEqual([0, 2]))
+            throw new InvalidOperationException("Basket is not the best affordable set: " + string.Join(",", basket));
+        if (ShopPlanBuilder.BasketIndices(0, items).Count != 0 || ShopPlanBuilder.BasketIndices(500, items).Contains(3))
+            throw new InvalidOperationException("Basket bought with no gold or bought a weak item.");
+        var catalog = new Dictionary<string, CardDefinition>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["STRIKE_IRONCLAD"] = Card("STRIKE_IRONCLAD", "Strike", "Attack", 6, "basic"),
+            ["BASH"] = Card("BASH", "Bash", "Attack", 8, "basic"),
+            ["ANGER"] = Card("ANGER", "Anger", "Attack", 6, "common"),
+            ["CLASH"] = Card("CLASH", "Clash", "Attack", 14, "common"),
+            ["INJURY"] = Card("INJURY", "Injury", "Curse", 0, "curse"),
+        };
+        static CardDefinition Card(string id, string name, string type, int damage, string rarity) =>
+            new(id, name, "ironclad", type, 1, damage, 0, 0, 0, rarity, "", new HashSet<string>(), null);
+        RunContext Deck(params string[] cards) => new("ironclad", cards, [], 0, 1, 6, 60, 80, 300, null, 1m, 5, 0, 0, []);
+        var starters = Deck("STRIKE_IRONCLAD", "STRIKE_IRONCLAD", "BASH", "ANGER", "CLASH");
+        var cursed = Deck("STRIKE_IRONCLAD", "BASH", "ANGER", "CLASH", "ANGER", "INJURY");
+        var clean = Deck("BASH", "ANGER", "CLASH");
+        var a = DeckActionPlanner.Removal(starters, catalog); var b = DeckActionPlanner.Removal(cursed, catalog); var c = DeckActionPlanner.Removal(clean, catalog);
+        if (a.Target != "Strike" || a.Tier is not ("A" or "B") || b.Tier != "S" || b.Target != "Injury" || c.Target is not null || c.Tier != "D")
+            throw new InvalidOperationException($"Removal advice is wrong: {a} / {b} / {c}");
+        if (ShopPlanBuilder.BasketBudget(300, b, 75) != 225 || ShopPlanBuilder.BasketBudget(300, c, 75) != 300 || ShopPlanBuilder.BasketBudget(50, b, 75) != 50)
+            throw new InvalidOperationException("High-priority removal is not reserved from the basket budget.");
+        if (DeckActionPlanner.RemovalTargets(cursed.Cards, catalog) != 2 || DeckActionPlanner.RemovalTargets(clean.Cards, catalog) != 0)
+            throw new InvalidOperationException("Cook removal targets are miscounted.");
+        var english = ModLocalization.Translate(string.Join("\n", a.Reason, b.Reason, c.Reason, "★ S · удалить", "D · удалить", "Удаление карты: Strike", "нет цели",
+            "Удаление (S): Injury — " + b.Reason + " · цена 75.", "Оптимальная корзина по текущей модели: A · 150/300 золота · останется 150 (из них 75 — на удаление).",
+            "Корзина: нет уверенной покупки с прочитанной ценой в текущий бюджет. 75 золота отложено на удаление."), AdvisorLanguage.English);
+        if (HasCyrillic(english)) throw new InvalidOperationException("Removal text is not translated: " + english);
+    }
+
+    // 7.1: relic campfire options (Shovel, Girya, Meat Cleaver, Pael's Growth, Byrdonis Egg,
+    // Pumpkin Candle, co-op Mend), rest rewards (Dream Catcher …) and Miniature Tent.
+    private static void CampfireRelicOptions()
+    {
+        RunContext At(int hp, int act = 1, params string[] relics) => new("ironclad", [], relics, 0, act, 10, hp, 80, 99, null, 1m, 10, 0, 0, [])
+            { Route = new RouteSnapshot("rest_site", [new RouteOption(["monster"])]) };
+        (string, decimal)? upgrade = ("Bash", 8m);
+        var dig = CampfireAdvisor.Advise(At(70), ["HEAL", "SMITH", "DIG"], 24m, .2m, upgrade);
+        if (dig.Recommended != "DIG" || !dig.Text.Contains("копать")) throw new InvalidOperationException("Shovel dig is not advised at healthy HP: " + dig.Text);
+        if (CampfireAdvisor.Advise(At(20), ["HEAL", "SMITH", "DIG"], 24m, .6m, upgrade).Recommended != "HEAL")
+            throw new InvalidOperationException("Dig beat a rest at a third of HP.");
+        if (CampfireAdvisor.Advise(At(70), ["HEAL", "SMITH", "LIFT"], 24m, .2m, upgrade, null, new(GiryaLifts: 0)).Recommended != "LIFT" ||
+            CampfireAdvisor.Advise(At(70), ["HEAL", "SMITH", "LIFT"], 24m, .2m, upgrade, null, new(GiryaLifts: 3)).Recommended == "LIFT")
+            throw new InvalidOperationException("Girya lift ignores its remaining lifts.");
+        if (CampfireAdvisor.Advise(At(70), ["HEAL", "SMITH", "COOK"], 24m, .2m, upgrade, null, new(RemovalTargets: 2)).Recommended != "COOK" ||
+            CampfireAdvisor.Advise(At(70), ["HEAL", "SMITH", "COOK"], 24m, .2m, upgrade, null, new(RemovalTargets: 0)).Recommended == "COOK")
+            throw new InvalidOperationException("Cook ignores whether the deck has cards worth removing.");
+        if (CampfireAdvisor.Advise(At(70), ["HEAL", "SMITH", "CLONE"], 24m, .2m, upgrade, null, new(CloneCards: 0)).Recommended == "CLONE" ||
+            CampfireAdvisor.Advise(At(70), ["HEAL", "SMITH", "KINDLE"], 24m, .2m, upgrade, null, new(KindleLeft: 4)).Recommended == "KINDLE" ||
+            CampfireAdvisor.Advise(At(70), ["HEAL", "SMITH", "KINDLE"], 24m, .2m, upgrade, null, new(KindleLeft: 0)).Recommended != "KINDLE")
+            throw new InvalidOperationException("Clone/Kindle values ignore the relic state.");
+        if (CampfireAdvisor.Advise(At(70), ["HEAL", "SMITH", "MEND"], 24m, .2m, upgrade, null, new(WeakestTeammateHp: .2m)).Recommended != "MEND")
+            throw new InvalidOperationException("Mend does not save a teammate at 20% HP.");
+        // Dream Catcher, Tiny Mailbox and Stone Humidifier make a full-HP rest worth taking.
+        if (CampfireAdvisor.Advise(At(80), ["HEAL", "SMITH"], 24m, .2m, ("Bash", 6m)).Recommended != "SMITH" ||
+            CampfireAdvisor.Advise(At(80, 1, "DREAM_CATCHER", "TINY_MAILBOX"), ["HEAL", "SMITH"], 24m, .2m, ("Bash", 6m)).Recommended != "HEAL")
+            throw new InvalidOperationException("Rest rewards from relics are ignored.");
+        var tent = CampfireAdvisor.Advise(At(60, 1, "MINIATURE_TENT"), ["HEAL", "SMITH", "DIG"], 24m, .2m, upgrade);
+        if (!tent.Text.Contains("Миниатюрная палатка") || !tent.Text.Contains("→"))
+            throw new InvalidOperationException("Miniature Tent order is missing: " + tent.Text);
+        var all = string.Join("\n", tent.Text, dig.Text,
+            CampfireAdvisor.Advise(At(70, 3, "DREAM_CATCHER", "TINY_MAILBOX", "STONE_HUMIDIFIER"), ["HEAL", "SMITH", "LIFT", "COOK", "CLONE", "HATCH", "KINDLE", "MEND", "WHATEVER"], 24m, .2m, upgrade, null, new(1, 2, 2, 1, .5m)).Text,
+            CampfireAdvisor.Advise(At(70), ["LIFT", "COOK", "CLONE", "KINDLE", "MEND"], null, null, null, null, new(3, 0, 5, 0, null)).Text,
+            CampfireAdvisor.Advise(At(70), ["COOK"], null, null, null, null, new(RemovalTargets: 2)).Text);
+        var english = ModLocalization.Translate(all, AdvisorLanguage.English);
+        if (HasCyrillic(english)) throw new InvalidOperationException("Campfire relic text is not translated: " + english);
     }
 
     private static void LearnedSkipModelIsAvailableAndDirectional()

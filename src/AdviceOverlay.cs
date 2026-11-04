@@ -18,6 +18,7 @@ public static class AdviceOverlay
     private const string TextName = "BuildAdvisorText";
     private const string AdviceBodyName = "BuildAdvisorAdviceBody";
     private const string SearchName = "BuildAdvisorCardSearch";
+    private const string SkipBadgeName = "BuildAdvisorTierSkip";
     private const string RunName = "BuildAdvisorRunReport";
     private const string RunTextName = "BuildAdvisorRunReportText";
     private const string TagsName = "BuildAdvisorTagReference";
@@ -91,7 +92,7 @@ public static class AdviceOverlay
         var title = new Label { Text = "Build Advisor", Position = new Vector2(84, 12), Size = new Vector2(420, 40) };
         if (AdvisorTheme.Heading is { } headingFont) title.AddThemeFontOverride("font", headingFont);
         title.AddThemeFontSizeOverride("font_size", 28);
-        var live = new Label { Name = LiveName, Position = new Vector2(22, 56), Size = new Vector2(ContentWidth, 44), AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        var live = Wrapped("", new Vector2(22, 56), ContentWidth, 44); live.Name = LiveName;
         live.AddThemeFontSizeOverride("font_size", 15); live.AddThemeColorOverride("font_color", AdvisorTheme.InkSoft);
         var close = new Button { Name = CloseName, Text = "×", Position = new Vector2(PanelWidth - 58, 12), Size = new Vector2(40, 40), Flat = true };
         close.AddThemeFontSizeOverride("font_size", 28);
@@ -112,8 +113,8 @@ public static class AdviceOverlay
         var searchTab = Tab("BuildAdvisorSearchTab", "Искать карты", new Vector2(116, 104));
         var runTab = Tab("BuildAdvisorRunTab", "Анализ забега", new Vector2(268, 104));
         var tagsTab = Tab("BuildAdvisorTagsTab", "Метки", new Vector2(430, 104));
-        var search = new Control { Name = SearchName, Position = new Vector2(22, BodyY), Size = new Vector2(ContentWidth, BodyHeight), Visible = false };
-        var loading = new Label { Text = L("Каталог карт загружается…"), Position = new Vector2(0, 0), Size = new Vector2(ContentWidth, 42) };
+        var search = new Control { Name = SearchName, Position = new Vector2(22, BodyY), Size = new Vector2(ContentWidth, BodyHeight), Visible = false, ClipContents = true };
+        var loading = Wrapped(L("Каталог карт загружается…"), Vector2.Zero, ContentWidth, 42);
         loading.AddThemeFontSizeOverride("font_size", 20); search.AddChild(loading);
         var run = new Control { Name = RunName, Position = new Vector2(22, BodyY), Size = new Vector2(ContentWidth, BodyHeight), Visible = false };
         var runScroll = new ScrollContainer { Position = Vector2.Zero, Size = new Vector2(ContentWidth, BodyHeight), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto };
@@ -598,6 +599,60 @@ public static class AdviceOverlay
         }
     }
 
+    // 7.1: the Skip button of a card reward gets its own ribbon: "skip" is one of the options.
+    // It sits to the right of the button, clear of the card ribbons above it.
+    internal static void RenderSkipBadge(Node screen, (Control Button, int Index) skip, TakeSkipVerdict verdict)
+    {
+        var button = skip.Button;
+        if (!GodotObject.IsInstanceValid(button)) return;
+        foreach (var old in button.GetChildren().Where(x => x.Name.ToString().StartsWith(SkipBadgeName, StringComparison.Ordinal)).ToArray()) { button.RemoveChild(old); old.QueueFree(); }
+        var advised = !verdict.Take && verdict.Best is not null;
+        var text = advised ? "★ пропуск" : verdict.Best is null ? "пропуск" : $"пропуск · {TakeSkipModel.Format(-verdict.WinDelta)} п.п.";
+        var tier = advised ? "A" : "D";
+        var badge = new AttachedBadge
+        {
+            OwnerScreen = screen,
+            Place = label => PlaceRightOf(label, button),
+            Name = SkipBadgeName, Text = L(text), Size = new Vector2(advised ? 130 : 170, 34), ZIndex = 20, ZAsRelative = true,
+            MouseFilter = Control.MouseFilterEnum.Pass,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+            ExpandedText = L(AdviceSummaries.SkipExplanation(verdict)),
+            StylePopup = popup => AdvisorTheme.Popup(popup, advised ? AdvisorTheme.Gold : AdvisorTheme.TierFrame(tier))
+        };
+        AdvisorTheme.Ribbon(badge, tier, advised, 15);
+        button.AddChild(badge);
+        PlaceRightOf(badge, button);
+        badge.Activate();
+    }
+
+    private static void PlaceRightOf(Label badge, Control anchor)
+    {
+        if (!GodotObject.IsInstanceValid(anchor)) return;
+        badge.Position = new Vector2(anchor.Size.X + 10f, (anchor.Size.Y - badge.Size.Y) / 2f);
+    }
+
+    // 7.1: the shop's card-removal slot gets a ribbon like the items on sale.
+    internal static void RenderRemovalBadge(Node screen, Control slot, DeckActionPlanner.RemovalAdvice advice, string priceNote)
+    {
+        if (!GodotObject.IsInstanceValid(slot)) return;
+        foreach (var old in slot.GetChildren().Where(x => x.Name.ToString() == ShopTierPrefix + "Removal").ToArray()) { slot.RemoveChild(old); old.QueueFree(); }
+        var best = advice.Tier is "S" or "A";
+        var badge = new AttachedBadge
+        {
+            OwnerScreen = screen,
+            Place = label => PlaceAboveSlot(label, slot),
+            Name = ShopTierPrefix + "Removal", Text = L($"{(best ? "★ " : "")}{advice.Tier} · удалить"), Size = new Vector2(150, 34),
+            ZIndex = 30, ZAsRelative = true, MouseFilter = Control.MouseFilterEnum.Pass,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+            ExpandedText = L($"Удаление карты: {advice.Target ?? "нет цели"}\n{advice.Reason}{(priceNote.Length > 0 ? "\n" + priceNote : "")}"),
+            StylePopup = popup => AdvisorTheme.Popup(popup, AdvisorTheme.TierFrame(advice.Tier))
+        };
+        StyleBadge(badge, advice.Tier, false, 14);
+        slot.AddChild(badge);
+        PlaceAboveSlot(badge, slot);
+        badge.Activate();
+    }
+
     private static void PlaceAboveSlot(Label badge, Control slot)
     {
         if (!GodotObject.IsInstanceValid(slot)) return;
@@ -837,10 +892,10 @@ public static class AdviceOverlay
         var search = page.GetNodeOrNull<Control>(SearchName);
         if (search is null) return;
         foreach (var child in search.GetChildren().ToArray()) { search.RemoveChild(child); child.QueueFree(); }
-        var heading = new Label { Text = L("Карты для поиска"), Position = new Vector2(0, 0), Size = new Vector2(ContentWidth, 34) };
+        var heading = Wrapped(L("Карты для поиска"), Vector2.Zero, ContentWidth, 34);
         if (AdvisorTheme.Heading is { } headingFont) heading.AddThemeFontOverride("font", headingFont);
         heading.AddThemeFontSizeOverride("font_size", 22);
-        var note = new Label { Text = L("Список учитывает вашу колоду и выбранный архетип. Измените архетип сверху и нажмите «Обновить»."), Position = new Vector2(0, 36), Size = new Vector2(ContentWidth, 46), AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        var note = Wrapped(L("Список учитывает вашу колоду и выбранный архетип. Измените архетип сверху и нажмите «Обновить»."), new Vector2(0, 36), ContentWidth, 46);
         note.AddThemeFontSizeOverride("font_size", 15); note.AddThemeColorOverride("font_color", AdvisorTheme.InkSoft);
         var half = (ContentWidth - 12) / 2f;
         var type = Filter("Все типы", "Атака", "Навык", "Талант", new Vector2(0, 88)); type.Size = new Vector2(half, 38);
@@ -944,11 +999,24 @@ public static class AdviceOverlay
         var search = host.GetNodeOrNull<Panel>(PageName)?.GetNodeOrNull<Control>(SearchName);
         if (search is null) return;
         foreach (var child in search.GetChildren().ToArray()) { search.RemoveChild(child); child.QueueFree(); }
-        var status = new Label { Text = L(text), Position = Vector2.Zero, Size = new Vector2(ContentWidth, 80), AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        var status = Wrapped(L(text), Vector2.Zero, ContentWidth, 80);
         status.AddThemeFontSizeOverride("font_size", 19);
         search.AddChild(status);
         searchRefresh = null;
         searchCharacter = null;
+    }
+
+    // 7.1: a wrapped label that stays inside the panel. Text set before AutowrapMode made Godot
+    // size the label to the unwrapped line first; the size then stuck wider than the panel and
+    // the first line ran past the right edge (search tab, "Текущий забег ещё не прочитан…").
+    private static Label Wrapped(string text, Vector2 position, float width, float height)
+    {
+        var label = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, ClipText = false };
+        label.CustomMinimumSize = new Vector2(width, 0);
+        label.Text = text;
+        label.Position = position;
+        label.Size = new Vector2(width, height);
+        return label;
     }
 
     private static Button Tab(string name, string text, Vector2 position)
@@ -983,7 +1051,7 @@ public static class AdviceOverlay
     private static Control CreateTagReference()
     {
         var panel = new Control { Name = TagsName, Position = new Vector2(22, BodyY), Size = new Vector2(ContentWidth, BodyHeight), Visible = false };
-        var heading = new Label { Text = L($"Справочник меток Build Advisor · {CardSemanticTags.Reference.Count} признаков"), Position = Vector2.Zero, Size = new Vector2(ContentWidth, 34), AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        var heading = Wrapped(L($"Справочник меток Build Advisor · {CardSemanticTags.Reference.Count} признаков"), Vector2.Zero, ContentWidth, 34);
         if (AdvisorTheme.Heading is { } headingFont) heading.AddThemeFontOverride("font", headingFont);
         heading.AddThemeFontSizeOverride("font_size", 21);
         var query = new LineEdit { PlaceholderText = L("Поиск по названию или описанию…"), Position = new Vector2(0, 44), Size = new Vector2(ContentWidth, 40) };
@@ -1211,7 +1279,7 @@ public static class AdviceOverlay
         if (autoPick is not null)
         {
             autoPick.Text = L("Автовыбор");
-            autoPick.TooltipText = L("Автоматически берёт карту только при высокой уверенности, явном преимуществе и когда пропуск хуже. Не выбирает спорные варианты.");
+            autoPick.TooltipText = L("Автоматически делает то, что советует панель: берёт рекомендованную карту или пропускает награду, в магазине покупает оптимальную корзину из плана.");
         }
         var offline = Find<CheckButton>(host, OfflineName);
         if (offline is not null) { offline.Text = L("Офлайн"); offline.TooltipText = L(OfflineTooltip); }
