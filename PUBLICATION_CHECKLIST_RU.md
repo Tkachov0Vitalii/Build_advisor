@@ -1,6 +1,6 @@
 # Памятка перед публикацией
 
-Публикуйте `BuildAdvisor-7.1.0.zip` (GitHub Releases, Nexus Mods) и `BuildAdvisor-7.1.0-workshop.zip` (Steam Workshop); как именно — `publish/README.md`.
+Публикуйте `BuildAdvisor-7.2.0.zip` (GitHub Releases, Nexus Mods) и `BuildAdvisor-7.2.0-workshop.zip` (Steam Workshop); как именно — `publish/README.md`.
 
 1. Сверьте SHA-256 с `SHA256SUMS.txt`.
 2. Укажите совместимую версию игры и реально протестированные ОС.

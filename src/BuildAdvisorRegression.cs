@@ -34,6 +34,7 @@ internal static class BuildAdvisorRegression
             LearnedChoiceAdjustmentIsBounded();
             LearnedSkipModelIsAvailableAndDirectional();
             AutoPickFollowsTheVerdict();
+            TakeSkipComparesWithTypicalPick();
             ShopBasketAndRemovalAdvice();
             CampfireRelicOptions();
             BossThreatRefinesInsteadOfDominating();
@@ -161,16 +162,46 @@ internal static class BuildAdvisorRegression
         if (!verdict.Take || verdict.Best?.Id != "STRONG" || verdict.WinDelta != 6m)
             throw new InvalidOperationException("Take/skip did not take a clearly positive card.");
         // A bloated deck turns a decent card negative: the deck adjustment uses the same scale.
-        var bloated = new BuildAssessment("", [], [], 1m, 30, [Offer("STRONG", 40m, 70m, 6m, 5000)]);
-        if (TakeSkipModel.Evaluate(bloated).Take || TakeSkipModel.WinDelta(bloated.Offers[0]) != .3m)
+        var bloated = new BuildAssessment("", [], [], 1m, 30, [Offer("STRONG", 30m, 70m, 6m, 5000)]);
+        if (TakeSkipModel.Evaluate(bloated).Take || TakeSkipModel.WinDelta(bloated.Offers[0]) != -1.6m)
             throw new InvalidOperationException("Deck penalties must be able to make skipping better.");
-        // Little evidence needs a 2-point margin instead of half a point.
-        var thin = new BuildAssessment("", [], [], 1m, 30, [Offer("THIN", 50m, 50m, 1.5m, 120)]);
-        if (TakeSkipModel.Evaluate(thin).Take || TakeSkipModel.EvidenceLabel(120) != "низкая" || TakeSkipModel.EvidenceLabel(1000) != "высокая")
-            throw new InvalidOperationException("Low-evidence lift must not be enough to take a card.");
+        if (TakeSkipModel.EvidenceLabel(120) != "низкая" || TakeSkipModel.EvidenceLabel(1000) != "высокая")
+            throw new InvalidOperationException("Evidence labels changed.");
         // Without an API lift the Codex-score fit is used: score 27 is the zero point.
         if (TakeSkipModel.WinDelta(Offer("NOLIFT", 27m, 27m, null, 0)) != 0m)
             throw new InvalidOperationException("Score-to-lift conversion changed its zero point.");
+    }
+
+    // 7.2: the take/skip scale starts at the card players typically take in this act and deck-size
+    // bucket, and a high learned skip probability raises the bar. Against zero, 99.8 % of corpus
+    // rewards said "take" because the average community lift is about +7 pp.
+    private static void TakeSkipComparesWithTypicalPick()
+    {
+        OfferScore Offer(string id, decimal lift, decimal typical) =>
+            new OfferScore(id, id, 60m, 60m, 0m, "", "", .9m, CommunityLift: lift, LiftSamples: 5000) { TypicalPick = typical };
+        BuildAssessment Reward(int skip, params OfferScore[] offers) => new("", [], [], 1m, skip, offers);
+        var typical = TakeSkipCalibration.TypicalPick(1, 10, 12);
+        if (typical < 5m || typical > 12m || TakeSkipCalibration.TypicalPick(3, 30, 18) >= TakeSkipCalibration.TypicalPick(3, 12, 18))
+            throw new InvalidOperationException("Typical pick table is off: " + typical);
+        var ordinary = Reward(30, Offer("A", typical - 1m, typical), Offer("B", typical - 2m, typical));
+        if (TakeSkipModel.Evaluate(ordinary).Take || AutoPickSettings.Decide(ordinary).Action != AutoPickAction.Skip)
+            throw new InvalidOperationException("Ordinary cards (positive lift, below the typical pick) must advise skipping.");
+        var good = Reward(30, Offer("A", typical + 3m, typical), Offer("B", typical - 2m, typical));
+        var verdict = TakeSkipModel.Evaluate(good);
+        if (!verdict.Take || verdict.Best?.Id != "A" || verdict.WinDelta != 3m || verdict.Bar != TakeSkipCalibration.Margin)
+            throw new InvalidOperationException("A card above the typical pick must be taken.");
+        if (TakeSkipModel.Evaluate(good with { SkipScore = 85 }).Take || TakeSkipModel.SkipBar(85) <= TakeSkipModel.SkipBar(50))
+            throw new InvalidOperationException("A high skip probability must raise the bar.");
+        if (TakeSkipModel.WinDelta(Offer("R", 7m, 0m)) != 7m)
+            throw new InvalidOperationException("Offers outside a card choice (relics) must keep the raw scale.");
+        var context = new RunContext("ironclad", ["STRIKE_IRONCLAD", "BASH"], [], 10, 2, 20, 50, 80, 99, null, 1m, 2, 0, 0, []);
+        var scored = DeckBuildScoring.Evaluate(context, ["STRIKE_IRONCLAD"], new Dictionary<string, CardDefinition>(StringComparer.OrdinalIgnoreCase),
+            new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase));
+        if (scored.Offers.Count == 0 || scored.Offers[0].TypicalPick != TakeSkipCalibration.TypicalPick(context))
+            throw new InvalidOperationException("Card evaluation does not set the typical pick.");
+        var english = ModLocalization.Translate(AdviceSummaries.SkipExplanation(TakeSkipModel.Evaluate(ordinary)) + "\n" + AdviceSummaries.SkipExplanation(verdict) + "\n" +
+            AdviceSummaries.ForCards(ordinary)!.Detail + "\n" + AdviceSummaries.ForCards(good)!.Detail + "\n" + TakeSkipModel.Evaluate(ordinary).Text + "\n" + verdict.Text, AdvisorLanguage.English);
+        if (HasCyrillic(english)) throw new InvalidOperationException("Take/skip text is not translated: " + english);
     }
 
     // 6.18.0: per-character rows replace global rows only with a real share of the sample.
@@ -668,7 +699,7 @@ internal static class BuildAdvisorRegression
         if (CardRewardPatch.SkipIndex(["Skip", "REROLL"]) != 0 || CardRewardPatch.SkipIndex(["REROLL", "Skip"]) != 1 || CardRewardPatch.SkipIndex(["REROLL"]) != -1)
             throw new InvalidOperationException("The Skip button is not found among the reward alternatives.");
         var skipText = AdviceSummaries.SkipExplanation(TakeSkipModel.Evaluate(weak)) + AdviceSummaries.SkipExplanation(TakeSkipModel.Evaluate(clear));
-        if (!skipText.Contains("Совет: пропустить") || !skipText.Contains("Лучше взять Best"))
+        if (!skipText.Contains("Совет: пропустить") || !skipText.Contains("Пропуск хуже: лучшая карта Best"))
             throw new InvalidOperationException("Skip ribbon text is wrong: " + skipText);
         if (HasCyrillic(ModLocalization.Translate(skipText + "пропуск · -1.0 п.п." + "★ пропуск", AdvisorLanguage.English)))
             throw new InvalidOperationException("Skip ribbon is not translated: " + ModLocalization.Translate(skipText, AdvisorLanguage.English));

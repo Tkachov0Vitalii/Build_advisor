@@ -11,10 +11,10 @@ using BuildAdvisor.Integration;
 // final deck with floor_added, removals, upgrades, relics and every card choice with HP/gold).
 internal static class CalibrationFeatures
 {
-    public static int Export(string extractDir, string splitsPath, string catalogFile, string metricsDir, string output)
+    public static int Export(string extractDir, string splitsPath, string catalogFile, string metricsDir, string output, bool includeSkips = false)
     {
         Environment.SetEnvironmentVariable("BUILD_ADVISOR_OFFLINE_EVALUATION", "1");
-        ScoreWeights.Override = new Dictionary<string, decimal>(); // raw hand values while replaying
+        if (!includeSkips) ScoreWeights.Override = new Dictionary<string, decimal>(); // raw hand values while replaying (H3); take/skip uses the shipped weights
         var catalog = CardCatalogClient.Parse(File.ReadAllText(catalogFile));
         var global = Metrics(Path.Combine(metricsDir, "metrics-cards-all.json"));
         var byCharacter = new Dictionary<string, IReadOnlyDictionary<string, EntityMetric>>(StringComparer.OrdinalIgnoreCase);
@@ -51,7 +51,7 @@ internal static class CalibrationFeatures
                 {
                     var floor = Int(point[0]); var act = Int(point[1]);
                     var picked = Int(point[8]);
-                    if (picked < 0) continue;
+                    if (picked < 0 && !includeSkips) continue;
                     var offered = point[6].EnumerateArray().Select(x => x.GetString() ?? "").ToArray();
                     if (offered.Distinct(StringComparer.OrdinalIgnoreCase).Count() != offered.Length) continue;
                     var deck = cards.Where(x => (x.Added == 1 || x.Added < floor) && (x.Removed is null || x.Removed >= floor)).Select(x => x.Id).ToArray();
@@ -77,9 +77,14 @@ internal static class CalibrationFeatures
                         foreach (var adjustment in score.RawAdjustments!)
                             if (ScoreWeights.KeyOf(adjustment.Label) is { } key) raw[key] = raw.GetValueOrDefault(key) + adjustment.Value;
                             else raw["fixed"] = raw.GetValueOrDefault("fixed") + adjustment.Value;
-                        return new { id, c = Math.Round(score.Community, 3), f = Math.Round(score.Final, 3), r = raw };
+                        return new { id, c = Math.Round(score.Community, 3), f = Math.Round(score.Final, 3), r = raw,
+                            d = TakeSkipModel.WinDelta(score), l = score.CommunityLift, ln = score.LiftSamples };
                     }).ToArray();
-                    writer.WriteLine(JsonSerializer.Serialize(new { s = split, h = hash, w = win, ab = abandoned, a = ascension, ch = character, act, fl = floor, n = deck.Length, p = picked, o = rows }));
+                    if (includeSkips)
+                        writer.WriteLine(JsonSerializer.Serialize(new { s = split, h = hash, w = win, ab = abandoned, a = ascension, ch = character, act, fl = floor, n = deck.Length, p = picked,
+                            sk = assessment.SkipScore, ex = RunHistoryInsights.ExpectedDeckSize(character, floor), hp = Math.Round((decimal)hp / Math.Max(1, maxHp), 3), o = rows }));
+                    else
+                        writer.WriteLine(JsonSerializer.Serialize(new { s = split, h = hash, w = win, ab = abandoned, a = ascension, ch = character, act, fl = floor, n = deck.Length, p = picked, o = rows }));
                     decisions++;
                 }
                 if (runs % 10000 == 0) Console.WriteLine($"runs={runs:N0} decisions={decisions:N0} unknown={unknown:N0}");

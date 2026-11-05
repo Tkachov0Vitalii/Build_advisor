@@ -640,6 +640,17 @@ internal static class ModLocalization
         ,("Ослабление", "Debuff")
         ,("Лечение", "Healing")
         ,("золота", "gold")
+        // 7.2: take/skip measured from the typical pick.
+        ,("п.п. относительно типичной карты", "pp vs a typical card")
+        ,("относительно типичной карты", "vs a typical card")
+        ,("порог", "bar")
+        ,("при пороге", "with the bar at")
+        ,("нужно не меньше", "needs at least")
+        ,("Пропуск хуже: лучшая карта", "Skipping is worse: the best card")
+        ,("лишняя карта разбавляет колоду.", "an extra card dilutes the deck.")
+        ,("0 п.п. — карта, которую обычно берут в этом акте при таком размере колоды. Порог растёт, когда игроки в похожем положении обычно пропускают награду.", "0 pp is the card players usually take in this act at this deck size. The bar rises when players in a similar position usually skip the reward.")
+        ,("Типичная карта в этой ситуации:", "Typical card in this situation:")
+        ,("п.п. лифта; без поправки у этой карты", "pp of lift; without the correction this card has")
         // 7.1: auto-pick, Skip and removal ribbons, campfire relic options.
         ,("явной цели для удаления нет — сохраните золото на покупку", "no clear removal target — save gold for a purchase")
         ,("проклятие или статус в колоде — удаление почти всегда лучшая покупка", "a curse or status card in the deck — removal is almost always the best purchase")

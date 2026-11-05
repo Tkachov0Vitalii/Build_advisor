@@ -1,4 +1,4 @@
-# Installing Build Advisor 7.1.0
+# Installing Build Advisor 7.2.0
 
 The same package works on Windows, Linux and macOS. No game files are redistributed.
 
@@ -9,7 +9,7 @@ Subscribe to **[Build Advisor in the Steam Workshop](https://steamcommunity.com/
 ## Manual install ([GitHub Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases), [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588))
 
 1. Quit Slay the Spire 2.
-2. Extract `BuildAdvisor-7.1.0.zip` into the game's `mods` folder (create it next to the game executable if it does not exist). The result:
+2. Extract `BuildAdvisor-7.2.0.zip` into the game's `mods` folder (create it next to the game executable if it does not exist). The result:
 
 ```text
 mods/
@@ -40,4 +40,4 @@ Quit the game, delete the old `mods/build-advisor` folder (or every older copy, 
 
 ## Troubleshooting
 
-The game log `godot.log` (Windows: `%APPDATA%\SlayTheSpire2\logs\`) must contain `Build Advisor 7.1.0 loaded; all patches installed; regression matrix passed.` When reporting a bug on GitHub, attach this log, a screenshot, your OS and the game version.
+The game log `godot.log` (Windows: `%APPDATA%\SlayTheSpire2\logs\`) must contain `Build Advisor 7.2.0 loaded; all patches installed; regression matrix passed.` When reporting a bug on GitHub, attach this log, a screenshot, your OS and the game version.

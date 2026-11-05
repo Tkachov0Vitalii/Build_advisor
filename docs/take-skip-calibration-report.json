@@ -1,0 +1,84 @@
+{
+  "rows": 2184681,
+  "typical_pick": {
+    "1:0": 9.3,
+    "1:1": 8.8,
+    "1:2": 8.5,
+    "1:3": 8.9,
+    "1:4": 9.8,
+    "1:5": 8.7,
+    "2:0": 10.0,
+    "2:1": 9.6,
+    "2:2": 9.1,
+    "2:3": 8.2,
+    "2:4": 7.2,
+    "2:5": 6.0,
+    "3:0": 9.4,
+    "3:1": 9.3,
+    "3:2": 7.7,
+    "3:3": 5.7,
+    "3:4": 4.2,
+    "3:5": 3.2
+  },
+  "margin": 0.25,
+  "skip_weight": 6.0,
+  "splits": {
+    "train": {
+      "decisions": 1740477,
+      "player_skip_rate": 0.3268,
+      "winner_skip_rate": 0.3758,
+      "advised_skip_rate_old": 0.0021,
+      "advised_skip_rate_new": 0.3681,
+      "winner_agreement_old": 0.3381,
+      "winner_agreement_new": 0.4464,
+      "winner_decision_agreement_old": 0.6239,
+      "winner_decision_agreement_new": 0.6344,
+      "outcome_where_verdicts_differ": {
+        "disagreements": 636957,
+        "share": 0.366,
+        "followed_new": 266636,
+        "win_new": 0.4582,
+        "followed_old": 370321,
+        "win_old": 0.3125
+      }
+    },
+    "validation": {
+      "decisions": 231491,
+      "player_skip_rate": 0.3217,
+      "winner_skip_rate": 0.3744,
+      "advised_skip_rate_old": 0.0021,
+      "advised_skip_rate_new": 0.3694,
+      "winner_agreement_old": 0.3357,
+      "winner_agreement_new": 0.4416,
+      "winner_decision_agreement_old": 0.6254,
+      "winner_decision_agreement_new": 0.6319,
+      "outcome_where_verdicts_differ": {
+        "disagreements": 85031,
+        "share": 0.3673,
+        "followed_new": 34476,
+        "win_new": 0.4386,
+        "followed_old": 50555,
+        "win_old": 0.2893
+      }
+    },
+    "test": {
+      "decisions": 212670,
+      "player_skip_rate": 0.3139,
+      "winner_skip_rate": 0.3657,
+      "advised_skip_rate_old": 0.002,
+      "advised_skip_rate_new": 0.3616,
+      "winner_agreement_old": 0.3423,
+      "winner_agreement_new": 0.4471,
+      "winner_decision_agreement_old": 0.6338,
+      "winner_decision_agreement_new": 0.637,
+      "outcome_where_verdicts_differ": {
+        "disagreements": 76462,
+        "share": 0.3595,
+        "followed_new": 31101,
+        "win_new": 0.4776,
+        "followed_old": 45361,
+        "win_old": 0.3222
+      }
+    }
+  }
+}

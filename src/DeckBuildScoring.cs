@@ -6,7 +6,12 @@ internal sealed record ScoreAdjustment(decimal Value, string Label);
 internal sealed record OfferScore(string Id, string Name, decimal Final, decimal Community, decimal Context, string Role, string Reason,
     decimal Confidence = 0m, decimal Personal = 0m, string Impact = "", string TagText = "",
     IReadOnlyList<ScoreAdjustment>? Adjustments = null, decimal? CommunityLift = null, int LiftSamples = 0,
-    IReadOnlyList<ScoreAdjustment>? RawAdjustments = null);
+    IReadOnlyList<ScoreAdjustment>? RawAdjustments = null)
+{
+    // 7.2: the win-rate delta of the card players typically take in this state (0 for relics and
+    // offers scored outside a card choice); TakeSkipModel.WinDelta is measured from it.
+    public decimal TypicalPick { get; init; }
+}
 internal sealed record BuildAssessment(string Summary, IReadOnlyList<string> Needs, IReadOnlyList<string> Archetypes, decimal AverageCost, int SkipScore, IReadOnlyList<OfferScore> Offers);
 
 // The Regent's Colorless route is a creation engine, not a blanket bonus to every gray card.
@@ -100,7 +105,8 @@ internal static class ScoreExplanation
         lines.AddRange(groups.Select(x => $"{x.Group}: {(int)Math.Round(x.Value, MidpointRounding.AwayFromZero):+#;-#;0} ({x.Detail})"));
         var shown = baseline + groups.Sum(x => (int)Math.Round(x.Value, MidpointRounding.AwayFromZero));
         if (shown != target) lines.Add($"Граница шкалы и округление: {target - shown:+#;-#;0}");
-        lines.Add($"Итог: {target}/100 · {TakeSkipModel.Format(TakeSkipModel.WinDelta(score))} п.п. к победе против пропуска · уверенность {TakeSkipModel.Evidence(score)}");
+        lines.Add($"Итог: {target}/100 · {TakeSkipModel.Format(TakeSkipModel.WinDelta(score))} п.п. относительно типичной карты · уверенность {TakeSkipModel.Evidence(score)}");
+        if (score.TypicalPick != 0m) lines.Add($"Типичная карта в этой ситуации: {TakeSkipModel.Format(score.TypicalPick)} п.п. лифта; без поправки у этой карты {TakeSkipModel.Format(TakeSkipModel.RawWinDelta(score))} п.п.");
         if (score.CommunityLift is { } lift) lines.Add($"Лифт сообщества: {TakeSkipModel.Format(lift)} п.п. по {score.LiftSamples} выборам");
         return string.Join("\n", lines);
     }
@@ -199,6 +205,8 @@ internal static class DeckBuildScoring
                       $"Направление: {archetypeText}. Сейчас важнее: {string.Join(", ", needs)}.\n" + EncounterThreatModel.Summary(threat);
         if (segmentRisk.IsAvailable) summary += "\n" + SegmentRiskModel.Summary(segmentRisk);
         if (team.Length > 0) summary += "\n" + TeamAdvisor.Summary(team);
+        var typicalPick = TakeSkipCalibration.TypicalPick(context.Act, deck.Length, RunHistoryInsights.ExpectedDeckSize(context.Character, context.Floor));
+        offers = offers.Select(x => x with { TypicalPick = typicalPick }).ToArray();
         return new BuildAssessment(summary, needs, archetypes, (decimal)averageCost, skip, offers);
     }
 

@@ -91,6 +91,10 @@ internal static class OfflineAdvisorEvaluation
         }
         if (args is ["--features", var extractDir, var splitsPath, var catalogFile, var metricsDir, var featuresOut])
             return CalibrationFeatures.Export(extractDir, splitsPath, catalogFile, metricsDir, featuresOut);
+        // 7.2: take/skip calibration needs the skipped rewards too, with the learned skip
+        // probability and each offer's win-rate delta.
+        if (args is ["--take-skip", var tsExtract, var tsSplits, var tsCatalog, var tsMetrics, var tsOut])
+            return CalibrationFeatures.Export(tsExtract, tsSplits, tsCatalog, tsMetrics, tsOut, includeSkips: true);
         if (args.Length < 6)
         {
             Console.Error.WriteLine("usage: corpus manifest catalog metrics model-report output");

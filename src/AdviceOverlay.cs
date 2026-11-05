@@ -607,7 +607,7 @@ public static class AdviceOverlay
         if (!GodotObject.IsInstanceValid(button)) return;
         foreach (var old in button.GetChildren().Where(x => x.Name.ToString().StartsWith(SkipBadgeName, StringComparison.Ordinal)).ToArray()) { button.RemoveChild(old); old.QueueFree(); }
         var advised = !verdict.Take && verdict.Best is not null;
-        var text = advised ? "★ пропуск" : verdict.Best is null ? "пропуск" : $"пропуск · {TakeSkipModel.Format(-verdict.WinDelta)} п.п.";
+        var text = advised ? "★ пропуск" : verdict.Best is null ? "пропуск" : $"пропуск · {TakeSkipModel.Format(verdict.Bar - verdict.WinDelta)} п.п.";
         var tier = advised ? "A" : "D";
         var badge = new AttachedBadge
         {

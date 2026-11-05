@@ -28,9 +28,9 @@ internal static class AdviceSummaries
             .Concat(assessment.Archetypes.Select(x => "архетип: " + x)).ToArray();
         return verdict.Take
             ? new AdviceSummary($"Возьмите {best.Name}", true,
-                $"{best.Final:F0}/100 · {TakeSkipModel.Format(verdict.WinDelta)} п.п. к победе против пропуска · уверенность {verdict.Evidence}", Rows(assessment.Offers, Delta), chips)
+                $"{best.Final:F0}/100 · {TakeSkipModel.Format(verdict.WinDelta)} п.п. относительно типичной карты · уверенность {verdict.Evidence}", Rows(assessment.Offers, Delta), chips)
             : new AdviceSummary("Лучше пропустить", false,
-                $"Лучшая карта {best.Name}: {TakeSkipModel.Format(verdict.WinDelta)} п.п. — меньше порога пользы", Rows(assessment.Offers, Delta), chips);
+                $"Лучшая карта {best.Name}: {TakeSkipModel.Format(verdict.WinDelta)} п.п. относительно типичной карты, порог {TakeSkipModel.Format(verdict.Bar)}", Rows(assessment.Offers, Delta), chips);
     }
 
     // Shop, relic choice and event screens: the ranked options with a short verdict.
@@ -47,7 +47,10 @@ internal static class AdviceSummaries
     internal static string SkipExplanation(TakeSkipVerdict verdict) => verdict.Best is null
         ? "Пропуск: награда ещё не оценена."
         : verdict.Take
-            ? $"Пропуск: 0 п.п. к победе.\nЛучше взять {verdict.Best.Name}: {TakeSkipModel.Format(verdict.WinDelta)} п.п. к победе против пропуска (уверенность {verdict.Evidence})."
-            : $"Совет: пропустить награду.\nЛучшая карта {verdict.Best.Name} даёт {TakeSkipModel.Format(verdict.WinDelta)} п.п. — меньше порога пользы; лишняя карта разбавляет колоду.";
+            ? $"Пропуск хуже: лучшая карта {verdict.Best.Name} даёт {TakeSkipModel.Format(verdict.WinDelta)} п.п. относительно типичной карты при пороге {TakeSkipModel.Format(verdict.Bar)} (уверенность {verdict.Evidence})." + ScaleNote
+            : $"Совет: пропустить награду.\nЛучшая карта {verdict.Best.Name}: {TakeSkipModel.Format(verdict.WinDelta)} п.п. относительно типичной карты при пороге {TakeSkipModel.Format(verdict.Bar)}; лишняя карта разбавляет колоду." + ScaleNote;
+
+    // 7.2: what the numbers mean, under every take/skip explanation.
+    internal const string ScaleNote = "\n0 п.п. — карта, которую обычно берут в этом акте при таком размере колоды. Порог растёт, когда игроки в похожем положении обычно пропускают награду.";
 
 }
