@@ -15,6 +15,9 @@ public static class AdviceOverlay
     private const float PanelX = 74, PanelY = 72, PanelWidth = 640, PanelHeight = 984;
     private const float ContentWidth = PanelWidth - 44, TextWidth = ContentWidth - 20;
     private const float BodyY = 158, FooterY = 884, BodyHeight = FooterY - 12 - BodyY;
+    private const float RuleY = 146;
+    private const string StyleChooserName = "BuildAdvisorStyleChooser";
+    private const string LiveMeta = "build_advisor_live";
     private const string TextName = "BuildAdvisorText";
     private const string AdviceBodyName = "BuildAdvisorAdviceBody";
     private const string SearchName = "BuildAdvisorCardSearch";
@@ -97,7 +100,7 @@ public static class AdviceOverlay
         var close = new Button { Name = CloseName, Text = "×", Position = new Vector2(PanelWidth - 58, 12), Size = new Vector2(40, 40), Flat = true };
         close.AddThemeFontSizeOverride("font_size", 28);
         var adviceTab = Tab("BuildAdvisorAdviceTab", "Совет", new Vector2(22, 104));
-        var rule = new ColorRect { Color = AdvisorTheme.PaperLine, Position = new Vector2(22, 146), Size = new Vector2(ContentWidth, 1), MouseFilter = Control.MouseFilterEnum.Ignore };
+        var rule = new ColorRect { Color = AdvisorTheme.Rule, Position = new Vector2(22, RuleY), Size = new Vector2(ContentWidth, 1), MouseFilter = Control.MouseFilterEnum.Ignore };
 
         var body = new Control { Name = AdviceBodyName, Position = new Vector2(22, BodyY), Size = new Vector2(ContentWidth, BodyHeight) };
         var scroll = new ScrollContainer { Position = Vector2.Zero, Size = new Vector2(ContentWidth, BodyHeight), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, VerticalScrollMode = ScrollContainer.ScrollMode.Auto };
@@ -183,11 +186,23 @@ public static class AdviceOverlay
             ModLocalization.Set(index == 1 ? AdvisorLanguage.English : AdvisorLanguage.Russian);
             Relocalize(host);
         };
+        // 7.3: interface style (the standard parchment and one per character); the choice persists.
+        var style = new OptionButton { Name = StyleChooserName, CustomMinimumSize = new Vector2(210, 38) };
+        foreach (var option in UiStyles.All) style.AddItem(L(option.Name));
+        style.Select(Math.Max(0, UiStyles.All.ToList().IndexOf(UiStyles.Current)));
+        style.ItemSelected += index =>
+        {
+            if (index < 0 || index >= UiStyles.All.Count || ReferenceEquals(UiStyles.All[(int)index], UiStyles.Current)) return;
+            UiStyles.Current = UiStyles.All[(int)index];
+            // Deferred: the panel that owns this button is rebuilt, and it must not be freed
+            // while its own signal is still being delivered.
+            Callable.From(() => Restyle(host)).CallDeferred();
+        };
         // Settings live in a wrapping footer under the content.
         var footerRule = new ColorRect { Color = AdvisorTheme.PaperLine, Position = new Vector2(22, FooterY - 8), Size = new Vector2(ContentWidth, 1), MouseFilter = Control.MouseFilterEnum.Ignore };
         var footer = new HFlowContainer { Position = new Vector2(22, FooterY), Size = new Vector2(ContentWidth, PanelHeight - FooterY - 12) };
         footer.AddThemeConstantOverride("h_separation", 10); footer.AddThemeConstantOverride("v_separation", 8);
-        footer.AddChild(chooser); footer.AddChild(refreshLive); footer.AddChild(autoPick); footer.AddChild(offline); footer.AddChild(language);
+        footer.AddChild(chooser); footer.AddChild(refreshLive); footer.AddChild(autoPick); footer.AddChild(offline); footer.AddChild(language); footer.AddChild(style);
         if (feedback is not null)
         {
             var useful = new Button { Text = L("Полезно"), CustomMinimumSize = new Vector2(100, 38) };
@@ -196,13 +211,31 @@ public static class AdviceOverlay
         }
         page.AddChild(monogram); page.AddChild(title); page.AddChild(live); page.AddChild(close); page.AddChild(adviceTab); page.AddChild(searchTab); page.AddChild(runTab); page.AddChild(tagsTab); page.AddChild(rule);
         page.AddChild(body); page.AddChild(search); page.AddChild(run); page.AddChild(tagsPanel); page.AddChild(footerRule); page.AddChild(footer);
+        AdvisorTheme.Decorate(page, RuleY);
         host.AddChild(toggle); host.AddChild(page);
+        AdvisorTheme.Animate(page);
         BuildSummary(host);
         toggle.Pressed += () => page.Visible = !page.Visible;
         close.Pressed += () => page.Hide();
-        StartLiveUpdates(host);
+        // One ticker per host: a restyle rebuilds the panel, and a second ticker would toggle
+        // the panel twice on one F8 press.
+        if (!host.HasMeta(LiveMeta)) { host.SetMeta(LiveMeta, true); StartLiveUpdates(host); }
         SyncArchetypeChooser(host, context);
         UpdateLive(host);
+    }
+
+    // 7.3: rebuilds the seal and the panel in the newly selected style, keeping the advice shown.
+    private static void Restyle(Node host)
+    {
+        if (!GodotObject.IsInstanceValid(host)) return;
+        var wasVisible = host.GetNodeOrNull<Panel>(PageName)?.Visible ?? false;
+        foreach (var name in new[] { ToggleName, PageName })
+            if (host.GetNodeOrNull<Node>(name) is { } old) { host.RemoveChild(old); old.QueueFree(); }
+        // Closures over the old panel's controls.
+        searchRefresh = null; searchLoading = false; searchCharacter = null; tagRefresh = null;
+        Render(host, currentRawText, null, null, currentSummary);
+        if (wasVisible && host.GetNodeOrNull<Panel>(PageName) is { } page) page.Visible = true;
+        currentRefresh?.Invoke();
     }
 
     public static void Remove(Node screen)
@@ -1284,6 +1317,8 @@ public static class AdviceOverlay
         var offline = Find<CheckButton>(host, OfflineName);
         if (offline is not null) { offline.Text = L("Офлайн"); offline.TooltipText = L(OfflineTooltip); }
         var close = Find<Button>(host, CloseName); if (close is not null) close.TooltipText = L("Закрыть");
+        var style = Find<OptionButton>(host, StyleChooserName);
+        if (style is not null) for (var i = 0; i < UiStyles.All.Count && i < style.ItemCount; i++) style.SetItemText(i, L(UiStyles.All[i].Name));
         searchRefresh = null;
         searchCharacter = null;
         tagRefresh?.Invoke();

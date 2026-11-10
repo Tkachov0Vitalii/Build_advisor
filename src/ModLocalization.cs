@@ -640,6 +640,9 @@ internal static class ModLocalization
         ,("Ослабление", "Debuff")
         ,("Лечение", "Healing")
         ,("золота", "gold")
+        // 7.3: interface styles.
+        ,("Стиль: Пергамент", "Style: Parchment"), ("Стиль: Латоносец", "Style: Ironclad"), ("Стиль: Безмолвная", "Style: Silent")
+        ,("Стиль: Дефект", "Style: Defect"), ("Стиль: Наследник", "Style: Regent"), ("Стиль: Призывающая", "Style: Necrobinder")
         // 7.2: take/skip measured from the typical pick.
         ,("п.п. относительно типичной карты", "pp vs a typical card")
         ,("относительно типичной карты", "vs a typical card")

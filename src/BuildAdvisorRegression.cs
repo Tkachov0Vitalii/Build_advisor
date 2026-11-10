@@ -34,6 +34,7 @@ internal static class BuildAdvisorRegression
             LearnedChoiceAdjustmentIsBounded();
             LearnedSkipModelIsAvailableAndDirectional();
             AutoPickFollowsTheVerdict();
+            InterfaceStylesAreReadableAndDistinct();
             TakeSkipComparesWithTypicalPick();
             ShopBasketAndRemovalAdvice();
             CampfireRelicOptions();
@@ -170,6 +171,58 @@ internal static class BuildAdvisorRegression
         // Without an API lift the Codex-score fit is used: score 27 is the zero point.
         if (TakeSkipModel.WinDelta(Offer("NOLIFT", 27m, 27m, null, 0)) != 0m)
             throw new InvalidOperationException("Score-to-lift conversion changed its zero point.");
+    }
+
+    // 7.3: selectable interface styles: the standard parchment (unchanged) and one per character.
+    private static void InterfaceStylesAreReadableAndDistinct()
+    {
+        var styles = BuildAdvisor.UI.UiStyles.All;
+        var ids = new[] { "parchment", "ironclad", "silent", "defect", "regent", "necrobinder" };
+        if (!styles.Select(x => x.Id).SequenceEqual(ids) || styles.Select(x => x.Name).Distinct().Count() != 6)
+            throw new InvalidOperationException("Style list changed: " + string.Join(",", styles.Select(x => x.Id)));
+        // The standard look is the 6.24 parchment, colour for colour.
+        var parchment = BuildAdvisor.UI.UiStyles.Parchment;
+        if (parchment.Paper != new Godot.Color("e9dcc0") || parchment.Ink != new Godot.Color("3a2a1a") || parchment.Accent != new Godot.Color("8e2b22") ||
+            parchment.SealFill != new Godot.Color("8e2b22") || parchment.SealRim != new Godot.Color("c9a24a") || parchment.PanelRadius != 6 || parchment.SealRadii != (37, 37, 37, 37))
+            throw new InvalidOperationException("The standard parchment style changed.");
+        // Hermetic: regressions see the standard style and cannot change the saved one.
+        BuildAdvisor.UI.UiStyles.Current = BuildAdvisor.UI.UiStyles.Defect;
+        if (!ReferenceEquals(BuildAdvisor.UI.UiStyles.Current, parchment))
+            throw new InvalidOperationException("A regression changed the interface style.");
+        if (!ReferenceEquals(BuildAdvisor.UI.UiStyles.Resolve(" REGENT "), BuildAdvisor.UI.UiStyles.Regent) ||
+            !ReferenceEquals(BuildAdvisor.UI.UiStyles.Resolve("neon"), parchment) || !ReferenceEquals(BuildAdvisor.UI.UiStyles.Resolve(null), parchment))
+            throw new InvalidOperationException("A saved style id is resolved wrongly.");
+        double Contrast(Godot.Color a, Godot.Color b) => BuildAdvisor.UI.AdvisorTheme.Contrast(a, b);
+        foreach (var style in styles)
+        {
+            if (Contrast(style.Ink, style.Paper) < 7 || Contrast(style.Ink, style.PaperDark) < 7 || Contrast(style.Ink, style.Field) < 7 || Contrast(style.Ink, style.Section) < 7)
+                throw new InvalidOperationException($"Style {style.Id}: body text contrast is too low.");
+            if (Contrast(style.InkSoft, style.Paper) < 4.5 || Contrast(style.Accent, style.Paper) < 4.5 || Contrast(style.SealInk, style.SealFill) < 4.5)
+                throw new InvalidOperationException($"Style {style.Id}: secondary text, accent or seal contrast is too low.");
+            if (HasCyrillic(ModLocalization.Translate(style.Name, AdvisorLanguage.English)))
+                throw new InvalidOperationException($"Style {style.Id}: the name is not translated.");
+            // Ornaments stay inside the panel; header details stay in the free strip between the
+            // title and the close button (corner rivets excepted).
+            var shapes = BuildAdvisor.UI.UiOrnaments.For(style, 640f, 984f, 146f);
+            if ((style.Id == "parchment") != (shapes.Count == 0))
+                throw new InvalidOperationException($"Style {style.Id}: ornament presence is wrong.");
+            if (style.Id != "parchment" && !shapes.Any(x => x.Anim.Length > 0))
+                throw new InvalidOperationException($"Style {style.Id}: no animated detail.");
+            foreach (var point in shapes.SelectMany(x => x.Points))
+            {
+                var corner = (point.X < 20 || point.X > 620) && (point.Y < 20 || point.Y > 964);
+                var onRule = Math.Abs(point.Y - 146f) <= 8;
+                var inHeader = point.X >= BuildAdvisor.UI.UiOrnaments.HeaderLeft && point.X <= BuildAdvisor.UI.UiOrnaments.HeaderRight &&
+                               point.Y >= BuildAdvisor.UI.UiOrnaments.HeaderTop && point.Y <= BuildAdvisor.UI.UiOrnaments.HeaderBottom;
+                if (point.X < 0 || point.X > 640 || point.Y < 0 || point.Y > 984 || !(corner || onRule || inHeader))
+                    throw new InvalidOperationException($"Style {style.Id}: an ornament leaves its area at {point.X:0},{point.Y:0}.");
+            }
+        }
+        if (styles.Select(x => x.Paper).Distinct().Count() != 6 || styles.Select(x => x.Accent).Distinct().Count() != 6 || styles.Select(x => x.SealRadii).Distinct().Count() < 5)
+            throw new InvalidOperationException("Styles are not visually distinct.");
+        // Tier colours do not depend on the style.
+        if (BuildAdvisor.UI.AdvisorTheme.TierColors("S").Frame != new Godot.Color("7d3fb0"))
+            throw new InvalidOperationException("Tier colours changed.");
     }
 
     // 7.2: the take/skip scale starts at the card players typically take in this act and deck-size

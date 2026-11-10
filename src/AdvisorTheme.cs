@@ -8,15 +8,17 @@ namespace BuildAdvisor.UI;
 // Cinzel (the BD monogram). A missing font file falls back to the game's default font.
 internal static class AdvisorTheme
 {
-    internal static readonly Color Paper = new("e9dcc0");
-    internal static readonly Color PaperDark = new("ddcba5");
-    internal static readonly Color PaperLine = new("b9a27a");
-    internal static readonly Color Ink = new("3a2a1a");
-    internal static readonly Color InkSoft = new("6b5639");
-    internal static readonly Color Wax = new("8e2b22");
-    internal static readonly Color Gold = new("c9a24a");
-    internal static readonly Color Cream = new("f6e7c9");
-    internal static readonly Color Good = new("2f6b3a");
+    // 7.3: the colours come from the selected style (UiStyles); "Wax" is the style's accent.
+    internal static UiStyle Style => UiStyles.Current;
+    internal static Color Paper => Style.Paper;
+    internal static Color PaperDark => Style.PaperDark;
+    internal static Color PaperLine => Style.PaperLine;
+    internal static Color Ink => Style.Ink;
+    internal static Color InkSoft => Style.InkSoft;
+    internal static Color Wax => Style.Accent;
+    internal static Color Gold => Style.Gold;
+    internal static Color Cream => Style.SealInk;
+    internal static Color Rule => Style.Rule;
 
     private static readonly Lazy<Font?> BodyFont = new(() => Load("PTSerif-Regular.ttf"));
     private static readonly Lazy<Font?> BoldFont = new(() => Load("PTSerif-Bold.ttf"));
@@ -64,7 +66,7 @@ internal static class AdvisorTheme
 
     internal static StyleBoxFlat PanelBox()
     {
-        var box = Box(Paper, PaperLine, 2, 6);
+        var box = Box(Paper, PaperLine, Style.PanelBorder, Style.PanelRadius);
         box.ShadowColor = new Color(0, 0, 0, .55f);
         box.ShadowSize = 18;
         box.ShadowOffset = new Vector2(0, 8);
@@ -123,7 +125,7 @@ internal static class AdvisorTheme
         if (Body is { } font) label.AddThemeFontOverride("font", font);
         label.AddThemeFontSizeOverride("font_size", 15);
         label.AddThemeColorOverride("font_color", Ink);
-        var box = Box(Paper, accent ?? PaperLine, 2, 6);
+        var box = Box(Paper, accent ?? PaperLine, 2, Math.Max(2, Style.PanelRadius));
         box.ShadowColor = new Color(0, 0, 0, .5f);
         box.ShadowSize = 12;
         label.AddThemeStyleboxOverride("normal", box);
@@ -148,16 +150,17 @@ internal static class AdvisorTheme
         theme.SetColor("font_hover_color", "PopupMenu", Wax);
         foreach (var type in new[] { "Button", "OptionButton" })
         {
-            theme.SetStylebox("normal", type, Box(PaperDark, PaperLine));
-            theme.SetStylebox("hover", type, Box(new Color("d4bf94"), Wax));
-            theme.SetStylebox("pressed", type, Box(new Color("c9b083"), Wax));
-            theme.SetStylebox("focus", type, Box(new Color(0, 0, 0, 0), PaperLine));
+            theme.SetStylebox("normal", type, Box(PaperDark, PaperLine, 1, Style.ControlRadius));
+            theme.SetStylebox("hover", type, Box(Style.Hover, Wax, 1, Style.ControlRadius));
+            theme.SetStylebox("pressed", type, Box(Style.Pressed, Wax, 1, Style.ControlRadius));
+            theme.SetStylebox("focus", type, Box(new Color(0, 0, 0, 0), PaperLine, 1, Style.ControlRadius));
         }
-        theme.SetStylebox("normal", "LineEdit", Box(new Color("f3ead6"), PaperLine));
-        theme.SetStylebox("focus", "LineEdit", Box(new Color("f3ead6"), Wax));
-        theme.SetStylebox("panel", "PopupMenu", Box(Paper, PaperLine, 2, 4));
+        theme.SetStylebox("normal", "LineEdit", Box(Style.Field, PaperLine, 1, Style.ControlRadius));
+        theme.SetStylebox("focus", "LineEdit", Box(Style.Field, Wax, 1, Style.ControlRadius));
+        theme.SetStylebox("panel", "PopupMenu", Box(Paper, PaperLine, 2, Style.ControlRadius));
         theme.SetStylebox("hover", "PopupMenu", Box(PaperDark, PaperDark, 0, 2));
-        theme.SetStylebox("panel", "PanelContainer", Box(new Color("e2d2b1"), new Color(0, 0, 0, 0), 0, 4));
+        theme.SetColor("font_hover_color", "PopupMenu", Wax);
+        theme.SetStylebox("panel", "PanelContainer", Box(Style.Section, new Color(0, 0, 0, 0), 0, Style.ControlRadius));
         theme.SetStylebox("scroll", "VScrollBar", Box(PaperDark, PaperDark, 0, 3));
         theme.SetStylebox("grabber", "VScrollBar", Box(PaperLine, PaperLine, 0, 3));
         theme.SetStylebox("grabber_highlight", "VScrollBar", Box(InkSoft, InkSoft, 0, 3));
@@ -180,15 +183,76 @@ internal static class AdvisorTheme
             seal.AddThemeColorOverride(state, Cream);
         StyleBoxFlat Round(Color fill)
         {
-            var box = Box(fill, Gold, 3, 37);
+            var box = Box(fill, Style.SealRim, 3, 37);
+            // 7.3: the seal's silhouette belongs to the style (round wax, forged square, blade, bone).
+            (box.CornerRadiusTopLeft, box.CornerRadiusTopRight, box.CornerRadiusBottomRight, box.CornerRadiusBottomLeft) = Style.SealRadii;
             box.ContentMarginLeft = 18; box.ContentMarginRight = 4;
             box.ShadowColor = new Color(0, 0, 0, .45f); box.ShadowSize = 8; box.ShadowOffset = new Vector2(0, 4);
             return box;
         }
-        seal.AddThemeStyleboxOverride("normal", Round(Wax));
-        seal.AddThemeStyleboxOverride("hover", Round(new Color("a3352a")));
-        seal.AddThemeStyleboxOverride("pressed", Round(new Color("6f2019")));
-        seal.AddThemeStyleboxOverride("focus", Round(Wax));
+        seal.AddThemeStyleboxOverride("normal", Round(Style.SealFill));
+        seal.AddThemeStyleboxOverride("hover", Round(Style.SealHover));
+        seal.AddThemeStyleboxOverride("pressed", Round(Style.SealPressed));
+        seal.AddThemeStyleboxOverride("focus", Round(Style.SealFill));
         return seal;
+    }
+
+    internal const string OrnamentName = "BuildAdvisorOrnament";
+
+    // 7.3: the style's small details (UiOrnaments) as Polygon2D / Line2D children of the panel.
+    // They draw above the panel and take no mouse input. A failure here must never cost the panel.
+    internal static void Decorate(Control page, float ruleY)
+    {
+        try
+        {
+            var shapes = UiOrnaments.For(Style, page.Size.X, page.Size.Y, ruleY);
+            if (shapes.Count == 0) return;
+            var layer = new Node2D { Name = OrnamentName };
+            foreach (var shape in shapes)
+            {
+                Node2D node = shape.Kind == "line"
+                    ? new Line2D { Points = shape.Points, DefaultColor = shape.Color, Width = shape.Width, Antialiased = true }
+                    : new Polygon2D { Polygon = shape.Points, Color = shape.Color, Antialiased = true };
+                if (shape.Anim.Length > 0) { node.SetMeta("ba_anim", shape.Anim); node.SetMeta("ba_delay", shape.Delay); }
+                layer.AddChild(node);
+            }
+            page.AddChild(layer);
+        }
+        catch (Exception error) { GD.Print("Build Advisor ornament: " + error.Message); }
+    }
+
+    // Tweens need the nodes inside the scene tree, so this runs after the panel is attached.
+    // They are bound to their node and end with it.
+    internal static void Animate(Control page)
+    {
+        try
+        {
+            if (page.GetNodeOrNull<Node2D>(OrnamentName) is not { } layer || !layer.IsInsideTree()) return;
+            foreach (var node in layer.GetChildren().OfType<Node2D>())
+            {
+                if (!node.HasMeta("ba_anim")) continue;
+                var delay = (double)node.GetMeta("ba_delay").AsSingle();
+                var tween = node.CreateTween().SetLoops();
+                switch (node.GetMeta("ba_anim").AsString())
+                {
+                    case "pulse":
+                        tween.TweenInterval(delay + .01);
+                        tween.TweenProperty(node, "modulate:a", .35f, 1.1).SetTrans(Tween.TransitionType.Sine);
+                        tween.TweenProperty(node, "modulate:a", 1f, 1.1).SetTrans(Tween.TransitionType.Sine);
+                        break;
+                    case "rise":
+                        tween.TweenInterval(delay + .01);
+                        tween.TweenProperty(node, "position:y", -9f, 2.2).From(0f);
+                        tween.Parallel().TweenProperty(node, "modulate:a", 0f, 2.2).From(.95f);
+                        break;
+                    case "fall":
+                        tween.TweenInterval(delay + .6);
+                        tween.TweenProperty(node, "position:y", 7f, 1.2).From(0f).SetEase(Tween.EaseType.In).SetTrans(Tween.TransitionType.Quad);
+                        tween.Parallel().TweenProperty(node, "modulate:a", 0f, 1.2).From(1f);
+                        break;
+                }
+            }
+        }
+        catch (Exception error) { GD.Print("Build Advisor ornament animation: " + error.Message); }
     }
 }

@@ -1,4 +1,4 @@
-# Build Advisor 7.2.0 for Slay the Spire 2
+# Build Advisor 7.3.0 for Slay the Spire 2
 
 [Русская версия](README_RU.md) · [Changelog](CHANGELOG.md) · [Install](INSTALL_EN.md) · [Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases) · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3832174623) · [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588)
 
@@ -11,6 +11,9 @@ An in-game deck-building advisor. It rates every card reward, shop item, relic c
 ## Features
 
 - **Card rewards** — a ribbon under each card: tier S–D, score 0–100 and the change of the win rate compared with the card players typically take in this act and deck size; the **Skip** button gets its own ribbon (★ when skipping is the advice). Hover a ribbon for the full breakdown (community base, every deck adjustment, the result).
+- **Interface styles** — pick the look in the panel footer: the standard *Parchment* or one per character — *Ironclad* (forged iron, a sword with sparks, rivets), *Silent* (night green, a dagger dripping poison), *Defect* (steel blue, orb slots, a circuit trace), *Regent* (royal indigo, a crown and a twinkling constellation), *Necrobinder* (bone and ash, a skull with glowing eyes and rising souls). The seal button changes shape with the style; the choice is remembered.
+
+  ![Interface styles](docs/images/styles.png)
 - **Advice panel** — the wax seal **BD** at the left edge of the screen or **F8**. A verdict on top ("Take Clash" / "Better skip"), ranked options with coloured tiers, deck needs and archetypes, then the detailed breakdown. Tabs: advice, card search, run analysis, tag reference.
 - **Shop** — ribbons on cards, relics and the **card removal** service, the best buy and a purchase plan that fits your gold (a high-priority removal is paid first).
 - **Campfire and events** — rest or upgrade (and which card), plus the options relics add: Shovel (dig), Girya (lift), Meat Cleaver (cook), Pael's Growth (clone), Pumpkin Candle (kindle), Byrdonis Egg (hatch), co-op mend; rest rewards from Dream Catcher, Tiny Mailbox, Stone Humidifier; the order of all options with Miniature Tent. Upgrade, removal, transform and enchant priorities on the deck grid; community win-rate verdicts on event options, including Ancients.
@@ -30,9 +33,9 @@ Unless you turn on auto-pick, the mod never acts for you; it does not change the
 ## Install
 
 - **[Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3832174623)** — subscribe to Build Advisor, start the game, choose *Modded*.
-- **Manual ([GitHub Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases) / [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588))** — extract `BuildAdvisor-7.2.0.zip` into `Slay the Spire 2/mods/` (you get `mods/build-advisor/build-advisor.dll`); start the game and choose *Modded*. Details: [INSTALL_EN.md](INSTALL_EN.md).
+- **Manual ([GitHub Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases) / [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588))** — extract `BuildAdvisor-7.3.0.zip` into `Slay the Spire 2/mods/` (you get `mods/build-advisor/build-advisor.dll`); start the game and choose *Modded*. Details: [INSTALL_EN.md](INSTALL_EN.md).
 
-The game log (`%APPDATA%\SlayTheSpire2\logs\godot.log`) shows `Build Advisor 7.2.0 loaded; all patches installed; regression matrix passed.`
+The game log (`%APPDATA%\SlayTheSpire2\logs\godot.log`) shows `Build Advisor 7.3.0 loaded; all patches installed; regression matrix passed.`
 
 ## Build from source
 
