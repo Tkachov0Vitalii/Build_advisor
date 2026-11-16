@@ -644,6 +644,12 @@ internal static class ModLocalization
         ,("Стиль: Пергамент", "Style: Parchment"), ("Стиль: Латоносец", "Style: Ironclad"), ("Стиль: Безмолвная", "Style: Silent")
         ,("Стиль: Дефект", "Style: Defect"), ("Стиль: Наследник", "Style: Regent"), ("Стиль: Призывающая", "Style: Necrobinder")
         // 7.2: take/skip measured from the typical pick.
+        ,("п.п. к порогу взятия", "pp vs the take threshold")
+        ,("Порог взятия: середина статистики", "Take threshold: the middle of the statistics is")
+        ,("п.п. лифта и поправка", "pp of lift, adjusted by")
+        ,("п.п. на акт, размер колоды и частоту пропусков; у этой карты", "pp for the act, deck size and skip frequency; this card has")
+        ,("п.п. с поправками колоды.", "pp with deck adjustments.")
+        ,("0 п.п. — порог: выше него карту стоит взять, ниже — лучше пропустить. Порог зависит от акта, размера колоды и того, как часто игроки в похожем положении пропускают награду.", "0 pp is the threshold: above it the card is worth taking, below it skipping is better. The threshold depends on the act, the deck size and how often players in a similar position skip the reward.")
         ,("п.п. относительно типичной карты", "pp vs a typical card")
         ,("относительно типичной карты", "vs a typical card")
         ,("порог", "bar")

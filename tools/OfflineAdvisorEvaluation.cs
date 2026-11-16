@@ -93,6 +93,7 @@ internal static class OfflineAdvisorEvaluation
             return CalibrationFeatures.Export(extractDir, splitsPath, catalogFile, metricsDir, featuresOut);
         // 7.2: take/skip calibration needs the skipped rewards too, with the learned skip
         // probability and each offer's win-rate delta.
+        if (args is ["--lift-centers", var lcMetrics, var lcCatalog]) return CalibrationFeatures.LiftCenters(lcMetrics, lcCatalog);
         if (args is ["--take-skip", var tsExtract, var tsSplits, var tsCatalog, var tsMetrics, var tsOut])
             return CalibrationFeatures.Export(tsExtract, tsSplits, tsCatalog, tsMetrics, tsOut, includeSkips: true);
         if (args.Length < 6)

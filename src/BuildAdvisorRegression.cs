@@ -35,7 +35,7 @@ internal static class BuildAdvisorRegression
             LearnedSkipModelIsAvailableAndDirectional();
             AutoPickFollowsTheVerdict();
             InterfaceStylesAreReadableAndDistinct();
-            TakeSkipComparesWithTypicalPick();
+            TakeSkipIsMeasuredFromTheThreshold();
             ShopBasketAndRemovalAdvice();
             CampfireRelicOptions();
             BossThreatRefinesInsteadOfDominating();
@@ -225,35 +225,54 @@ internal static class BuildAdvisorRegression
             throw new InvalidOperationException("Tier colours changed.");
     }
 
-    // 7.2: the take/skip scale starts at the card players typically take in this act and deck-size
-    // bucket, and a high learned skip probability raises the bar. Against zero, 99.8 % of corpus
-    // rewards said "take" because the average community lift is about +7 pp.
-    private static void TakeSkipComparesWithTypicalPick()
+    // 7.3.1: the take/skip number is the distance to the take threshold. Lifts are read relative to
+    // the centre and spread of the statistics in use, so the bracket does not move the verdict
+    // (7.2: "a10" lifts are 2 pp lower than "all", every card was negative at ascension 10), and
+    // the threshold follows the winners' skip rate per act (act 1 advises taking most rewards).
+    private static void TakeSkipIsMeasuredFromTheThreshold()
     {
-        OfferScore Offer(string id, decimal lift, decimal typical) =>
-            new OfferScore(id, id, 60m, 60m, 0m, "", "", .9m, CommunityLift: lift, LiftSamples: 5000) { TypicalPick = typical };
-        BuildAssessment Reward(int skip, params OfferScore[] offers) => new("", [], [], 1m, skip, offers);
-        var typical = TakeSkipCalibration.TypicalPick(1, 10, 12);
-        if (typical < 5m || typical > 12m || TakeSkipCalibration.TypicalPick(3, 30, 18) >= TakeSkipCalibration.TypicalPick(3, 12, 18))
-            throw new InvalidOperationException("Typical pick table is off: " + typical);
-        var ordinary = Reward(30, Offer("A", typical - 1m, typical), Offer("B", typical - 2m, typical));
-        if (TakeSkipModel.Evaluate(ordinary).Take || AutoPickSettings.Decide(ordinary).Action != AutoPickAction.Skip)
-            throw new InvalidOperationException("Ordinary cards (positive lift, below the typical pick) must advise skipping.");
-        var good = Reward(30, Offer("A", typical + 3m, typical), Offer("B", typical - 2m, typical));
+        var frame = new TakeSkipFrame(9m, 6m, -0.5m);
+        OfferScore Offer(string id, decimal lift, TakeSkipFrame? f) =>
+            new OfferScore(id, id, 60m, 60m, 0m, "", "", .9m, CommunityLift: lift, LiftSamples: 5000) { Frame = f };
+        BuildAssessment Reward(params OfferScore[] offers) => new("", [], [], 1m, 30, offers);
+        var good = Reward(Offer("A", 10m, frame), Offer("B", 7m, frame));
         var verdict = TakeSkipModel.Evaluate(good);
-        if (!verdict.Take || verdict.Best?.Id != "A" || verdict.WinDelta != 3m || verdict.Bar != TakeSkipCalibration.Margin)
-            throw new InvalidOperationException("A card above the typical pick must be taken.");
-        if (TakeSkipModel.Evaluate(good with { SkipScore = 85 }).Take || TakeSkipModel.SkipBar(85) <= TakeSkipModel.SkipBar(50))
-            throw new InvalidOperationException("A high skip probability must raise the bar.");
-        if (TakeSkipModel.WinDelta(Offer("R", 7m, 0m)) != 7m)
-            throw new InvalidOperationException("Offers outside a card choice (relics) must keep the raw scale.");
-        var context = new RunContext("ironclad", ["STRIKE_IRONCLAD", "BASH"], [], 10, 2, 20, 50, 80, 99, null, 1m, 2, 0, 0, []);
-        var scored = DeckBuildScoring.Evaluate(context, ["STRIKE_IRONCLAD"], new Dictionary<string, CardDefinition>(StringComparer.OrdinalIgnoreCase),
-            new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase));
-        if (scored.Offers.Count == 0 || scored.Offers[0].TypicalPick != TakeSkipCalibration.TypicalPick(context))
-            throw new InvalidOperationException("Card evaluation does not set the typical pick.");
-        var english = ModLocalization.Translate(AdviceSummaries.SkipExplanation(TakeSkipModel.Evaluate(ordinary)) + "\n" + AdviceSummaries.SkipExplanation(verdict) + "\n" +
-            AdviceSummaries.ForCards(ordinary)!.Detail + "\n" + AdviceSummaries.ForCards(good)!.Detail + "\n" + TakeSkipModel.Evaluate(ordinary).Text + "\n" + verdict.Text, AdvisorLanguage.English);
+        if (!verdict.Take || verdict.Best?.Id != "A" || verdict.WinDelta != 1.5m || TakeSkipModel.WinDelta(good.Offers[1]) != -1.5m)
+            throw new InvalidOperationException("A card above the threshold must be taken: " + verdict.WinDelta);
+        var weak = Reward(Offer("A", 8m, frame), Offer("B", 6m, frame));
+        if (TakeSkipModel.Evaluate(weak).Take || AutoPickSettings.Decide(weak).Action != AutoPickAction.Skip)
+            throw new InvalidOperationException("Cards below the threshold (positive raw lift) must advise skipping.");
+        // The same reward in a bracket whose lifts are 2 pp lower and a quarter wider.
+        var shifted = new TakeSkipFrame(7m, 7.5m, -0.5m);
+        if (TakeSkipModel.WinDelta(Offer("A", 7m + 1m * 1.25m, shifted)) != TakeSkipModel.WinDelta(Offer("A", 10m, frame)) ||
+            TakeSkipModel.WinDelta(Offer("A", 8.25m, frame)) >= 0m)
+            throw new InvalidOperationException("The bracket's centre and spread must not move the verdict.");
+        if (TakeSkipModel.WinDelta(Offer("R", 7m, null)) != 7m)
+            throw new InvalidOperationException("Offers outside a card reward (relics) must keep the raw scale.");
+        // Thresholds: a high skip probability raises it; act 1 is the most lenient at a normal deck size.
+        if (TakeSkipCalibration.Bar(1, 12, 12, 85) - TakeSkipCalibration.Bar(1, 12, 12, 50) != TakeSkipCalibration.SkipWeight * 3.5m ||
+            TakeSkipCalibration.Bar(1, 12, 12, 30) >= TakeSkipCalibration.Bar(2, 20, 20, 30) ||
+            TakeSkipCalibration.Bar(3, 40, 25, 30) >= TakeSkipCalibration.Bar(3, 25, 25, 30))
+            throw new InvalidOperationException("Take thresholds are off.");
+        // The scale of a metrics set: median and interquartile range of lifts with enough samples.
+        Dictionary<string, EntityMetric> Metrics(decimal shift) => Enumerable.Range(0, 41).ToDictionary(i => "C" + i,
+            i => new EntityMetric("C" + i, "C" + i, null, 50m, 5000, Lift: shift + i * .25m, LiftSamples: i == 40 ? 10 : 5000), StringComparer.OrdinalIgnoreCase);
+        var all = TakeSkipModel.Scale(Metrics(4m)); var a10 = TakeSkipModel.Scale(Metrics(2m));
+        if (all is not { Center: 9m, Spread: 5m } || a10 is not { Center: 7m, Spread: 5m } || TakeSkipModel.Scale(new Dictionary<string, EntityMetric>()) is not null)
+            throw new InvalidOperationException($"Lift scale is wrong: {all} / {a10}");
+        // The scale is taken over the character's own cards when the catalogue knows them.
+        var pool = Enumerable.Range(0, 41).ToDictionary(i => "C" + i, i => new CardDefinition("C" + i, "C" + i, i < 21 ? "defect" : "ironclad", "Attack", 1, 6, 0, 0, 0, "common", "", new HashSet<string>(), null), StringComparer.OrdinalIgnoreCase);
+        if (TakeSkipModel.Scale(Metrics(4m), pool, "defect") is not { Center: 6.5m } || TakeSkipModel.Scale(Metrics(4m), pool, "silent") is not { Center: 9m })
+            throw new InvalidOperationException("The lift scale ignores the character's own pool.");
+        // End to end: the same reward under "all" and under shifted "a10" statistics gets the same verdict.
+        var context = new RunContext("ironclad", ["STRIKE_IRONCLAD", "BASH"], [], 10, 1, 5, 50, 80, 99, null, 1m, 2, 0, 0, []);
+        var catalog = new Dictionary<string, CardDefinition>(StringComparer.OrdinalIgnoreCase);
+        decimal Delta(decimal shift) => TakeSkipModel.WinDelta(DeckBuildScoring.Evaluate(context, ["C30"], catalog, Metrics(shift)).Offers[0]);
+        if (Delta(4m) != Delta(2m) || Delta(4m) <= 0m || DeckBuildScoring.Evaluate(context, ["C30"], catalog, Metrics(4m)).Offers[0].Frame is null)
+            throw new InvalidOperationException($"Card evaluation depends on the bracket: {Delta(4m)} vs {Delta(2m)}");
+        var english = ModLocalization.Translate(AdviceSummaries.SkipExplanation(TakeSkipModel.Evaluate(weak)) + "\n" + AdviceSummaries.SkipExplanation(verdict) + "\n" +
+            AdviceSummaries.ForCards(weak)!.Detail + "\n" + AdviceSummaries.ForCards(good)!.Detail + "\n" + TakeSkipModel.Evaluate(weak).Text + "\n" + verdict.Text + "\n" +
+            "Порог взятия: середина статистики +9.0 п.п. лифта и поправка -0.5 п.п. на акт, размер колоды и частоту пропусков; у этой карты +10.0 п.п. с поправками колоды.", AdvisorLanguage.English);
         if (HasCyrillic(english)) throw new InvalidOperationException("Take/skip text is not translated: " + english);
     }
 

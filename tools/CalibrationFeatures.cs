@@ -78,7 +78,7 @@ internal static class CalibrationFeatures
                             if (ScoreWeights.KeyOf(adjustment.Label) is { } key) raw[key] = raw.GetValueOrDefault(key) + adjustment.Value;
                             else raw["fixed"] = raw.GetValueOrDefault("fixed") + adjustment.Value;
                         return new { id, c = Math.Round(score.Community, 3), f = Math.Round(score.Final, 3), r = raw,
-                            d = TakeSkipModel.WinDelta(score), l = score.CommunityLift, ln = score.LiftSamples };
+                            d = TakeSkipModel.RawWinDelta(score), t = TakeSkipModel.WinDelta(score), l = score.CommunityLift, ln = score.LiftSamples };
                     }).ToArray();
                     if (includeSkips)
                         writer.WriteLine(JsonSerializer.Serialize(new { s = split, h = hash, w = win, ab = abandoned, a = ascension, ch = character, act, fl = floor, n = deck.Length, p = picked,
@@ -91,6 +91,22 @@ internal static class CalibrationFeatures
             }
         }
         Console.WriteLine(JsonSerializer.Serialize(new { runs, decisions, unknown }));
+        return 0;
+    }
+
+    // 7.3.1: the lift centre (TakeSkipModel.LiftCenter) of the metrics each character was replayed with.
+    public static int LiftCenters(string metricsDir, string catalogFile)
+    {
+        var catalog = CardCatalogClient.Parse(File.ReadAllText(catalogFile));
+        var global = Metrics(Path.Combine(metricsDir, "metrics-cards-all.json"));
+        var centers = new Dictionary<string, decimal[]>();
+        foreach (var character in new[] { "ironclad", "silent", "defect", "regent", "necrobinder" })
+        {
+            var file = Path.Combine(metricsDir, $"metrics-cards-all-{character}.json");
+            var scale = TakeSkipModel.Scale(File.Exists(file) ? SpireCodexMetricsClient.Merge(global, Metrics(file)) : global, catalog, character)!.Value;
+            centers[character] = [scale.Center, scale.Spread];
+        }
+        Console.WriteLine(JsonSerializer.Serialize(centers));
         return 0;
     }
 

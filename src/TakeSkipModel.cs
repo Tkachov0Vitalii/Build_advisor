@@ -1,10 +1,12 @@
+using BuildAdvisor.Data;
+
 namespace BuildAdvisor.Integration;
 
-internal sealed record TakeSkipVerdict(OfferScore? Best, decimal WinDelta, bool Take, string Evidence, string Text)
-{
-    // 7.2: the delta the best card needs to be worth taking (margin + learned skip probability).
-    public decimal Bar { get; init; }
-}
+internal sealed record TakeSkipVerdict(OfferScore? Best, decimal WinDelta, bool Take, string Evidence, string Text);
+
+// 7.3.1: what a card reward's lifts are measured against: the centre and spread of the statistics
+// in use and the take threshold for this act, deck size and learned skip probability.
+internal readonly record struct TakeSkipFrame(decimal Center, decimal Spread, decimal Bar);
 
 // Take-or-skip on one scale, in percentage points of win rate, the way MetaBot frames it:
 // skipping is 0, a card is worth its community lift (runs that took it minus runs that did
@@ -20,11 +22,44 @@ internal static class TakeSkipModel
     internal const int HighEvidence = 1000;
     internal const int MediumEvidence = 300;
 
-    // 7.2: the delta is measured from the card players typically take in this act and deck-size
-    // bucket (OfferScore.TypicalPick), not from zero. Community lift is a correlation: the average
-    // card has +7 pp, so against zero almost every reward said "take" (0.2 % skips in the corpus
-    // replay, while players skip 32 % and winners 37 %). Relics and other offers keep TypicalPick 0.
-    public static decimal WinDelta(OfferScore offer) => decimal.Round(RawWinDelta(offer) - offer.TypicalPick, 1);
+    // The number on ribbons and in the verdict: percentage points above (+) or below (−) the take
+    // threshold. 0 is the threshold; a reward is skipped when its best card is below it.
+    // 7.2 measured from the median picked card with raw lifts fitted on the "all" bracket: at
+    // ascension 10 ("a10" lifts are about 2 pp lower) nearly every card was negative, B to S tiers
+    // included, and act 1 could pass without one "take". Offers outside a card reward (relics, shop)
+    // have no frame and keep the raw scale.
+    public static decimal WinDelta(OfferScore offer)
+    {
+        if (offer.Frame is not { } frame) return RawWinDelta(offer);
+        var lift = offer.CommunityLift is { } value
+            ? (value - frame.Center) * TakeSkipCalibration.ReferenceSpread / frame.Spread
+            : (offer.Community - ZeroLiftScore) * PointsPerScore - TakeSkipCalibration.FallbackCenter;
+        var deckShift = (offer.Final - offer.Community) * PointsPerScore;
+        return decimal.Round(lift + deckShift - frame.Bar, 1);
+    }
+
+    // 7.3.1: the middle and the spread of the lift scale in the statistics in use. Brackets differ:
+    // the median card lift is +9.1 pp in "all" but +7.2 pp in "a10", and "a10" is a quarter wider.
+    // 7.2 was fitted on "all", so at ascension 10 every card read about 2 pp too low and skipping
+    // was advised almost always. Lifts are now read relative to this centre, in units of the spread.
+    internal readonly record struct LiftScale(decimal Center, decimal Spread);
+
+    // The scale is taken over the character's own cards (the pool a reward draws from): in a
+    // per-character metrics set the other classes keep global rows with different lifts.
+    internal static LiftScale? Scale(IReadOnlyDictionary<string, EntityMetric> metrics,
+        IReadOnlyDictionary<string, CardDefinition>? catalog = null, string? character = null)
+    {
+        var rows = metrics.Values.Where(x => x.Lift is not null && x.LiftSamples >= 200).ToArray();
+        if (catalog is not null && character is not null)
+        {
+            var own = rows.Where(x => catalog.TryGetValue(SpireCodexMetricsClient.NormalizeId(x.Id), out var card) &&
+                                      string.Equals(card.Character, character, StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (own.Length >= 20) rows = own;
+        }
+        var lifts = rows.Select(x => x.Lift!.Value).OrderBy(x => x).ToArray();
+        if (lifts.Length < 20) return null;
+        return new(lifts[lifts.Length / 2], Math.Max(1m, lifts[lifts.Length * 3 / 4] - lifts[lifts.Length / 4]));
+    }
 
     public static decimal RawWinDelta(OfferScore offer)
     {
@@ -39,54 +74,56 @@ internal static class TakeSkipModel
         : offer.Confidence >= .95m ? "высокая" : offer.Confidence >= .55m ? "средняя" : "низкая";
     public static string EvidenceLabel(int samples) => samples >= HighEvidence ? "высокая" : samples >= MediumEvidence ? "средняя" : "низкая";
 
-    // 7.2 verdict (tools/calibrate_take_skip.py, docs/take-skip-calibration-report.json): take the
-    // best card when it beats the typical pick by TakeSkipCalibration.Margin; a high learned skip
-    // probability (players in this state usually take nothing) raises the bar.
-    public static decimal SkipBar(int skipPercent) =>
-        TakeSkipCalibration.Margin + TakeSkipCalibration.SkipWeight * Math.Max(0m, skipPercent / 100m - .5m) * 10m;
-
     public static TakeSkipVerdict Evaluate(BuildAssessment assessment)
     {
         var best = assessment.Offers.OrderByDescending(WinDelta).FirstOrDefault();
         if (best is null) return new(null, 0m, false, "нет данных", "награда не прочитана");
         var delta = WinDelta(best);
         var evidence = Evidence(best);
-        var bar = SkipBar(assessment.SkipScore);
-        var take = delta >= bar;
+        var take = delta >= 0m;
         var text = take
-            ? $"взять {best.Name} ({Format(delta)} п.п. относительно типичной карты, уверенность {evidence})"
-            : $"пропустить (лучшая карта {best.Name}: {Format(delta)} п.п. относительно типичной карты, нужно не меньше {Format(bar)})";
-        return new(best, delta, take, evidence, text) { Bar = bar };
+            ? $"взять {best.Name} ({Format(delta)} п.п. к порогу взятия, уверенность {evidence})"
+            : $"пропустить (лучшая карта {best.Name}: {Format(delta)} п.п. к порогу взятия)";
+        return new(best, delta, take, evidence, text);
     }
 
     public static string Format(decimal points) => points.ToString("+0.0;-0.0;0.0", System.Globalization.CultureInfo.InvariantCulture);
 }
 
-// 7.2: fitted by tools/calibrate_take_skip.py on the train split of the run corpus (177,251 runs,
+// Fitted by tools/calibrate_take_skip.py on the train split of the run corpus (177,251 runs,
 // 2,184,681 card rewards incl. skips); report: docs/take-skip-calibration-report.json.
-// TypicalPick: median win-rate delta (lift + deck adjustments) of the card players took, by act
-// and by deck size relative to the size expected for the floor (the skip model's buckets).
-// Margin and SkipWeight: advise skipping about as often as winning runs skip (± 3 pp), maximising
-// agreement with winners' take-or-skip decisions.
+// Bars: for each act and deck size relative to the size expected for the floor (the skip model's
+// buckets), the quantile of the best card's score at the skip rate of winning runs, so skipping is
+// advised as often as winners skip in that situation (act 1: 23 %, act 2: 40 %, act 3: 53 %).
+// The score is the lift relative to the centre of the statistics in use, scaled to ReferenceSpread
+// pp per interquartile range, plus deck adjustments; a learned skip probability above 50 % raises
+// the threshold by SkipWeight pp per 10 points.
 internal static class TakeSkipCalibration
 {
-    internal const decimal Margin = 0.25m;
+    internal const decimal ReferenceSpread = 6.0m;
     internal const decimal SkipWeight = 6.0m;
+    // Without lifts (offline, an empty response) lift is estimated from the Codex Score with the
+    // A10 fit, whose median card is +7.2 pp.
+    internal const decimal FallbackCenter = 7.2m;
     private static readonly decimal[] ExcessEdges = [-4m, -1m, 2m, 5m, 9m];
-    private static readonly decimal[,] Typical =
+    private static readonly decimal[,] Bars =
     {
-        { 9.3m, 8.8m, 8.5m, 8.9m, 9.8m, 8.7m },
-        { 10.0m, 9.6m, 9.1m, 8.2m, 7.2m, 6.0m },
-        { 9.4m, 9.3m, 7.7m, 5.7m, 4.2m, 3.2m }
+        { 0.73m, 0.48m, 0.21m, 0.14m, -0.15m, 0.31m },
+        { 1.53m, 1.37m, 0.99m, 0.25m, -0.8m, -2.58m },
+        { -0.09m, 0.81m, -0.4m, -1.67m, -2.76m, -3.35m }
     };
 
-    internal static decimal TypicalPick(int act, int deckSize, int expectedDeckSize)
+    internal static decimal Bar(int act, int deckSize, int expectedDeckSize, int skipPercent)
     {
         var row = Math.Clamp(act, 1, 3) - 1;
         var bucket = ExcessEdges.Count(edge => deckSize - expectedDeckSize > edge);
-        return Typical[row, bucket];
+        return Bars[row, bucket] + SkipWeight * Math.Max(0m, skipPercent / 100m - .5m) * 10m;
     }
 
-    internal static decimal TypicalPick(RunContext context) =>
-        TypicalPick(context.Act, context.Cards.Count, RunHistoryInsights.ExpectedDeckSize(context.Character, context.Floor));
+    internal static TakeSkipFrame Frame(RunContext context, int deckSize, int skipPercent, IReadOnlyDictionary<string, EntityMetric> metrics,
+        IReadOnlyDictionary<string, CardDefinition>? catalog = null)
+    {
+        var scale = TakeSkipModel.Scale(metrics, catalog, context.Character) ?? new TakeSkipModel.LiftScale(FallbackCenter, ReferenceSpread);
+        return new(scale.Center, scale.Spread, Bar(context.Act, deckSize, RunHistoryInsights.ExpectedDeckSize(context.Character, context.Floor), skipPercent));
+    }
 }
