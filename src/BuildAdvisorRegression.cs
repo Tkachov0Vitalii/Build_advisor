@@ -35,6 +35,8 @@ internal static class BuildAdvisorRegression
             LearnedSkipModelIsAvailableAndDirectional();
             AutoPickFollowsTheVerdict();
             EternalCardsAreNotRemovalTargets();
+            AncientRelicsAreValuedAtTheirAct();
+            RelicSynergiesAreCorpusVerified();
             InterfaceStylesAreReadableAndDistinct();
             TakeSkipIsMeasuredFromTheThreshold();
             ShopBasketAndRemovalAdvice();
@@ -1516,6 +1518,51 @@ internal static class BuildAdvisorRegression
         var english = ModLocalization.Translate(string.Join("\n", ArchetypeAdvisor.Format(direction, [raw, block, strength, far]),
             ArchetypeAdvisor.Format(ArchetypeAdvisor.Choose(context, [raw], false), [raw]), ArchetypeAdvisor.Format(aimed, [raw, far]), ArchetypeAdvisor.Format(null, [])), AdvisorLanguage.English);
         if (HasCyrillic(english.Replace("shrug_it_off", "").Replace("body_slam", ""))) throw new InvalidOperationException("Archetype text is not translated: " + english);
+    }
+
+    // 7.4: an Ancient relic is valued against the other Ancient picks of the same act (corpus),
+    // per character when it has enough runs, otherwise over every character.
+    private static void AncientRelicsAreValuedAtTheirAct()
+    {
+        var shears = AncientRelicValues.Value("ironclad", 1, "PRECARIOUS_SHEARS");
+        var tablet = AncientRelicValues.Value("ironclad", 1, "HEFTY_TABLET");
+        if (shears is not { ForCharacter: true } || tablet is null || shears.Value.Pp <= tablet.Value.Pp)
+            throw new InvalidOperationException("Act 1 Ancient values must rank Precarious Shears above Hefty Tablet.");
+        var snecko = AncientRelicValues.Value("ironclad", 2, "SNECKO_EYE");
+        if (snecko is not { ForCharacter: false } || snecko.Value.Runs < AncientRelicValues.MinimumCharacterRuns)
+            throw new InvalidOperationException("A thin character cell must fall back to every character.");
+        if (AncientRelicValues.Value("ironclad", 1, "SOZU") is not null || AncientRelicValues.Value("ironclad", 1, "NO_SUCH_RELIC") is not null)
+            throw new InvalidOperationException("Only Ancient relics seen at that act have a value.");
+        var metrics = new Dictionary<string, EntityMetric>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["PRECARIOUS_SHEARS"] = new("PRECARIOUS_SHEARS", "Precarious Shears", .5m, .5m, 5000, Lift: -9m, LiftSamples: 5000),
+            ["SOZU"] = new("SOZU", "Sozu", .5m, .5m, 5000, Lift: 4.4m, LiftSamples: 5000),
+        };
+        var context = new RunContext("ironclad", [], [], 0, 1, 1, 80, 80, 99, null, 1m, 0, 0, 0, []);
+        var rated = EventAdvisor.Rate([new EventChoice("Take", "NEOW", "PRECARIOUS_SHEARS", "PRECARIOUS_SHEARS", false), new EventChoice("Sozu", "NEOW", "SOZU", "SOZU", false)],
+            new Dictionary<string, EventOptionMetric>(), metrics, null, _ => "", context);
+        if (rated[0].Source != "ancient" || rated[0].Lift is not { } value || Math.Abs(value - shears.Value.Pp) > 1m || rated[1].Source != "relic")
+            throw new InvalidOperationException("Ancient options must use the act value, other relics the run-long score: " + rated[0].Line);
+        var text = EventAdvisor.Format(rated);
+        if (!text.Contains("против среднего выбора у Древнего в акте 1") || !text.Contains(EventAdvisor.AncientNote))
+            throw new InvalidOperationException("Ancient lines must say what they compare with: " + text);
+        var english = ModLocalization.Translate(text, AdvisorLanguage.English);
+        if (HasCyrillic(english)) throw new InvalidOperationException("Ancient text is not translated: " + english);
+    }
+
+    // 7.4 (H7): only corpus-verified relic × card synergies change the score.
+    private static void RelicSynergiesAreCorpusVerified()
+    {
+        var catalog = new[] { Card("STRIKE", "Attack", damage: 6, rarity: "basic"), Card("INFLAME", "Power", rarity: "uncommon"), Card("POMMEL", "Attack", damage: 9) }
+            .ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
+        OfferScore Score(string relic, string card) => DeckBuildScoring.Evaluate(
+            new RunContext("ironclad", ["STRIKE"], [relic], 0, 2, 20, 80, 80, 99, null, 1m, 1, 0, 0, []), [card], catalog, Metrics(card)).Offers[0];
+        bool Has(OfferScore s) => (s.Adjustments ?? []).Any(x => x.Label == "синергия с реликвией");
+        var power = Score("GAME_PIECE", "INFLAME");
+        if (!Has(power) || Has(Score("GAME_PIECE", "POMMEL")) || Has(Score("SHURIKEN", "POMMEL")) || Has(Score("BURNING_BLOOD", "INFLAME")))
+            throw new InvalidOperationException("Game Piece must value Powers; unverified synergies (Shuriken × Attack) must not.");
+        var english = ModLocalization.Translate(ScoreExplanation.Breakdown(power) + "\n" + power.Reason, AdvisorLanguage.English);
+        if (HasCyrillic(english)) throw new InvalidOperationException("Relic synergy text is not translated: " + english);
     }
 
     private static bool HasCyrillic(string text) => System.Text.RegularExpressions.Regex.IsMatch(text, "[А-Яа-яЁё]");

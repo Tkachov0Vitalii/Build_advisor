@@ -79,7 +79,7 @@ internal static class ScoreExplanation
     internal static readonly (string Group, string[] Labels)[] Groups =
     [
         ("Потребности колоды", ["нужна защита", "быстрый урон", "нужен добор", "даёт энергию", "дорогая при нехватке энергии", "сложность разыгрывания", "усиление к поздней игре", "выживаемость", "экономика"]),
-        ("Архетип и синергия", ["синергия архетипа", "не подходит выбранному архетипу", "ограничение другого архетипа", "похожие победные колоды", "ключевая карта архетипа"]),
+        ("Архетип и синергия", ["синергия с реликвией", "синергия архетипа", "не подходит выбранному архетипу", "ограничение другого архетипа", "похожие победные колоды", "ключевая карта архетипа"]),
         ("Копии и размер колоды", ["копия", "размер колоды", "несколько структурных минусов"]),
         ("Акт и босс", ["ценность в акте", "подготовка к боссу"]),
         ("Команда", ["защита напарника", "усиление напарника", "атаки напарников", "архетип напарника"]),
@@ -244,6 +244,8 @@ internal static class DeckBuildScoring
         if (upgradeValue > 0) Adjust(upgradeValue, "улучшенная версия");
         var userTier = TierOverrides.ForCard(context.Character, id);
         if (userTier != 0) Adjust(userTier, "ваша поправка", $"ваша поправка из tier-overrides.json ({userTier:+0;-0})");
+        // 7.4: relic × card synergies that held on held-out corpus runs (RelicSynergies).
+        foreach (var (points, text) in RelicSynergies.For(card, context.Relics)) Adjust(points, "синергия с реликвией", text);
         if (needs.Contains("защита") && card.Block > 0) Adjust(25, "нужна защита", $"закрывает дефицит защиты ({card.Block} блока)");
         if (needs.Contains("быстрый урон") && card.Damage > 0 && card.Cost <= 2) Adjust(15, "быстрый урон");
         var selectedArchetype = ArchetypePreferences.Get(context.Character);

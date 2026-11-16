@@ -1,0 +1,266 @@
+{
+ "pairs_checked": 105,
+ "train_vs_heldout_correlation": 0.874,
+ "heldout_top_minus_bottom_third_pp": 8.0,
+ "picks_per_act": {
+  "all:1": 107176,
+  "all:2": 71350,
+  "all:3": 39470
+ },
+ "top_by_act": {
+  "1": [
+   [
+    "Precarious Shears",
+    3.96,
+    4556
+   ],
+   [
+    "Neow's Talisman",
+    3.49,
+    1255
+   ],
+   [
+    "New Leaf",
+    3.32,
+    5009
+   ],
+   [
+    "Precise Scissors",
+    3.15,
+    2636
+   ],
+   [
+    "Silken Tress",
+    2.68,
+    5805
+   ],
+   [
+    "Leafy Poultice",
+    2.54,
+    6190
+   ],
+   [
+    "Booming Conch",
+    1.96,
+    2924
+   ],
+   [
+    "Winged Boots",
+    1.82,
+    1627
+   ]
+  ],
+  "2": [
+   [
+    "Snecko Eye",
+    15.32,
+    268
+   ],
+   [
+    "Runic Pyramid",
+    11.21,
+    811
+   ],
+   [
+    "Toasty Mittens",
+    11.04,
+    1023
+   ],
+   [
+    "Pael's Blood",
+    10.93,
+    3230
+   ],
+   [
+    "Pandora's Box",
+    6.68,
+    1093
+   ],
+   [
+    "Seal of Gold",
+    5.67,
+    1232
+   ],
+   [
+    "Prismatic Gem",
+    5.54,
+    830
+   ],
+   [
+    "Radiant Pearl",
+    5.07,
+    1282
+   ]
+  ],
+  "3": [
+   [
+    "Iron Club",
+    13.05,
+    1261
+   ],
+   [
+    "Sai",
+    11.67,
+    1973
+   ],
+   [
+    "Crossbow",
+    10.37,
+    1220
+   ],
+   [
+    "Beautiful Bracelet",
+    6.13,
+    1078
+   ],
+   [
+    "Fiddle",
+    5.76,
+    745
+   ],
+   [
+    "Runic Pyramid",
+    4.58,
+    288
+   ],
+   [
+    "Music Box",
+    3.59,
+    1414
+   ],
+   [
+    "Snecko Eye",
+    3.16,
+    63
+   ]
+  ]
+ },
+ "bottom_by_act": {
+  "1": [
+   [
+    "Hefty Tablet",
+    -7.09,
+    6153
+   ],
+   [
+    "Scroll Boxes",
+    -3.34,
+    4697
+   ],
+   [
+    "Lost Coffer",
+    -3.0,
+    3682
+   ],
+   [
+    "Nutritious Oyster",
+    -2.42,
+    1561
+   ],
+   [
+    "Kaleidoscope",
+    -2.12,
+    3474
+   ],
+   [
+    "Arcane Scroll",
+    -2.05,
+    7653
+   ],
+   [
+    "Pomander",
+    -1.14,
+    2195
+   ],
+   [
+    "Neow's Bones",
+    -0.92,
+    5076
+   ]
+  ],
+  "2": [
+   [
+    "Sea Glass",
+    -9.77,
+    843
+   ],
+   [
+    "Pael's Growth",
+    -9.25,
+    1167
+   ],
+   [
+    "Glass Eye",
+    -8.65,
+    1653
+   ],
+   [
+    "Driftwood",
+    -6.16,
+    1015
+   ],
+   [
+    "Yummy Cookie",
+    -4.43,
+    4930
+   ],
+   [
+    "Pael's Eye",
+    -4.17,
+    817
+   ],
+   [
+    "Pael's Wing",
+    -4.17,
+    3011
+   ],
+   [
+    "Black Star",
+    -4.0,
+    913
+   ]
+  ],
+  "3": [
+   [
+    "Black Star",
+    -8.66,
+    217
+   ],
+   [
+    "Claws",
+    -7.36,
+    785
+   ],
+   [
+    "Blood-Soaked Rose",
+    -7.28,
+    952
+   ],
+   [
+    "Tanx's Whistle",
+    -6.54,
+    579
+   ],
+   [
+    "Fur Coat",
+    -6.21,
+    1055
+   ],
+   [
+    "Whispering Earring",
+    -6.11,
+    1245
+   ],
+   [
+    "Calling Bell",
+    -5.64,
+    284
+   ],
+   [
+    "Lord's Parasol",
+    -5.63,
+    979
+   ]
+  ]
+ }
+}

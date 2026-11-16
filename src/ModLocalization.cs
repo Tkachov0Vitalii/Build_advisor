@@ -34,6 +34,14 @@ internal static class ModLocalization
     [
         // 6.18.0 take/skip scale and offline mode
         ("п.п. к победе против пропуска", "pp of win rate vs skipping"),
+        // 7.4 Ancient relic values and relic synergies
+        ("п.п. к победе против среднего выбора у Древнего в акте", "pp of win rate vs the average Ancient pick in act"),
+        ("забегов этого персонажа", "runs of this character"),
+        ("забегов всех персонажей", "runs of all characters"),
+        ("Реликвии Древнего сравниваются с другими выборами у Древнего в том же акте по корпусу 139 тыс. забегов: все эти забеги дошли до одной точки, поэтому выживание не завышает оценку.",
+         "Ancient relics are compared with the other Ancient picks at the same act over a corpus of 139k runs: all those runs reached the same point, so survival does not inflate the value."),
+        ("синергия с реликвией", "relic synergy"),
+        ("Игровая фигура: каждая сила тянет карту", "Game Piece: every Power draws a card"),
         ("Игроки в похожих ситуациях пропускали награду в", "Players in similar situations skipped this reward in"),
         ("% случаев", "% of cases"),
         ("Взять или пропустить", "Take or skip"),

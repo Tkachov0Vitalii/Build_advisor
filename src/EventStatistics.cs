@@ -85,6 +85,8 @@ internal static class EventAdvisor
 {
     internal const int MinimumSamples = 100;
 
+    internal const string AncientNote = "Реликвии Древнего сравниваются с другими выборами у Древнего в том же акте по корпусу 139 тыс. забегов: все эти забеги дошли до одной точки, поэтому выживание не завышает оценку.";
+
     internal sealed record Rated(EventChoice Choice, decimal? Lift, int Samples, string Source, string Line);
 
     public static IReadOnlyList<Rated> Rate(IReadOnlyList<EventChoice> choices, IReadOnlyDictionary<string, EventOptionMetric> events,
@@ -100,6 +102,18 @@ internal static class EventAdvisor
                 if (context is not null)
                 {
                     var scored = RelicAdvisor.Score(context, relicId, relics, relicNames, segmentRisk);
+                    // 7.4: an Ancient relic is valued at the moment of choice (AncientRelicValues):
+                    // corpus value at this act plus the deck adjustments, instead of the run-long lift.
+                    if (AncientRelicValues.Value(context.Character, context.Act, relicId) is { } ancient)
+                    {
+                        var deckShift = (scored.Final - scored.Community) * TakeSkipModel.PointsPerScore;
+                        var value = decimal.Round(ancient.Pp + deckShift, 1);
+                        var scope = ancient.ForCharacter ? "этого персонажа" : "всех персонажей";
+                        return new Rated(choice, value, ancient.Runs, "ancient",
+                            $"реликвия {name}: {TakeSkipModel.Format(value)} п.п. к победе против среднего выбора у Древнего в акте {Math.Clamp(context.Act, 1, 3)} " +
+                            $"({ancient.Runs} забегов {scope}) · уверенность {TakeSkipModel.EvidenceLabel(ancient.Runs)}" +
+                            (deckShift != 0m ? $" — {scored.Reason}" : ""));
+                    }
                     var delta = TakeSkipModel.WinDelta(scored);
                     return new Rated(choice, delta, relic.LiftSamples, "relic",
                         $"реликвия {name}: {TakeSkipModel.Format(delta)} п.п. к победе · уверенность {TakeSkipModel.EvidenceLabel(relic.LiftSamples)} — {scored.Reason}");
@@ -153,6 +167,8 @@ internal static class EventAdvisor
         var footer = withData == 0
             ? "Статистики по этому событию нет — показаны локальные подсказки."
             : "Лифт — насколько винрейт забегов, выбравших вариант, выше или ниже среднего по данным Spire Codex. Это корреляция: проверьте цену варианта (HP, золото, проклятия) для своей колоды.";
+        if (rated.Any(x => x.Source == "ancient"))
+            footer = AncientNote + "\n" + footer;
         return "Ветки события:\n" + string.Join("\n", lines) + "\n\n" + footer;
     }
 }
