@@ -73,7 +73,7 @@ internal static class DeckActionPlanner
         var target = RemovalCandidate(context.Cards, catalog);
         if (target is null) return new(null, "D", "явной цели для удаления нет — сохраните золото на покупку");
         var cards = context.Cards.Select(id => catalog.TryGetValue(SpireCodexMetricsClient.NormalizeId(id), out var card) ? card : null).Where(x => x is not null).Cast<CardDefinition>();
-        if (cards.Any(x => x.Name == target && (x.Type.Contains("curse", StringComparison.OrdinalIgnoreCase) || x.Type.Contains("status", StringComparison.OrdinalIgnoreCase))))
+        if (cards.Any(x => x.Name == target && CardTaxonomy.IsRemovableCurse(x)))
             return new(target, "S", "проклятие или статус в колоде — удаление почти всегда лучшая покупка");
         var expected = RunHistoryInsights.ExpectedDeckSize(context.Character, context.Floor);
         return context.Cards.Count >= expected
@@ -85,7 +85,7 @@ internal static class DeckActionPlanner
     internal static int RemovalTargets(IEnumerable<string> ids, IReadOnlyDictionary<string, CardDefinition> catalog)
     {
         var cards = ids.Select(id => catalog.TryGetValue(SpireCodexMetricsClient.NormalizeId(id), out var card) ? card : null).Where(x => x is not null).Cast<CardDefinition>().ToArray();
-        var curses = cards.Count(x => x.Type.Contains("curse", StringComparison.OrdinalIgnoreCase) || x.Type.Contains("status", StringComparison.OrdinalIgnoreCase));
+        var curses = cards.Count(CardTaxonomy.IsRemovableCurse);
         var starters = cards.Count(CardTaxonomy.IsStarterStrikeOrDefend);
         return Math.Min(2, curses + starters);
     }
@@ -93,7 +93,7 @@ internal static class DeckActionPlanner
     private static string? RemovalCandidate(IEnumerable<string> ids, IReadOnlyDictionary<string, CardDefinition> catalog)
     {
         var cards = ids.Select(id => catalog.TryGetValue(SpireCodexMetricsClient.NormalizeId(id), out var card) ? card : null).Where(x => x is not null).Cast<CardDefinition>().ToArray();
-        var curse = cards.FirstOrDefault(x => x.Type.Contains("curse", StringComparison.OrdinalIgnoreCase) || x.Type.Contains("status", StringComparison.OrdinalIgnoreCase));
+        var curse = cards.FirstOrDefault(CardTaxonomy.IsRemovableCurse);
         if (curse is not null) return curse.Name;
         var strikes = cards.Where(x => CardTaxonomy.IsStarterCopy(x, "STRIKE")).ToArray();
         var defends = cards.Where(x => CardTaxonomy.IsStarterCopy(x, "DEFEND")).ToArray();
@@ -120,7 +120,8 @@ internal static class DeckActionPlanner
             : context.Cards;
         return ids
         .Select(id => catalog.TryGetValue(SpireCodexMetricsClient.NormalizeId(id), out var card) ? card : null)
-        .Where(x => x is not null && !CardTaxonomy.IsStarterStrikeOrDefend(x))
+        .Where(x => x is not null && !CardTaxonomy.IsStarterStrikeOrDefend(x) &&
+                    !x.Type.Contains("curse", StringComparison.OrdinalIgnoreCase) && !x.Type.Contains("status", StringComparison.OrdinalIgnoreCase))
         .Cast<CardDefinition>()
         .OrderByDescending(x => UpgradePriority(x))
         .FirstOrDefault();

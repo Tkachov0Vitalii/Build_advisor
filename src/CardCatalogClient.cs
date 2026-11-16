@@ -34,6 +34,15 @@ internal static class CardTaxonomy
         return IsBasic(card) && (exact || id.Contains(token, StringComparison.Ordinal));
     }
 
+    // 7.3.2: Eternal cards (Ascender's Bane from ascension 5, Greed, Folly, Enthralled …) cannot be
+    // removed or transformed. The keyword comes from the catalogue's keywords_key, in Signals.
+    public static bool IsEternal(CardDefinition card) =>
+        card.Signals.Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains("ETERNAL");
+
+    // A curse or status the player can actually get rid of.
+    public static bool IsRemovableCurse(CardDefinition card) => !IsEternal(card) &&
+        (card.Type.Contains("curse", StringComparison.OrdinalIgnoreCase) || card.Type.Contains("status", StringComparison.OrdinalIgnoreCase));
+
     public static bool IsStarterStrikeOrDefend(CardDefinition card) => IsStarterCopy(card, "STRIKE") || IsStarterCopy(card, "DEFEND");
 
     public static bool MatchesRarity(CardDefinition card, string filter) =>

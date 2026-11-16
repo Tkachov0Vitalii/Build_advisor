@@ -124,7 +124,7 @@ internal static class EventCardAdvisor
         var adjusted = baseAssessment.Offers.Select(score =>
         {
             catalog.TryGetValue(SpireCodexMetricsClient.NormalizeId(score.Id), out var card);
-            var isCurse = card?.Type.Contains("curse", StringComparison.OrdinalIgnoreCase) == true || card?.Type.Contains("status", StringComparison.OrdinalIgnoreCase) == true;
+            var isCurse = card is not null && CardTaxonomy.IsRemovableCurse(card);
             var isStarter = card is not null
                 ? CardTaxonomy.IsStarterStrikeOrDefend(card)
                 : SpireCodexMetricsClient.NormalizeId(score.Id) is "STRIKE" or "DEFEND";

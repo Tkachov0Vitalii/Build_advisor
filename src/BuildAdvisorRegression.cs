@@ -34,6 +34,7 @@ internal static class BuildAdvisorRegression
             LearnedChoiceAdjustmentIsBounded();
             LearnedSkipModelIsAvailableAndDirectional();
             AutoPickFollowsTheVerdict();
+            EternalCardsAreNotRemovalTargets();
             InterfaceStylesAreReadableAndDistinct();
             TakeSkipIsMeasuredFromTheThreshold();
             ShopBasketAndRemovalAdvice();
@@ -812,6 +813,45 @@ internal static class BuildAdvisorRegression
             "Удаление (S): Injury — " + b.Reason + " · цена 75.", "Оптимальная корзина по текущей модели: A · 150/300 золота · останется 150 (из них 75 — на удаление).",
             "Корзина: нет уверенной покупки с прочитанной ценой в текущий бюджет. 75 золота отложено на удаление."), AdvisorLanguage.English);
         if (HasCyrillic(english)) throw new InvalidOperationException("Removal text is not translated: " + english);
+    }
+
+    // 7.3.2: Eternal cards cannot be removed. From ascension 5 every deck holds Ascender's Bane
+    // (a curse with the Eternal keyword): the plan, the shop ribbon and the basket budget kept
+    // sending the player to a shop to remove it.
+    private static void EternalCardsAreNotRemovalTargets()
+    {
+        static CardDefinition Card(string id, string name, string type, string rarity, string signals = "") =>
+            new(id, name, "ironclad", type, 1, type == "Attack" ? 6 : 0, 0, 0, 0, rarity, "", new HashSet<string>(), null, Signals: signals);
+        var catalog = new Dictionary<string, CardDefinition>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["ASCENDERS_BANE"] = Card("ASCENDERS_BANE", "Ascender's Bane", "Curse", "curse", "ETHEREAL UNPLAYABLE ETERNAL"),
+            ["INJURY"] = Card("INJURY", "Injury", "Curse", "curse", "UNPLAYABLE"),
+            ["ETERNAL_ARMOR"] = Card("ETERNAL_ARMOR", "Eternal Armor", "Power", "rare", "PLATINGPOWER"),
+            ["STRIKE_IRONCLAD"] = Card("STRIKE_IRONCLAD", "Strike", "Attack", "basic"),
+            ["ANGER"] = Card("ANGER", "Anger", "Attack", "common"),
+        };
+        RunContext Deck(params string[] cards) => new("ironclad", cards, [], 5, 1, 6, 60, 80, 300, null, 1m, 5, 0, 0, []);
+        if (!CardTaxonomy.IsEternal(catalog["ASCENDERS_BANE"]) || CardTaxonomy.IsEternal(catalog["INJURY"]) || CardTaxonomy.IsEternal(catalog["ETERNAL_ARMOR"]))
+            throw new InvalidOperationException("The Eternal keyword is read wrongly.");
+        var onlyBane = DeckActionPlanner.Removal(Deck("ASCENDERS_BANE", "ANGER", "ANGER", "ETERNAL_ARMOR"), catalog);
+        if (onlyBane.Target is not null || onlyBane.Tier != "D" || ShopPlanBuilder.BasketBudget(300, onlyBane, 75) != 300)
+            throw new InvalidOperationException("An Eternal curse is advised for removal: " + onlyBane);
+        var withInjury = DeckActionPlanner.Removal(Deck("ASCENDERS_BANE", "INJURY", "ANGER"), catalog);
+        if (withInjury.Target != "Injury" || withInjury.Tier != "S")
+            throw new InvalidOperationException("A removable curse next to an Eternal one is not the target: " + withInjury);
+        var starters = DeckActionPlanner.Removal(Deck("ASCENDERS_BANE", "STRIKE_IRONCLAD", "ANGER", "ANGER", "ANGER", "ANGER"), catalog);
+        if (starters.Target != "Strike" || starters.Tier == "S")
+            throw new InvalidOperationException("With only an Eternal curse the starter card is the target: " + starters);
+        if (DeckActionPlanner.RemovalTargets(["ASCENDERS_BANE", "ANGER"], catalog) != 0 || DeckActionPlanner.RemovalTargets(["ASCENDERS_BANE", "INJURY"], catalog) != 1)
+            throw new InvalidOperationException("Cook counts an Eternal curse as removable.");
+        var assessment = new BuildAssessment("", [], [], 1m, 20, []);
+        var plan = DeckActionPlanner.Create(Deck("ASCENDERS_BANE", "ANGER", "ANGER"), assessment, catalog);
+        if (plan.Contains("Ascender") || !plan.Contains("удалить: нет очевидной цели") || plan.Contains("сохранять золото на удаление"))
+            throw new InvalidOperationException("The plan still sends the player to remove an Eternal card: " + plan);
+        // The keyword reaches Signals from the catalogue row.
+        var parsed = CardCatalogClient.Parse("""[{"id":"ASCENDERS_BANE","name":"Ascender's Bane","type":"Curse","rarity":"Curse","color":"curse","keywords_key":["Ethereal","Unplayable","Eternal"]}]""");
+        if (!parsed.TryGetValue("ASCENDERS_BANE", out var bane) || !CardTaxonomy.IsEternal(bane))
+            throw new InvalidOperationException("The catalogue row does not mark Ascender's Bane as Eternal.");
     }
 
     // 7.1: relic campfire options (Shovel, Girya, Meat Cleaver, Pael's Growth, Byrdonis Egg,
