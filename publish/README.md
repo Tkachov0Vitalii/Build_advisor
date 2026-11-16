@@ -14,7 +14,7 @@
 
 1. Распакуйте `BuildAdvisor-X.Y.Z-workshop.zip` рядом с `ModUploader.exe`. Получится папка `BuildAdvisor-workshop` с `workshop.json`, `image.png`, `previews/` и `content/` (файлы мода).
 2. `ModUploader.exe upload -w BuildAdvisor-workshop`. `mod_id.txt` (предмет 3832174623) уже лежит в рабочей папке — загрузчик обновит ту же страницу Workshop.
-3. В `workshop.json` стоит `"visibility": "private"`: проверьте страницу в Steam, подпишитесь, запустите игру. Потом смените на `"public"` (в файле или на сайте Steam).
+3. В `workshop.json` стоит `"visibility": "public"` — мод опубликован; загрузка обновления оставляет страницу открытой.
 4. Обновление: впишите `changeNote` в `publish/workshop/workshop.json` и снова выполните `upload -w`.
 
 Теги загрузчик берёт из `tags`; «Tools & APIs» зарезервирован за модами-библиотеками — Build Advisor им не является.
