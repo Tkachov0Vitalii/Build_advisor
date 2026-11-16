@@ -36,8 +36,8 @@ internal static class RunReview
         if (divergences.Length > 0)
         {
             lines.Add("Крупнейшие расхождения:");
-            lines.AddRange(divergences.Take(5).Select(x => $"этаж {x.Floor}: {Name(x.Chosen)} вместо {Name(x.Advised)} (−{x.Loss:0.0} п.п.)"));
-            lines.Add($"Всего по оценке мода: −{divergences.Sum(x => x.Loss):0.0} п.п. — это оценка на момент выбора, а не причина исхода.");
+            lines.AddRange(divergences.Take(5).Select(x => FormattableString.Invariant($"этаж {x.Floor}: {Name(x.Chosen)} вместо {Name(x.Advised)} (−{x.Loss:0.0} п.п.)")));
+            lines.Add(FormattableString.Invariant($"Всего по оценке мода: −{divergences.Sum(x => x.Loss):0.0} п.п. — это оценка на момент выбора, а не причина исхода."));
         }
         else lines.Add("Выборы не уступали совету по оценке мода.");
 
