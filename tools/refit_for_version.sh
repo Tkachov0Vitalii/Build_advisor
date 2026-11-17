@@ -6,8 +6,8 @@
 #                     see https://spire-codex.com/api/runs/versions)
 #   <export version>  build_id values whose runs are exported (newest first)
 # Steps (each is skipped when its output exists, so the script resumes):
-#   1. runs -> extract (tools/build_version_extract.py; MAX_RUNS, default 150000; START = release date
-#      of the oldest export version, needed for older versions, e.g. START=2026-08-10 for v0.111.0)
+#   1. runs -> extract (tools/build_version_extract.py; MAX_RUNS, default 150000; START = a date when
+#      the oldest export version was current, e.g. START=2026-11-01 for v0.111.0)
 #   2. catalogues + card metrics of the slice (all runs and per character)
 #   3. Ancient relic values  -> <work>/ancient.json, report, C# table preview
 #   4. relic x card synergies -> <work>/synergies.json, report

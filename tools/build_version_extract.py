@@ -21,7 +21,7 @@ Output: <out>/part-NNNNNN.jsonl.gz (one per export page) and <out>/splits.tsv
 so an interrupted download resumes from the last cursor.
 
 Usage:
-    python3 tools/build_version_extract.py <out dir> v0.111.1 [v0.111.0 ...] [--max-runs 150000] [--page 5000] [--start 2026-08-10]
+    python3 tools/build_version_extract.py <out dir> v0.111.1 [v0.111.0 ...] [--max-runs 150000] [--page 1000] [--start 2026-11-01]
 """
 import argparse
 import gzip
@@ -103,8 +103,9 @@ def main():
     parser.add_argument('out')
     parser.add_argument('versions', nargs='+')
     parser.add_argument('--max-runs', type=int, default=150_000, help='kept runs over all versions')
-    parser.add_argument('--page', type=int, default=5_000)
-    parser.add_argument('--start', help='ISO date when the oldest requested version came out (e.g. 2026-08-10 for v0.111.0)')
+    parser.add_argument('--page', type=int, default=1_000)
+    parser.add_argument('--start', help='ISO date to start from. The server scans forward from it and times out where the version is rare '
+                             '(v0.111.0 from 2026-08-10 timed out, from 2026-11-01 1,000 runs took 17 s): pick a date when the version was the current one')
     args = parser.parse_args()
     os.makedirs(args.out, exist_ok=True)
     state_path = os.path.join(args.out, 'state.json')
@@ -113,7 +114,14 @@ def main():
     for version in args.versions:
         while version not in state['done'] and state['kept'] < args.max_runs:
             started = time.time()
-            body, cursor = fetch(version, args.page, state['cursors'].get(version), args.start)
+            try:
+                body, cursor = fetch(version, args.page, state['cursors'].get(version), args.start)
+            except Exception as error:
+                # The tail of an older version is sparse and times out: keep what was fetched.
+                print(f'{version}: giving up after retries ({error}); keeping {state["kept"]} runs', file=sys.stderr)
+                state['done'].append(version)
+                json.dump(state, open(state_path, 'w'), indent=1)
+                continue
             part = os.path.join(args.out, 'part-%06d.jsonl.gz' % state['part'])
             kept = seen = 0
             with gzip.open(io.BytesIO(body), 'rt', encoding='utf-8') as source, gzip.open(part, 'wt', compresslevel=6) as out:
