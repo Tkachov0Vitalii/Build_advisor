@@ -6,7 +6,8 @@
 #                     see https://spire-codex.com/api/runs/versions)
 #   <export version>  build_id values whose runs are exported (newest first)
 # Steps (each is skipped when its output exists, so the script resumes):
-#   1. runs -> extract (tools/build_version_extract.py; MAX_RUNS, default 150000)
+#   1. runs -> extract (tools/build_version_extract.py; MAX_RUNS, default 150000; START = release date
+#      of the oldest export version, needed for older versions, e.g. START=2026-08-10 for v0.111.0)
 #   2. catalogues + card metrics of the slice (all runs and per character)
 #   3. Ancient relic values  -> <work>/ancient.json, report, C# table preview
 #   4. relic x card synergies -> <work>/synergies.json, report
@@ -21,7 +22,7 @@ managed="${STS2_MANAGED_DIR:-$root/tools/bin/Debug/net9.0}"
 api="https://spire-codex.com/api"
 
 echo "== 1. extract ($*)"
-python3 "$root/tools/build_version_extract.py" "$work/extract" "$@" --max-runs "${MAX_RUNS:-150000}"
+python3 "$root/tools/build_version_extract.py" "$work/extract" "$@" --max-runs "${MAX_RUNS:-150000}" ${START:+--start "$START"}
 
 echo "== 2. catalogues and $slice metrics"
 get() { [ -s "$2" ] || curl -sSf --retry 3 -m 120 "$1" -o "$2"; }

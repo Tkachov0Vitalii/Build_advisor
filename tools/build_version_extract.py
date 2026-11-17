@@ -21,7 +21,7 @@ Output: <out>/part-NNNNNN.jsonl.gz (one per export page) and <out>/splits.tsv
 so an interrupted download resumes from the last cursor.
 
 Usage:
-    python3 tools/build_version_extract.py <out dir> v0.111.1 [v0.111.0 ...] [--max-runs 150000] [--page 5000]
+    python3 tools/build_version_extract.py <out dir> v0.111.1 [v0.111.0 ...] [--max-runs 150000] [--page 5000] [--start 2026-08-10]
 """
 import argparse
 import gzip
@@ -81,9 +81,11 @@ def split_of(run_hash):
     return 'train' if bucket < 70 else 'validation' if bucket < 85 else 'test'
 
 
-def fetch(version, limit, cursor, attempts=5):
+def fetch(version, limit, cursor, start=None, attempts=5):
     """One export page; the gateway times out on big pages (20,000 runs gave 504), so retry with backoff."""
-    url = f'{API}?version={version}&limit={limit}' + (f'&cursor={cursor}' if cursor else '')
+    # Without `start` the server scans the whole corpus for an older version (even 50 runs of
+    # v0.111.0 timed out after 60 s); with the version's release date it answers in seconds.
+    url = f'{API}?version={version}&limit={limit}' + (f'&cursor={cursor}' if cursor else f'&start={start}' if start else '')
     for attempt in range(attempts):
         try:
             request = urllib.request.Request(url, headers={'User-Agent': 'build-advisor-tools'})
@@ -102,6 +104,7 @@ def main():
     parser.add_argument('versions', nargs='+')
     parser.add_argument('--max-runs', type=int, default=150_000, help='kept runs over all versions')
     parser.add_argument('--page', type=int, default=5_000)
+    parser.add_argument('--start', help='ISO date when the oldest requested version came out (e.g. 2026-08-10 for v0.111.0)')
     args = parser.parse_args()
     os.makedirs(args.out, exist_ok=True)
     state_path = os.path.join(args.out, 'state.json')
@@ -110,7 +113,7 @@ def main():
     for version in args.versions:
         while version not in state['done'] and state['kept'] < args.max_runs:
             started = time.time()
-            body, cursor = fetch(version, args.page, state['cursors'].get(version))
+            body, cursor = fetch(version, args.page, state['cursors'].get(version), args.start)
             part = os.path.join(args.out, 'part-%06d.jsonl.gz' % state['part'])
             kept = seen = 0
             with gzip.open(io.BytesIO(body), 'rt', encoding='utf-8') as source, gzip.open(part, 'wt', compresslevel=6) as out:
