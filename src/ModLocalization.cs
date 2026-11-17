@@ -34,6 +34,8 @@ internal static class ModLocalization
     [
         // 6.18.0 take/skip scale and offline mode
         ("п.п. к победе против пропуска", "pp of win rate vs skipping"),
+        // 7.5 statistics of the played game version
+        ("Статистика сообщества — только забеги версии игры", "Community statistics: runs of game version"),
         // 7.4 Ancient relic values and relic synergies
         ("п.п. к победе против среднего выбора у Древнего в акте", "pp of win rate vs the average Ancient pick in act"),
         ("забегов этого персонажа", "runs of this character"),
@@ -707,8 +709,8 @@ internal static class ModLocalization
         ,("гиря уже поднята 3 раза", "the girya has already been lifted 3 times")
         ,("+1 сила в каждом бою до конца забега (подъёмов осталось", "+1 Strength in every combat for the rest of the run (lifts left:")
         ,("); ценнее с большим числом атак", "); worth more with many attacks")
-        ,("удаляет 2 слабые карты и даёт +9 к макс. HP", "removes 2 weak cards and gives +9 max HP")
-        ,("удаляет 1 слабую карту, вторая — хорошая; +9 к макс. HP", "removes 1 weak card, the second one is good; +9 max HP")
+        ,("удаляет 2 слабые карты и даёт +5 к макс. HP", "removes 2 weak cards and gives +5 max HP")
+        ,("удаляет 1 слабую карту, вторая — хорошая; +5 к макс. HP", "removes 1 weak card, the second one is good; +5 max HP")
         ,("в колоде нет слабых карт для удаления — потеряете хорошие", "the deck has no weak cards to remove — you would lose good ones")
         ,("в колоде нет карт с зачарованием «Клон»", "no cards with the Clone enchantment in the deck")
         ,("карт(ы) с зачарованием «Клон»", "card(s) with the Clone enchantment")

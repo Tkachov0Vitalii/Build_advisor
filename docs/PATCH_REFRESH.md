@@ -1,0 +1,50 @@
+# Обновление мода после патча игры
+
+Порядок действий после балансного патча. Первый раз его готовили 17.11.2026 для **Major Update #3 — v0.111.1**: основная ветка получила изменения беты v0.108–v0.111 (десятки карт, реликвии Древних, мультиплеерные карты). Бета v0.113 (Шут, Blitz, Dread) в основную ветку не вошла.
+
+## Что сделано заранее (не выпущено, ждёт 7.5.0)
+
+| Что | Где | Зачем |
+|---|---|---|
+| Статистика сообщества по версии игры | `src/StatsVersion.cs`, `SpireCodexMetricsClient`, `EventMetricsClient`, `CampfireMetricsClient` | Spire Codex без версии смешивает все патчи. Пример: у «Демонической формы» лифт −5,1 п.п. на `a10:v0.107.1` и +9,5 п.п. на `a10:v0.111.0`. Мод читает версию игры (`ReleaseInfoManager.Instance.ReleaseInfo.Version`) и запрашивает срез `a10:vX.Y.Z`. Если среза нет, берёт предыдущий срез той же версии или ближайшую старую версию; если не подходит ничего — смешанную статистику, как раньше. Выбор пишется в лог игры: `Build Advisor statistics: game v0.111.1, Spire Codex slice v0.111.0.` |
+| Мясницкий тесак: +5 к макс. HP вместо +9 | `CampfireAdvisor` | Проверено в `sts2.dll` v0.111.1 (`CookRestSiteOption._maxHpGain = 5`) |
+| Изменённые реликвии Древних исключены из старой таблицы | `AncientRelicValues.ChangedSinceTable` | Пока таблица не переобучена, они оцениваются по статистике версии |
+| Сборка инструментов с новой `sts2.dll` | `tools/OfflineAdvisorEvaluation.csproj` (Sentry) | С v0.111.1 у `sts2.dll` есть инициализатор модуля, которому нужен `Sentry.Godot.dll` |
+| Конвейер переобучения по версии | `tools/build_version_extract.py`, `tools/refit_for_version.sh`, `tools/gen_ancient_table.py`, `--builds` в `measure_*.py` | Выгрузка забегов нужной версии через `/api/exports/runs?version=` и пересчёт моделей |
+
+Проверка игры на v0.111.1: все 33 Harmony-хука на месте, регрессии проходят.
+
+## Через неделю (напоминание стоит на 24.11.2026, 20:00 по Киеву)
+
+1. **Срез статистики.** Открыть https://spire-codex.com/api/runs/versions. Если `v0.111.1` есть в `stat_versions`, проверить в нём число забегов A10:
+   `https://spire-codex.com/api/runs/metrics/relics?bracket=a10:v0.111.1` → поля `total_runs` и `data_through`.
+   Мод переключится на этот срез сам, когда в нём будет ≥ 20 000 забегов A10 (`StatsVersion.MinimumRuns`). До этого используется `v0.111.0` — бета с тем же содержимым.
+2. **Переобучение** (~1 час, в облаке или на ПК в Git Bash):
+   ```bash
+   tools/refit_for_version.sh ../_refit v0.111.0 v0.111.1 v0.111.0
+   ```
+   Первым аргументом указать срез с данными: `v0.111.1`, если он уже набрался, иначе `v0.111.0`. Выгрузка `v0.111.0` — это бета-забеги с тем же содержимым. 17.11 в `v0.111.1` было всего ~1 500 забегов.
+3. **Проверки перед переносом в мод:**
+   - **Древние** (`ancient-report.json`): корреляция обучающих и отложенных оценок ≥ 0,6, разрыв верхней и нижней трети ≥ 5 п.п. Предпросмотр 17.11 на 36 тыс. забегов v0.111.0: 0,69 и 7,2 п.п. Если проверки пройдены — заменить `src/AncientRelicValues.Generated.cs` новым файлом и очистить `ChangedSinceTable`.
+   - **Синергии** (`synergies-report.json`): переносить только пары, которые прошли отбор (`kept`) и имеют механическую причину.
+   - **Взять/пропустить** (`take-skip-report.json`): в отчёте доля советов «пропустить» по актам должна быть в пределах ±3 п.п. от доли пропусков у победителей. Затем перенести `bars` в `TakeSkipCalibration.Bars` и прогнать часть корпуса через C#: `OfflineAdvisorEvaluation --take-skip` с новыми порогами. Проверять реальный C#, а не только Python (урок 7.3.1).
+4. **Выпуск 7.5.0.** Неопубликованная 7.4.0 войдёт в него. Порядок:
+   - записать изменения в CHANGELOG, обновить номер версии во всех файлах;
+   - запустить `tools/make_release.sh` и установить мод в игру;
+   - **с разрешения владельца** опубликовать на GitHub (`tools/publish_github_release.ps1`), в Steam Workshop (`ModUploader.exe upload -w BuildAdvisor-workshop`) и на Nexus.
+
+## Изменения v0.111.1, важные для мода
+
+- **Реликвии Древних:**
+  - новые у Нео: Neow's Sacrifice, Dowsing Rod;
+  - переработаны: Diamond Diadem, Toasty Mittens;
+  - изменены: Beautiful Bracelet, Fur Coat, Signet Ring, Meat Cleaver, Toybox, Seal of Gold, Sere Talon / Distinguished Cape, Jeweled Mask;
+  - перемещена Sand Castle.
+- **Карты:** изменены десятки карт у всех персонажей. Переработаны Expect a Fight, Expertise, Outbreak (стала навыком), Well-Laid Plans, Haze, Scare → Sidestep, Eidolon, Hyperbeam. Поменялась редкость у Salvo/Splash, Taunt, Bloodletting, Cruelty, Dominate, Accelerant, Echoing Slash, Flanking, Ignition. Добавлены 16 мультиплеерных карт.
+- **Прочее:**
+  - необычные карты выпадают немного чаще;
+  - сиды стали длиной 12 символов;
+  - История забегов записывает больше данных.
+- **Моддинг:** локальная копия мода больше не всегда побеждает. Если версия мода в Steam Workshop выше, игра загрузит её, а не папку `mods/`. Поэтому при ручной установке поверх подписки версия в `mods/` должна быть не ниже версии в Workshop.
+
+Полный текст: https://store.steampowered.com/news/app/2868840/view/708914425087656392

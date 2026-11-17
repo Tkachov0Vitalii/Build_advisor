@@ -41,10 +41,10 @@ public sealed class SpireCodexMetricsClient
     // until it has enough samples. Any failure of the character request keeps global data.
     public async Task<IReadOnlyDictionary<string, EntityMetric>> GetMetricsAsync(string entityType, string bracket, string? character, CancellationToken cancellationToken = default)
     {
-        var global = await GetMetricsAsync(entityType, bracket, cancellationToken);
+        var (global, used) = await GetGlobalAsync(entityType, bracket, cancellationToken);
         if (string.IsNullOrWhiteSpace(character) || character is "test" or "regression") return global;
         IReadOnlyDictionary<string, EntityMetric> specific;
-        try { specific = await FetchAsync(entityType, global.Count > 0 && bracket != "all" ? bracket : "all", character.Trim().ToLowerInvariant(), cancellationToken); }
+        try { specific = await FetchAsync(entityType, global.Count > 0 && used != "all" ? used : "all", character.Trim().ToLowerInvariant(), cancellationToken); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception error)
         {
@@ -68,14 +68,26 @@ public sealed class SpireCodexMetricsClient
         return merged;
     }
 
-    public async Task<IReadOnlyDictionary<string, EntityMetric>> GetMetricsAsync(string entityType, string bracket = "a10", CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyDictionary<string, EntityMetric>> GetMetricsAsync(string entityType, string bracket = "a10", CancellationToken cancellationToken = default) =>
+        (await GetGlobalAsync(entityType, bracket, cancellationToken)).Data;
+
+    // The bracket actually served travels with the data, so the character request uses the same slice.
+    private async Task<(IReadOnlyDictionary<string, EntityMetric> Data, string Used)> GetGlobalAsync(string entityType, string bracket, CancellationToken cancellationToken)
     {
-        try { return await FetchAsync(entityType, bracket, null, cancellationToken); }
+        // 7.5: the played game version's slice first (StatsVersion); any failure keeps the mixed statistics.
+        var versioned = StatsVersion.Apply(bracket, await StatsVersion.ResolveAsync(TimeSpan.FromSeconds(5)));
+        if (versioned != bracket)
+        {
+            try { return (await FetchAsync(entityType, versioned, null, cancellationToken), versioned); }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+            catch (Exception error) { GD.Print($"Build Advisor metrics: version slice {versioned} unavailable ({error.Message}); using {bracket}."); }
+        }
+        try { return (await FetchAsync(entityType, bracket, null, cancellationToken), bracket); }
         catch (HttpRequestException error) when (bracket != "all" && error.StatusCode == System.Net.HttpStatusCode.BadRequest)
         {
             // An unknown bracket must degrade to all runs, never to "no statistics".
             GD.Print($"Build Advisor metrics: bracket {bracket} rejected by Spire Codex; using all runs.");
-            return await FetchAsync(entityType, "all", null, cancellationToken);
+            return (await FetchAsync(entityType, "all", null, cancellationToken), "all");
         }
     }
 

@@ -17,9 +17,19 @@ internal static partial class AncientRelicValues
     internal static string Key(string relicId) =>
         new string(relicId.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
 
+    // 7.5: Ancient relics changed in v0.108–v0.111 (Major Update #3, main branch v0.111.1). The
+    // table mixes builds (most runs v0.107.1), so these keep the version-sliced community score
+    // until the table is refitted on v0.111+ runs. Neow's Sacrifice and Dowsing Rod are new.
+    internal static readonly IReadOnlySet<string> ChangedSinceTable = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "DIAMONDDIADEM", "BEAUTIFULBRACELET", "FURCOAT", "SIGNETRING", "MEATCLEAVER", "TOYBOX",
+        "SEALOFGOLD", "TOASTYMITTENS", "SERETALON", "DISTINGUISHEDCAPE", "JEWELEDMASK", "SANDCASTLE"
+    };
+
     internal static (decimal Pp, int Runs, bool ForCharacter)? Value(string? character, int act, string relicId)
     {
         var relic = Key(relicId);
+        if (ChangedSinceTable.Contains(relic)) return null;
         var stage = Math.Clamp(act, 1, 3);
         if (character is { Length: > 0 } && Table.TryGetValue($"{character.ToLowerInvariant()}:{stage}:{relic}", out var own) && own.Runs >= MinimumCharacterRuns)
             return (own.Pp, own.Runs, true);

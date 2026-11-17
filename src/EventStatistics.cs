@@ -31,14 +31,27 @@ internal sealed class EventMetricsClient
 
     public static string Key(string eventId, string optionId) => SpireCodexMetricsClient.NormalizeId(eventId) + "|" + SpireCodexMetricsClient.NormalizeId(optionId);
 
+    // 7.5: the played game version's slice first, the mixed statistics if it fails.
     public async Task<IReadOnlyDictionary<string, EventOptionMetric>> GetAsync(string bracket, CancellationToken token = default)
+    {
+        var versioned = StatsVersion.Apply(bracket, await StatsVersion.ResolveAsync(TimeSpan.FromSeconds(5)));
+        if (versioned != bracket)
+        {
+            try { return await FetchAsync(versioned, token); }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+            catch (Exception) { }
+        }
+        return await FetchAsync(bracket, token);
+    }
+
+    private async Task<IReadOnlyDictionary<string, EventOptionMetric>> FetchAsync(string bracket, CancellationToken token = default)
     {
         if (Cache.TryGetValue(bracket, out var cached) && cached.Until > DateTimeOffset.UtcNow) return cached.Data;
         await Gate.WaitAsync(token);
         try
         {
             if (Cache.TryGetValue(bracket, out cached) && cached.Until > DateTimeOffset.UtcNow) return cached.Data;
-            var disk = ModPaths.UserData($"events-{bracket}-v1.json");
+            var disk = ModPaths.UserData($"events-{bracket.Replace(':', '_')}-v1.json");
             // Event statistics move slowly: a day-old copy is fresh enough, any copy beats none.
             if (File.Exists(disk) && (NetworkSettings.Offline || DateTime.UtcNow - File.GetLastWriteTimeUtc(disk) < TimeSpan.FromHours(24)))
             {

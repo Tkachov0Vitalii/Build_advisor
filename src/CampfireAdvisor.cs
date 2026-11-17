@@ -94,9 +94,10 @@ internal static class CampfireAdvisor
             case Cook:
             {
                 var targets = Math.Min(2, extras.RemovalTargets);
-                var value = targets * 9m + 3m - (2 - targets) * 6m;
-                return (value, targets == 2 ? "удаляет 2 слабые карты и даёт +9 к макс. HP"
-                    : targets == 1 ? "удаляет 1 слабую карту, вторая — хорошая; +9 к макс. HP"
+                // v0.111.1: CookRestSiteOption._maxHpGain 9 → 5 (about 1 point per 3 max HP).
+                var value = targets * 9m + 5m / 3m - (2 - targets) * 6m;
+                return (value, targets == 2 ? "удаляет 2 слабые карты и даёт +5 к макс. HP"
+                    : targets == 1 ? "удаляет 1 слабую карту, вторая — хорошая; +5 к макс. HP"
                     : "в колоде нет слабых карт для удаления — потеряете хорошие");
             }
             case Clone:
@@ -208,7 +209,20 @@ internal sealed class CampfireMetricsClient
     private static readonly SemaphoreSlim Gate = new(1, 1);
     private static readonly Dictionary<string, (DateTimeOffset Until, IReadOnlyDictionary<string, CampfireMetric> Data)> Cache = new(StringComparer.OrdinalIgnoreCase);
 
+    // 7.5: the played game version's slice first, the mixed statistics if it fails.
     public async Task<IReadOnlyDictionary<string, CampfireMetric>> GetAsync(string bracket, string language, CancellationToken token = default)
+    {
+        var versioned = StatsVersion.Apply(bracket, await StatsVersion.ResolveAsync(TimeSpan.FromSeconds(5)));
+        if (versioned != bracket)
+        {
+            try { return await FetchAsync(versioned, language, token); }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+            catch (Exception) { }
+        }
+        return await FetchAsync(bracket, language, token);
+    }
+
+    private async Task<IReadOnlyDictionary<string, CampfireMetric>> FetchAsync(string bracket, string language, CancellationToken token = default)
     {
         var key = bracket + ":" + language;
         if (Cache.TryGetValue(key, out var cached) && cached.Until > DateTimeOffset.UtcNow) return cached.Data;
@@ -216,7 +230,7 @@ internal sealed class CampfireMetricsClient
         try
         {
             if (Cache.TryGetValue(key, out cached) && cached.Until > DateTimeOffset.UtcNow) return cached.Data;
-            var disk = ModPaths.UserData($"campfires-{bracket}-{language}-v1.json");
+            var disk = ModPaths.UserData($"campfires-{bracket.Replace(':', '_')}-{language}-v1.json");
             if (File.Exists(disk) && (NetworkSettings.Offline || DateTime.UtcNow - File.GetLastWriteTimeUtc(disk) < TimeSpan.FromHours(24)))
             {
                 var saved = await File.ReadAllTextAsync(disk, token);

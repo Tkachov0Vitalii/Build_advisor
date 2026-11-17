@@ -20,5 +20,8 @@
     <Reference Include="sts2"><HintPath>$(Sts2ManagedDir)\sts2.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="GodotSharp"><HintPath>$(Sts2ManagedDir)\GodotSharp.dll</HintPath><Private>true</Private></Reference>
     <Reference Include="0Harmony"><HintPath>$(Sts2ManagedDir)\0Harmony.dll</HintPath><Private>true</Private></Reference>
+    <!-- Since v0.111.1 sts2.dll has a module initializer (SentryAutoInit) that loads Sentry.Godot. -->
+    <Reference Include="Sentry" Condition="Exists('$(Sts2ManagedDir)\Sentry.dll')"><HintPath>$(Sts2ManagedDir)\Sentry.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="Sentry.Godot" Condition="Exists('$(Sts2ManagedDir)\Sentry.Godot.dll')"><HintPath>$(Sts2ManagedDir)\Sentry.Godot.dll</HintPath><Private>true</Private></Reference>
   </ItemGroup>
 </Project>

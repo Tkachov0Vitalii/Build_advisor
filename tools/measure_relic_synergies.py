@@ -97,6 +97,8 @@ def main():
     parser.add_argument('relic_catalog', help='Spire Codex /api/relics?lang=eng')
     parser.add_argument('out')
     parser.add_argument('--report')
+    parser.add_argument('--builds', nargs='*', default=None,
+                        help='keep only runs whose build_id starts with one of these (e.g. v0.111); 7.5')
     args = parser.parse_args()
 
     split_of = {}
@@ -123,7 +125,7 @@ def main():
             for line in handle:
                 run = json.loads(line)
                 split = split_of.get(run['h'])
-                if split not in counts or run.get('ab'):
+                if split not in counts or run.get('ab') or (args.builds and not str(run.get('b', '')).startswith(tuple(args.builds))):
                     continue
                 runs += 1
                 win = run['w']

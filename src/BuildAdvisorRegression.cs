@@ -36,6 +36,7 @@ internal static class BuildAdvisorRegression
             AutoPickFollowsTheVerdict();
             EternalCardsAreNotRemovalTargets();
             AncientRelicsAreValuedAtTheirAct();
+            StatisticsFollowTheGameVersion();
             RelicSynergiesAreCorpusVerified();
             InterfaceStylesAreReadableAndDistinct();
             TakeSkipIsMeasuredFromTheThreshold();
@@ -873,6 +874,10 @@ internal static class BuildAdvisorRegression
         if (CampfireAdvisor.Advise(At(70), ["HEAL", "SMITH", "COOK"], 24m, .2m, upgrade, null, new(RemovalTargets: 2)).Recommended != "COOK" ||
             CampfireAdvisor.Advise(At(70), ["HEAL", "SMITH", "COOK"], 24m, .2m, upgrade, null, new(RemovalTargets: 0)).Recommended == "COOK")
             throw new InvalidOperationException("Cook ignores whether the deck has cards worth removing.");
+        // v0.111.1: Meat Cleaver's Cook gives +5 max HP (was +9).
+        var cook = CampfireAdvisor.Advise(At(70), ["COOK"], null, null, null, null, new(RemovalTargets: 2)).Text;
+        if (!cook.Contains("+5 к макс. HP") || cook.Contains("+9 к макс. HP"))
+            throw new InvalidOperationException("Cook must state the v0.111.1 max HP gain: " + cook);
         if (CampfireAdvisor.Advise(At(70), ["HEAL", "SMITH", "CLONE"], 24m, .2m, upgrade, null, new(CloneCards: 0)).Recommended == "CLONE" ||
             CampfireAdvisor.Advise(At(70), ["HEAL", "SMITH", "KINDLE"], 24m, .2m, upgrade, null, new(KindleLeft: 4)).Recommended == "KINDLE" ||
             CampfireAdvisor.Advise(At(70), ["HEAL", "SMITH", "KINDLE"], 24m, .2m, upgrade, null, new(KindleLeft: 0)).Recommended != "KINDLE")
@@ -1548,6 +1553,34 @@ internal static class BuildAdvisorRegression
             throw new InvalidOperationException("Ancient lines must say what they compare with: " + text);
         var english = ModLocalization.Translate(text, AdvisorLanguage.English);
         if (HasCyrillic(english)) throw new InvalidOperationException("Ancient text is not translated: " + english);
+    }
+
+    // 7.5: community statistics of the played game version (Spire Codex version brackets).
+    private static void StatisticsFollowTheGameVersion()
+    {
+        string[] stats = ["v0.113.1", "v0.113.0", "v0.111.2", "v0.111.0", "v0.110.1", "v0.109.0", "v0.111.0-rc.1", "NON-RELEASE-VERSION"];
+        if (!StatsVersion.Candidates("v0.111.1", stats).SequenceEqual(["v0.111.0", "v0.110.1"]) ||
+            !StatsVersion.Candidates("v0.113.1", stats).SequenceEqual(["v0.113.1", "v0.113.0", "v0.111.2"]) ||
+            StatsVersion.Candidates(null, stats).Count != 0 || StatsVersion.Candidates("v0.111.1", []).Count != 0)
+            throw new InvalidOperationException("Version slices must be the played major.minor (never newer), then the newest older one.");
+        if (StatsVersion.Apply("a10", "v0.111.0") != "a10:v0.111.0" || StatsVersion.Apply("all", "v0.111.0") != "v0.111.0" ||
+            StatsVersion.Apply("wr50", "v0.111.0") != "wr50" || StatsVersion.Apply("a10", null) != "a10")
+            throw new InvalidOperationException("Version brackets are composed wrongly.");
+        static bool Usable(string json) { using var document = System.Text.Json.JsonDocument.Parse(json); return StatsVersion.IsUsable(document.RootElement); }
+        const string Row = "\"rows\":[{\"id\":\"X\",\"lift\":1.0,\"lift_n\":500}]";
+        if (!Usable("{\"data_through\":\"2026-11-17\",\"total_runs\":194211," + Row + "}") ||
+            Usable("{\"data_through\":null,\"total_runs\":2574872," + Row + "}") ||
+            Usable("{\"data_through\":\"2026-11-17\",\"total_runs\":5000," + Row + "}") ||
+            Usable("{\"data_through\":\"2026-11-17\",\"total_runs\":194211,\"rows\":[{\"id\":\"X\",\"lift\":null,\"lift_n\":0}]}"))
+            throw new InvalidOperationException("A version slice is used only with a data date, enough runs and measured lifts.");
+        if (CardRewardPatch.StatsVersionNote(null) != "" || !CardRewardPatch.StatsVersionNote("v0.111.0").Contains("0.111.0"))
+            throw new InvalidOperationException("The statistics note must name the slice in use, and only then.");
+        var english = ModLocalization.Translate(CardRewardPatch.StatsVersionNote("v0.111.0"), AdvisorLanguage.English);
+        if (HasCyrillic(english)) throw new InvalidOperationException("Statistics version note is not translated: " + english);
+        // Ancient relics changed by v0.111.1 drop out of the mixed-build table.
+        if (AncientRelicValues.Value("ironclad", 2, "TOASTY_MITTENS") is not null || AncientRelicValues.Value("ironclad", 1, "MEAT_CLEAVER") is not null ||
+            AncientRelicValues.Value("ironclad", 2, "SNECKO_EYE") is null)
+            throw new InvalidOperationException("Ancient relics changed in v0.111.1 must not use the old table.");
     }
 
     // 7.4 (H7): only corpus-verified relic × card synergies change the score.

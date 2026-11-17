@@ -243,8 +243,12 @@ public static class CardRewardPatch
                "\n\n" + DeckActionPlanner.Create(context, assessment, CardRewardPatch.Catalog.TryGetCached()) +
                (coachPending ? "\nПохожие победные колоды ещё проверяются…" : coach is null ? "\nПохожая победная колода не найдена — использована базовая модель." : $"\nНайдена похожая победная колода: {coach.Archetype}; сравнено вариантов: {coach.Offers.Count}.") +
                "\n\n" + ArchetypeAdvisor.Format(ArchetypeAdvisor.Current(context, coach).Direction, ArchetypeAdvisor.Current(context, coach).Candidates) +
-               "\nБаза — общая сила карты по статистике и нашей модели. Поправки в скобках показывают влияние именно на текущую колоду.";
+               "\nБаза — общая сила карты по статистике и нашей модели. Поправки в скобках показывают влияние именно на текущую колоду." +
+               StatsVersionNote(StatsVersion.InUse);
     }
+
+    internal static string StatsVersionNote(string? slice) =>
+        slice is null ? "" : $"\nСтатистика сообщества — только забеги версии игры {slice.TrimStart('v')}.";
 
     internal static IReadOnlyList<AdviceOverlay.CardSearchEntry> BuildSearchEntries(RunContext context, IReadOnlyDictionary<string, CardDefinition> catalog, IReadOnlyDictionary<string, EntityMetric> metrics)
     {

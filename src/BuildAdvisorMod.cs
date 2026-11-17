@@ -1,3 +1,4 @@
+using BuildAdvisor.Data;
 using System.Reflection;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Logging;
@@ -39,6 +40,22 @@ public static class BuildAdvisorMod
         Log.Info(passed
             ? $"Build Advisor {ModVersion.Current} loaded; {patchSummary}; regression matrix passed."
             : $"Build Advisor {ModVersion.Current} loaded; {patchSummary}; regression matrix failed: " + BuildAdvisorRegression.LastError);
+
+        // 7.5: community statistics for the played game version (set after the regression run,
+        // which must keep the unversioned brackets).
+        try { StatsVersion.GameVersion = MegaCrit.Sts2.Core.Debug.ReleaseInfoManager.Instance?.ReleaseInfo?.Version; }
+        catch (Exception exception) { Log.Warn("Build Advisor: game version unavailable: " + exception.Message); }
+        _ = LogStatsVersionAsync();
+    }
+
+    private static async Task LogStatsVersionAsync()
+    {
+        try
+        {
+            var version = await StatsVersion.ResolveAsync(TimeSpan.FromMinutes(2));
+            Log.Info($"Build Advisor statistics: game {StatsVersion.GameVersion ?? "unknown"}, Spire Codex slice {version ?? "all versions (no slice for this version)"}.");
+        }
+        catch (Exception exception) { Log.Warn("Build Advisor statistics version: " + exception.Message); }
     }
 }
 
