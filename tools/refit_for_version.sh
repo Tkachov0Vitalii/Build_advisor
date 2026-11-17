@@ -57,7 +57,7 @@ offline="$work/offline"
 [ -s "$work/takeskip.jsonl" ] || (cd "$offline" && dotnet OfflineAdvisorEvaluation.dll --take-skip "$work/extract" \
   "$work/extract/splits.tsv" "$work/api/cards-rus.json" "$work/api" "$work/takeskip.jsonl")
 [ -s "$work/lift-centers.json" ] || (cd "$offline" && dotnet OfflineAdvisorEvaluation.dll --lift-centers "$work/api" \
-  "$work/api/cards-rus.json" > "$work/lift-centers.json")
+  "$work/api/cards-rus.json" | grep '^{' > "$work/lift-centers.json")   # the game's Sentry initializer prints to stdout
 python3 "$root/tools/calibrate_take_skip.py" "$work/takeskip.jsonl" "$work/lift-centers.json" "$work/take-skip.json" \
   --report "$work/take-skip-report.json" > /dev/null
 
