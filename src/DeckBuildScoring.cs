@@ -168,7 +168,12 @@ internal static class DeckBuildScoring
         if (context.Hp > 0 && context.Hp * 3 < context.MaxHp || coreDefense < defenseTarget) needs.Add("защита");
         if (context.Act == 1 && coreAttacks < 2) needs.Add("быстрый урон");
         if (context.Act >= 2 && powers < 2 && !archetypes.Any(x => x.Contains("Темп"))) needs.Add("масштабирование");
-        if (deck.Length >= 14 && draw < 2) needs.Add("добор");
+        // 7.6: no draw need in act 1. On 174k v0.111.x runs a draw card picked in act 1 won no more
+        // than its community lift predicts (floors 1-8: -0.4/-0.3/+0.1 pp on train/validation/test),
+        // and where the bonus moved a draw card above the community favourite it chose a card with
+        // about 1 pp less lift that did not win more. Starter decks reach 14 cards after 2-4 rewards,
+        // so the bonus used to push weak draw cards early.
+        if (context.Act >= 2 && deck.Length >= 14 && draw < 2) needs.Add("добор");
         if (averageCost >= 1.7 && energy == 0 && !context.Relics.Any(IsEnergyRelic)) needs.Add("энергия");
         if (needs.Count == 0) needs.Add("синергия/качество");
 

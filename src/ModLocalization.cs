@@ -34,6 +34,30 @@ internal static class ModLocalization
     [
         // 6.18.0 take/skip scale and offline mode
         ("п.п. к победе против пропуска", "pp of win rate vs skipping"),
+        // 7.6 Slippery Bridge
+        ("Скользкий мост: статистика Spire Codex здесь не используется — дольше держатся только забеги с запасом HP, поэтому у «Удержать равновесие» завышенный винрейт. Совет сравнивает карту, которую вы потеряете, со следующей случайной и ценой в HP.",
+         "Slippery Bridge: Spire Codex statistics are not used here — only runs with HP to spare keep holding on, so “Hold On” shows an inflated win rate. The advice compares the card you would lose with the next random card and the HP price."),
+        ("совет недоступен: карта на кону не прочитана (статистика этого события искажена и не используется)",
+         "no advice: the card at stake was not read (this event's statistics are biased and not used)"),
+        ("оцениваю карту на кону…", "valuing the card at stake…"),
+        ("— базовая карта или проклятие: это бесплатное удаление", "— a starter card or a curse: this is a free removal"),
+        ("и так лучше удалить", "is better removed anyway"),
+        ("— слабая для этой колоды (", "— weak for this deck ("),
+        ("п.п. к порогу взятия: наградой вы бы её пропустили)", "pp vs the take threshold: you would skip it as a reward)"),
+        ("не стоит платить HP за слабую карту", "not worth HP for a weak card"),
+        ("п.п. к порогу взятия, ключевая карта)", "pp vs the take threshold, key card)"),
+        ("— HP важнее карты", "— HP matters more than the card"),
+        ("не стоит: меньше половины HP перед следующими боями", "not worth it: below half HP before the next fights"),
+        ("— дальше держаться слишком дорого", "— holding on further costs too much"),
+        ("не стоит: цена растёт с каждой попыткой", "not worth it: the price grows with every try"),
+        ("— следующая карта в среднем не слабее", "— the next card is no weaker on average"),
+        ("— замена почти ничего не даёт", "— a swap gains almost nothing"),
+        ("следующая карта случайная из", "the next card is random among"),
+        ("базовые, проклятия и слабые —", "starters, curses and weak cards:"),
+        ("потеряете", "you lose"),
+        ("не стоит:", "not worth it:"),
+        ("★ лучше", "★ better"),
+        ("не стоит", "not worth it"),
         // 7.5 statistics of the played game version
         ("Статистика сообщества — только забеги версии игры", "Community statistics: runs of game version"),
         // 7.4 Ancient relic values and relic synergies

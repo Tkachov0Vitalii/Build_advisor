@@ -75,6 +75,7 @@ internal static class BuildAdvisorRegression
             BracketMapsToSupportedValues();
             EventKeysAndMetricsParse();
             EventAdviceUsesCommunityLift();
+            SlipperyBridgeFollowsTheCardAtStake();
             PotionAdviceRespectsSlots();
             ScoreBreakdownGroupsAdjustments();
             Release620TextIsTranslated();
@@ -519,7 +520,12 @@ internal static class BuildAdvisorRegression
                 AssertNeed(character, "масштабирование", 18, "SCALE_PICK", ["DEFEND", "DEFEND", "DEFEND", "ATTACK", "ATTACK", "ATTACK", "ATTACK"], 2, 80, 80, catalog, metrics);
                 // Draw still receives a clear need bonus, but a 15th card must also pay the
                 // character-specific deck-size tax introduced by the stronger bloat model.
-                AssertNeed(character, "добор", 10, "DRAW_PICK", Enumerable.Repeat("ATTACK", 11).Concat(Enumerable.Repeat("DEFEND", 3)).ToArray(), 1, 80, 80, catalog, metrics);
+                // 7.6: draw is a need from act 2 on; in act 1 it pushed weak draw cards (no corpus gain).
+                AssertNeed(character, "добор", 10, "DRAW_PICK", Enumerable.Repeat("ATTACK", 11).Concat(Enumerable.Repeat("DEFEND", 3)).ToArray(), 2, 80, 80, catalog, metrics, floor: 20);
+                var actOne = new RunContext(character, Enumerable.Repeat("ATTACK", 11).Concat(Enumerable.Repeat("DEFEND", 3)).ToArray(), [], 0, 1, 6, 80, 80, 99, null, 1m, 0, 0, 0, []);
+                var early = DeckBuildScoring.Evaluate(actOne, ["DRAW_PICK"], catalog, metrics);
+                if (early.Needs.Contains("добор") || early.Offers[0].Adjustments?.Any(x => x.Label == "нужен добор") == true)
+                    throw new InvalidOperationException($"{character}: act 1 must not add the draw-need bonus.");
                 AssertNeed(character, "энергия", 18, "ENERGY_PICK", Enumerable.Repeat("HEAVY_ATTACK", 4).Concat(Enumerable.Repeat("HEAVY_BLOCK", 10)).ToArray(), 1, 80, 80, catalog, metrics);
             }
             finally { ArchetypePreferences.Set(character, previous); }
@@ -528,12 +534,12 @@ internal static class BuildAdvisorRegression
 
     private static void AssertNeed(string character, string need, decimal minimumContext, string offer,
         IReadOnlyList<string> deck, int act, int hp, int maxHp,
-        IReadOnlyDictionary<string, CardDefinition> catalog, IReadOnlyDictionary<string, EntityMetric> metrics)
+        IReadOnlyDictionary<string, CardDefinition> catalog, IReadOnlyDictionary<string, EntityMetric> metrics, int floor = 1)
     {
-        var context = new RunContext(character, deck, [], 0, act, 1, hp, maxHp, 99, null, 1m, 0, 0, 0, []);
+        var context = new RunContext(character, deck, [], 0, act, floor, hp, maxHp, 99, null, 1m, 0, 0, 0, []);
         var result = DeckBuildScoring.Evaluate(context, [offer], catalog, metrics);
         if (!result.Needs.Contains(need) || result.Offers[0].Context < minimumContext)
-            throw new InvalidOperationException($"{character}: scenario '{need}' failed.");
+            throw new InvalidOperationException($"{character}: scenario '{need}' failed: needs {string.Join("/", result.Needs)}, context {result.Offers[0].Context}, {result.Offers[0].Reason}");
     }
 
     private static void DefensiveCardWinsWhenDefenseIsNeeded()
@@ -1169,6 +1175,82 @@ internal static class BuildAdvisorRegression
         var parsed = EventMetricsClient.Parse("""{"rows":[{"event":"SELF_HELP_BOOK","option":"READ_ENTIRE_BOOK","share":40.5,"win_rate":12.3,"lift":2.4,"lift_n":900},{"event":"X","share":1}]}""");
         if (parsed.Count != 1 || !parsed.TryGetValue(EventMetricsClient.Key("SELF_HELP_BOOK", "READ_ENTIRE_BOOK"), out var row) || row.Lift != 2.4m || row.LiftSamples != 900 || row.Share != 40.5m)
             throw new InvalidOperationException("Event metrics were not parsed.");
+    }
+
+    // 7.6 (Steam report): Slippery Bridge advised "Hold On" on every page until it became lethal,
+    // because the survivor-biased lift of HOLD_ON_N grows with N. The verdict now follows the card
+    // at stake, the next random card and the HP price.
+    private static void SlipperyBridgeFollowsTheCardAtStake()
+    {
+        var catalog = new[]
+        {
+            Card("STRIKE_IRONCLAD", "Attack", damage: 6, rarity: "basic"), Card("DEFEND_IRONCLAD", "Skill", block: 5, rarity: "basic"),
+            Card("INJURY", "Curse", rarity: "curse"), Card("KEY_POWER", "Power", rarity: "rare"), Card("KEY_POWER_TWO", "Power", rarity: "rare"),
+            Card("WEAK_SKILL", "Skill", block: 3), Card("ORDINARY_ATTACK", "Attack", damage: 9)
+        }.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
+        EntityMetric Metric(string id, decimal lift) => new(id, id, .3m, 40m, 5000, Lift: lift, LiftSamples: 5000);
+        var metrics = new[] { Metric("KEY_POWER", 25m), Metric("KEY_POWER_TWO", 25m), Metric("WEAK_SKILL", -12m), Metric("ORDINARY_ATTACK", 9.5m) }
+            .ToDictionary(x => x.Id, StringComparer.OrdinalIgnoreCase);
+        var deck = new[] { "STRIKE_IRONCLAD", "STRIKE_IRONCLAD", "STRIKE_IRONCLAD", "STRIKE_IRONCLAD", "DEFEND_IRONCLAD", "DEFEND_IRONCLAD",
+            "DEFEND_IRONCLAD", "DEFEND_IRONCLAD", "KEY_POWER", "KEY_POWER_TWO", "WEAK_SKILL", "ORDINARY_ATTACK" };
+        RunContext Run(int hp) => new("ironclad", deck, [], 0, 1, 8, hp, 80, 99, null, 1.1m, 6, 5, 2, []);
+        BridgeCard C(string id) => new(id, false);
+        var starters = new[] { C("STRIKE_IRONCLAD"), C("STRIKE_IRONCLAD"), C("DEFEND_IRONCLAD"), C("DEFEND_IRONCLAD"), C("WEAK_SKILL") };
+        BridgeAdvice Advise(string shown, int hp, int cost, BridgeCard[] pool) =>
+            SlipperyBridgeAdvisor.Advise(Run(hp), new BridgeState(C(shown), cost, pool), catalog, metrics);
+
+        var ordinary = SlipperyBridgeAdvisor.Measure(Run(80), C("ORDINARY_ATTACK"), catalog, metrics).Delta;
+        if (ordinary <= SlipperyBridgeAdvisor.MinimumSaving || ordinary >= SlipperyBridgeAdvisor.KeyCard)
+            throw new InvalidOperationException("Fixture: ORDINARY_ATTACK must be an ordinary card, got " + ordinary);
+        if (Advise("ORDINARY_ATTACK", 80, 3, starters).HoldOn != true || Advise("ORDINARY_ATTACK", 80, 7, starters).HoldOn != false ||
+            Advise("KEY_POWER", 80, 7, starters).HoldOn != true)
+            throw new InvalidOperationException("An ordinary card is worth up to 5 HP per roll, a key card up to 8.");
+        if (!Advise("STRIKE_IRONCLAD", 80, 3, starters).OvercomeLine.Contains("бесплатное удаление", StringComparison.Ordinal))
+            throw new InvalidOperationException("Losing a starter card must be named a free removal.");
+        if (!Advise("WEAK_SKILL", 80, 3, starters).OvercomeLine.Contains("пропустили", StringComparison.Ordinal))
+            throw new InvalidOperationException("A card below the take threshold must be named weak.");
+        if (Advise("KEY_POWER", 80, 3, starters).HoldOn != true)
+            throw new InvalidOperationException("A key card with a pool of starter cards and full HP must be held on to.");
+        if (Advise("STRIKE_IRONCLAD", 80, 3, starters).HoldOn != false || Advise("INJURY", 80, 3, starters).HoldOn != false)
+            throw new InvalidOperationException("Losing a starter card or a curse is a free removal: never pay HP to keep it.");
+        if (Advise("WEAK_SKILL", 80, 3, starters).HoldOn != false)
+            throw new InvalidOperationException("A card below the take threshold must not cost HP.");
+        if (Advise("KEY_POWER", 42, 3, starters).HoldOn != false || Advise("KEY_POWER", 44, 3, starters).HoldOn != true)
+            throw new InvalidOperationException("Holding on must stop below half of max HP.");
+        if (Advise("KEY_POWER", 80, SlipperyBridgeAdvisor.KeyCostLimit + 1, starters).HoldOn != false)
+            throw new InvalidOperationException("The rising HP price must end the holds.");
+        if (Advise("KEY_POWER", 80, 3, [C("KEY_POWER_TWO")]).HoldOn != false)
+            throw new InvalidOperationException("Holding on is pointless when the next card is as valuable.");
+
+        // The panel: no lift for the bridge (HOLD_ON_0 has +15 pp here), the verdict decides the star.
+        var events = new Dictionary<string, EventOptionMetric>(StringComparer.OrdinalIgnoreCase)
+        {
+            [EventMetricsClient.Key("SLIPPERY_BRIDGE", "HOLD_ON_0")] = new("SLIPPERY_BRIDGE", "HOLD_ON_0", 30m, 50m, 15m, 9000),
+            [EventMetricsClient.Key("SLIPPERY_BRIDGE", "OVERCOME")] = new("SLIPPERY_BRIDGE", "OVERCOME", 40m, 40m, 3m, 9000)
+        };
+        EventChoice[] choices = [new("Overcome", "SLIPPERY_BRIDGE", "OVERCOME", null, false), new("Hold On", "SLIPPERY_BRIDGE", "HOLD_ON_0", null, false)];
+        var noRelics = new Dictionary<string, EntityMetric>();
+        var overcome = EventAdvisor.Rate(choices, events, noRelics, null, _ => "local", bridge: Advise("STRIKE_IRONCLAD", 80, 3, starters));
+        var best = EventAdvisor.Best(overcome);
+        if (overcome.Any(x => x.Lift is not null) || best is null || best.Choice.OptionId != "OVERCOME" ||
+            EventAdvisor.Tag(overcome[0], best).Text != "★ лучше" || EventAdvisor.Tag(overcome[1], best).Text != "не стоит")
+            throw new InvalidOperationException("Slippery Bridge must follow the verdict, not the survivor-biased lift.");
+        var unknown = EventAdvisor.Rate(choices, events, noRelics, null, _ => "local");
+        if (EventAdvisor.Best(unknown) is not null || unknown.Any(x => x.Lift is not null || x.Line != EventAdvisor.BridgeUnknown))
+            throw new InvalidOperationException("Without the card at stake the bridge must show no star and no lift.");
+        var loading = EventAdvisor.Rate(choices, events, noRelics, null, _ => "local", bridge: BridgeAdvice.Loading);
+        if (EventAdvisor.Best(loading) is not null)
+            throw new InvalidOperationException("No star before the card is valued.");
+        var text = string.Join("\n", EventAdvisor.Format(overcome),
+            EventAdvisor.Format(EventAdvisor.Rate(choices, events, noRelics, null, _ => "local", bridge: Advise("KEY_POWER", 80, 3, starters))),
+            EventAdvisor.Format(EventAdvisor.Rate(choices, events, noRelics, null, _ => "local", bridge: Advise("WEAK_SKILL", 80, 3, starters))),
+            EventAdvisor.Format(EventAdvisor.Rate(choices, events, noRelics, null, _ => "local", bridge: Advise("KEY_POWER", 42, 3, starters))),
+            EventAdvisor.Format(EventAdvisor.Rate(choices, events, noRelics, null, _ => "local", bridge: Advise("KEY_POWER", 80, 9, starters))),
+            EventAdvisor.Format(EventAdvisor.Rate(choices, events, noRelics, null, _ => "local", bridge: Advise("KEY_POWER", 80, 3, [C("KEY_POWER_TWO")]))),
+            EventAdvisor.Format(unknown), EventAdvisor.Format(loading), "★ лучше", "не стоит");
+        var english = ModLocalization.Translate(text, AdvisorLanguage.English);
+        if (System.Text.RegularExpressions.Regex.IsMatch(english, "[А-Яа-яЁё]"))
+            throw new InvalidOperationException("Slippery Bridge text is not fully translated: " + english);
     }
 
     private static void EventAdviceUsesCommunityLift()

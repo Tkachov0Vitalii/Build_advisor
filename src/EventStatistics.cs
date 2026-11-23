@@ -100,14 +100,27 @@ internal static class EventAdvisor
 
     internal const string AncientNote = "Реликвии Древнего сравниваются с другими выборами у Древнего в том же акте по корпусу 139 тыс. забегов: все эти забеги дошли до одной точки, поэтому выживание не завышает оценку.";
 
-    internal sealed record Rated(EventChoice Choice, decimal? Lift, int Samples, string Source, string Line);
+    // Preferred: the verdict of a rule-based event (source "bridge"), which has no lift to rank by.
+    internal sealed record Rated(EventChoice Choice, decimal? Lift, int Samples, string Source, string Line, bool Preferred = false);
+
+    internal const string BridgeNote = "Скользкий мост: статистика Spire Codex здесь не используется — дольше держатся только забеги с запасом HP, поэтому у «Удержать равновесие» завышенный винрейт. Совет сравнивает карту, которую вы потеряете, со следующей случайной и ценой в HP.";
+    internal const string BridgeUnknown = "совет недоступен: карта на кону не прочитана (статистика этого события искажена и не используется)";
 
     public static IReadOnlyList<Rated> Rate(IReadOnlyList<EventChoice> choices, IReadOnlyDictionary<string, EventOptionMetric> events,
         IReadOnlyDictionary<string, EntityMetric> relics, IReadOnlyDictionary<string, string>? relicNames, Func<string, string> localHint,
-        RunContext? context = null, decimal? segmentRisk = null)
+        RunContext? context = null, decimal? segmentRisk = null, BridgeAdvice? bridge = null)
     {
         var rated = choices.Select(choice =>
         {
+            // 7.6: Slippery Bridge never uses its survivor-biased lift (SlipperyBridgeAdvisor).
+            if (choice.EventId == SlipperyBridgeAdvisor.EventId)
+            {
+                var hold = choice.OptionId?.StartsWith("HOLD_ON", StringComparison.Ordinal) == true;
+                if (bridge is null) return new Rated(choice, null, 0, "bridge", BridgeUnknown);
+                return hold
+                    ? new Rated(choice, null, 0, "bridge", bridge.HoldLine, bridge.HoldOn == true)
+                    : new Rated(choice, null, 0, "bridge", bridge.OvercomeLine, bridge.HoldOn == false);
+            }
             if (RelicOf(choice, relics, relicNames) is { } relicId && relics.TryGetValue(SpireCodexMetricsClient.NormalizeId(relicId), out var relic) && relic.Lift is { } relicLift)
             {
                 var name = relicNames is not null && relicNames.TryGetValue(SpireCodexMetricsClient.NormalizeId(relicId), out var localized) ? localized : relic.Name;
@@ -158,14 +171,19 @@ internal static class EventAdvisor
     }
 
     // The best option is marked only among options with data and only if it is not lethal.
+    // A rule-based event (Slippery Bridge) marks its preferred option instead.
     public static Rated? Best(IReadOnlyList<Rated> rated) =>
-        rated.Where(x => x.Lift is not null && !x.Choice.Lethal && TakeSkipModel.EvidenceLabel(x.Samples) != "низкая")
-            .OrderByDescending(x => x.Lift).FirstOrDefault();
+        rated.Any(x => x.Source == "bridge")
+            ? rated.FirstOrDefault(x => x.Source == "bridge" && x.Preferred && !x.Choice.Lethal)
+            : rated.Where(x => x.Lift is not null && !x.Choice.Lethal && TakeSkipModel.EvidenceLabel(x.Samples) != "низкая")
+                .OrderByDescending(x => x.Lift).FirstOrDefault();
 
     // Short on-screen verdict for an option button; options without data get none.
     public static (string Text, string Severity, bool Best) Tag(Rated rated, Rated? best)
     {
         if (rated.Choice.Lethal) return ("⚠ смерть", "high", false);
+        if (rated.Source == "bridge")
+            return best is null ? ("", "low", false) : ReferenceEquals(rated, best) ? ("★ лучше", "good", true) : ("не стоит", "medium", false);
         if (rated.Lift is not { } lift) return ("", "low", false);
         var isBest = ReferenceEquals(rated, best);
         return ($"{TakeSkipModel.Format(lift)} п.п.", isBest ? "good" : lift < 0m ? "medium" : "low", isBest);
@@ -182,6 +200,8 @@ internal static class EventAdvisor
             : "Лифт — насколько винрейт забегов, выбравших вариант, выше или ниже среднего по данным Spire Codex. Это корреляция: проверьте цену варианта (HP, золото, проклятия) для своей колоды.";
         if (rated.Any(x => x.Source == "ancient"))
             footer = AncientNote + "\n" + footer;
+        if (rated.Any(x => x.Source == "bridge"))
+            footer = BridgeNote;
         return "Ветки события:\n" + string.Join("\n", lines) + "\n\n" + footer;
     }
 }
