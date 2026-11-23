@@ -1,33 +1,33 @@
 {
- "runs": 138643,
- "tested_pairs": 151,
- "train_significant": 146,
- "kept": 2,
+ "runs": 134092,
+ "tested_pairs": 150,
+ "train_significant": 144,
+ "kept": 3,
  "found": [
   {
    "relic": "ANCHOR",
    "name": "Anchor",
    "feature": "does:block",
    "train": {
-    "did_pp": -0.67,
-    "se_pp": 0.48,
-    "rewards": 65698,
-    "picks": 15155,
-    "not_picks": 50543
+    "did_pp": -0.69,
+    "se_pp": 0.5,
+    "rewards": 63094,
+    "picks": 14743,
+    "not_picks": 48351
    },
    "validation": {
-    "did_pp": -1.53,
-    "se_pp": 1.34,
-    "rewards": 8518,
-    "picks": 1941,
-    "not_picks": 6577
+    "did_pp": -1.88,
+    "se_pp": 1.06,
+    "rewards": 13898,
+    "picks": 3254,
+    "not_picks": 10644
    },
    "test": {
-    "did_pp": 0.24,
-    "se_pp": 1.36,
-    "rewards": 8461,
-    "picks": 1945,
-    "not_picks": 6516
+    "did_pp": -0.1,
+    "se_pp": 1.07,
+    "rewards": 13222,
+    "picks": 3165,
+    "not_picks": 10057
    }
   },
   {
@@ -35,25 +35,25 @@
    "name": "Art of War",
    "feature": "type:attack",
    "train": {
-    "did_pp": 0.05,
-    "se_pp": 0.88,
-    "rewards": 22101,
-    "picks": 4083,
-    "not_picks": 18018
+    "did_pp": -0.74,
+    "se_pp": 1.04,
+    "rewards": 19504,
+    "picks": 2972,
+    "not_picks": 16532
    },
    "validation": {
-    "did_pp": -2.59,
-    "se_pp": 2.38,
-    "rewards": 2807,
-    "picks": 521,
-    "not_picks": 2286
+    "did_pp": 4.17,
+    "se_pp": 2.29,
+    "rewards": 4226,
+    "picks": 662,
+    "not_picks": 3564
    },
    "test": {
-    "did_pp": 3.52,
-    "se_pp": 2.55,
-    "rewards": 2411,
-    "picks": 453,
-    "not_picks": 1958
+    "did_pp": 3.3,
+    "se_pp": 2.1,
+    "rewards": 4231,
+    "picks": 703,
+    "not_picks": 3528
    }
   },
   {
@@ -61,25 +61,25 @@
    "name": "Bag of Marbles",
    "feature": "power:VULNERABLE",
    "train": {
-    "did_pp": -0.67,
-    "se_pp": 1.19,
-    "rewards": 13190,
-    "picks": 2515,
-    "not_picks": 10675
+    "did_pp": 0.21,
+    "se_pp": 1.2,
+    "rewards": 13823,
+    "picks": 2390,
+    "not_picks": 11433
    },
    "validation": {
-    "did_pp": -1.34,
-    "se_pp": 3.13,
-    "rewards": 1534,
-    "picks": 340,
-    "not_picks": 1194
+    "did_pp": -0.59,
+    "se_pp": 2.63,
+    "rewards": 2823,
+    "picks": 531,
+    "not_picks": 2292
    },
    "test": {
-    "did_pp": -0.76,
-    "se_pp": 3.4,
-    "rewards": 1515,
-    "picks": 304,
-    "not_picks": 1211
+    "did_pp": 4.38,
+    "se_pp": 2.67,
+    "rewards": 2878,
+    "picks": 500,
+    "not_picks": 2378
    }
   },
   {
@@ -87,29 +87,25 @@
    "name": "Bag of Preparation",
    "feature": "does:draw",
    "train": {
-    "did_pp": 1.04,
-    "se_pp": 0.5,
-    "rewards": 59926,
-    "picks": 14266,
-    "not_picks": 45660
+    "did_pp": -0.19,
+    "se_pp": 0.53,
+    "rewards": 54435,
+    "picks": 13154,
+    "not_picks": 41281
    },
    "validation": {
-    "did_pp": -1.49,
-    "se_pp": 1.43,
-    "rewards": 7481,
-    "picks": 1722,
-    "not_picks": 5759
+    "did_pp": 0.92,
+    "se_pp": 1.12,
+    "rewards": 11784,
+    "picks": 2885,
+    "not_picks": 8899
    },
    "test": {
-    "did_pp": 0.36,
-    "se_pp": 1.43,
-    "rewards": 6858,
-    "picks": 1695,
-    "not_picks": 5163
-   },
-   "heldout": {
-    "did_pp": -0.56,
-    "se_pp": 1.01
+    "did_pp": -0.35,
+    "se_pp": 1.15,
+    "rewards": 11756,
+    "picks": 2736,
+    "not_picks": 9020
    }
   },
   {
@@ -117,25 +113,25 @@
    "name": "Bellows",
    "feature": "does:draw",
    "train": {
-    "did_pp": 1.42,
-    "se_pp": 0.86,
-    "rewards": 18137,
-    "picks": 4330,
-    "not_picks": 13807
+    "did_pp": 0.23,
+    "se_pp": 1.02,
+    "rewards": 13091,
+    "picks": 3154,
+    "not_picks": 9937
    },
    "validation": {
-    "did_pp": 1.42,
-    "se_pp": 2.3,
-    "rewards": 2550,
-    "picks": 576,
-    "not_picks": 1974
+    "did_pp": 2.36,
+    "se_pp": 2.14,
+    "rewards": 2773,
+    "picks": 706,
+    "not_picks": 2067
    },
    "test": {
-    "did_pp": -1.26,
-    "se_pp": 2.45,
-    "rewards": 2268,
-    "picks": 564,
-    "not_picks": 1704
+    "did_pp": -2.94,
+    "se_pp": 2.14,
+    "rewards": 2820,
+    "picks": 709,
+    "not_picks": 2111
    }
   },
   {
@@ -143,25 +139,25 @@
    "name": "Big Hat",
    "feature": "kw:ETHEREAL",
    "train": {
-    "did_pp": 3.62,
-    "se_pp": 3.55,
-    "rewards": 1025,
-    "picks": 244,
-    "not_picks": 781
+    "did_pp": 2.82,
+    "se_pp": 3.59,
+    "rewards": 941,
+    "picks": 232,
+    "not_picks": 709
    },
    "validation": {
-    "did_pp": -0.26,
-    "se_pp": 16.91,
-    "rewards": 58,
-    "picks": 11,
-    "not_picks": 47
+    "did_pp": 0.49,
+    "se_pp": 8.68,
+    "rewards": 168,
+    "picks": 35,
+    "not_picks": 133
    },
    "test": {
-    "did_pp": -19.68,
-    "se_pp": 11.34,
-    "rewards": 111,
-    "picks": 23,
-    "not_picks": 88
+    "did_pp": -0.36,
+    "se_pp": 9.29,
+    "rewards": 176,
+    "picks": 34,
+    "not_picks": 142
    }
   },
   {
@@ -169,25 +165,25 @@
    "name": "Big Mushroom",
    "feature": "does:draw",
    "train": {
-    "did_pp": -2.02,
-    "se_pp": 2.79,
-    "rewards": 2106,
-    "picks": 405,
-    "not_picks": 1701
+    "did_pp": 0.4,
+    "se_pp": 2.9,
+    "rewards": 1891,
+    "picks": 368,
+    "not_picks": 1523
    },
    "validation": {
-    "did_pp": -20.54,
-    "se_pp": 11.79,
-    "rewards": 79,
-    "picks": 22,
-    "not_picks": 57
+    "did_pp": 6.25,
+    "se_pp": 6.37,
+    "rewards": 375,
+    "picks": 74,
+    "not_picks": 301
    },
    "test": {
-    "did_pp": 1.38,
-    "se_pp": 10.49,
-    "rewards": 120,
-    "picks": 28,
-    "not_picks": 92
+    "did_pp": 4.19,
+    "se_pp": 6.85,
+    "rewards": 326,
+    "picks": 65,
+    "not_picks": 261
    }
   },
   {
@@ -195,25 +191,25 @@
    "name": "Biiig Hug",
    "feature": "does:draw",
    "train": {
-    "did_pp": -1.75,
-    "se_pp": 1.45,
-    "rewards": 6654,
-    "picks": 1548,
-    "not_picks": 5106
+    "did_pp": -0.11,
+    "se_pp": 1.36,
+    "rewards": 7273,
+    "picks": 1724,
+    "not_picks": 5549
    },
    "validation": {
-    "did_pp": -4.26,
-    "se_pp": 3.99,
-    "rewards": 722,
-    "picks": 186,
-    "not_picks": 536
+    "did_pp": 1.55,
+    "se_pp": 2.98,
+    "rewards": 1522,
+    "picks": 365,
+    "not_picks": 1157
    },
    "test": {
-    "did_pp": 1.6,
-    "se_pp": 3.93,
-    "rewards": 756,
-    "picks": 194,
-    "not_picks": 562
+    "did_pp": -1.74,
+    "se_pp": 2.95,
+    "rewards": 1432,
+    "picks": 344,
+    "not_picks": 1088
    }
   },
   {
@@ -221,29 +217,25 @@
    "name": "Blessed Antler",
    "feature": "does:draw",
    "train": {
-    "did_pp": 4.3,
-    "se_pp": 1.9,
-    "rewards": 3827,
-    "picks": 841,
-    "not_picks": 2986
+    "did_pp": 0.95,
+    "se_pp": 2.24,
+    "rewards": 3075,
+    "picks": 639,
+    "not_picks": 2436
    },
    "validation": {
-    "did_pp": 13.33,
-    "se_pp": 4.97,
-    "rewards": 534,
-    "picks": 122,
-    "not_picks": 412
+    "did_pp": 1.81,
+    "se_pp": 4.62,
+    "rewards": 703,
+    "picks": 158,
+    "not_picks": 545
    },
    "test": {
-    "did_pp": -4.9,
-    "se_pp": 5.73,
-    "rewards": 390,
-    "picks": 88,
-    "not_picks": 302
-   },
-   "heldout": {
-    "did_pp": 5.5,
-    "se_pp": 3.75
+    "did_pp": 1.37,
+    "se_pp": 4.27,
+    "rewards": 636,
+    "picks": 160,
+    "not_picks": 476
    }
   },
   {
@@ -251,25 +243,25 @@
    "name": "Bone Flute",
    "feature": "does:block",
    "train": {
-    "did_pp": -1.53,
-    "se_pp": 1.54,
-    "rewards": 6241,
-    "picks": 1360,
-    "not_picks": 4881
+    "did_pp": -1.91,
+    "se_pp": 1.62,
+    "rewards": 5573,
+    "picks": 1271,
+    "not_picks": 4302
    },
    "validation": {
-    "did_pp": -4.65,
-    "se_pp": 4.2,
-    "rewards": 803,
-    "picks": 186,
-    "not_picks": 617
+    "did_pp": 3.53,
+    "se_pp": 3.44,
+    "rewards": 1222,
+    "picks": 276,
+    "not_picks": 946
    },
    "test": {
-    "did_pp": -0.95,
-    "se_pp": 4.44,
-    "rewards": 641,
-    "picks": 152,
-    "not_picks": 489
+    "did_pp": -4.21,
+    "se_pp": 3.59,
+    "rewards": 1104,
+    "picks": 267,
+    "not_picks": 837
    }
   },
   {
@@ -277,25 +269,25 @@
    "name": "Bone Flute",
    "feature": "type:attack",
    "train": {
-    "did_pp": 1.52,
-    "se_pp": 1.15,
-    "rewards": 12088,
-    "picks": 2617,
-    "not_picks": 9471
+    "did_pp": 2.2,
+    "se_pp": 1.27,
+    "rewards": 11005,
+    "picks": 2149,
+    "not_picks": 8856
    },
    "validation": {
-    "did_pp": 2.28,
-    "se_pp": 3.03,
-    "rewards": 1595,
-    "picks": 372,
-    "not_picks": 1223
+    "did_pp": -1.94,
+    "se_pp": 2.75,
+    "rewards": 2399,
+    "picks": 445,
+    "not_picks": 1954
    },
    "test": {
-    "did_pp": 4.58,
-    "se_pp": 3.33,
-    "rewards": 1220,
-    "picks": 273,
-    "not_picks": 947
+    "did_pp": -4.03,
+    "se_pp": 2.84,
+    "rewards": 2203,
+    "picks": 404,
+    "not_picks": 1799
    }
   },
   {
@@ -303,11 +295,11 @@
    "name": "Bookmark",
    "feature": "kw:RETAIN",
    "train": {
-    "did_pp": 10.35,
-    "se_pp": 6.55,
-    "rewards": 512,
-    "picks": 75,
-    "not_picks": 437
+    "did_pp": 0.6,
+    "se_pp": 6.14,
+    "rewards": 500,
+    "picks": 69,
+    "not_picks": 431
    },
    "validation": null,
    "test": null
@@ -317,25 +309,25 @@
    "name": "Book Repair Knife",
    "feature": "power:DOOM",
    "train": {
-    "did_pp": 2.93,
-    "se_pp": 3.0,
-    "rewards": 1554,
-    "picks": 423,
-    "not_picks": 1131
+    "did_pp": -0.73,
+    "se_pp": 3.48,
+    "rewards": 1288,
+    "picks": 291,
+    "not_picks": 997
    },
    "validation": {
-    "did_pp": -13.88,
-    "se_pp": 9.1,
-    "rewards": 116,
-    "picks": 30,
-    "not_picks": 86
+    "did_pp": -2.1,
+    "se_pp": 6.92,
+    "rewards": 279,
+    "picks": 66,
+    "not_picks": 213
    },
    "test": {
-    "did_pp": 12.65,
-    "se_pp": 8.14,
-    "rewards": 181,
-    "picks": 60,
-    "not_picks": 121
+    "did_pp": 13.4,
+    "se_pp": 7.01,
+    "rewards": 280,
+    "picks": 66,
+    "not_picks": 214
    }
   },
   {
@@ -343,25 +335,25 @@
    "name": "Booming Conch",
    "feature": "does:draw",
    "train": {
-    "did_pp": -0.04,
-    "se_pp": 0.7,
-    "rewards": 23374,
-    "picks": 6603,
-    "not_picks": 16771
+    "did_pp": -1.32,
+    "se_pp": 0.73,
+    "rewards": 22541,
+    "picks": 6151,
+    "not_picks": 16390
    },
    "validation": {
-    "did_pp": 0.79,
-    "se_pp": 2.0,
-    "rewards": 2886,
-    "picks": 747,
-    "not_picks": 2139
+    "did_pp": -0.2,
+    "se_pp": 1.57,
+    "rewards": 4705,
+    "picks": 1304,
+    "not_picks": 3401
    },
    "test": {
-    "did_pp": -3.34,
-    "se_pp": 2.09,
-    "rewards": 2578,
-    "picks": 747,
-    "not_picks": 1831
+    "did_pp": 2.11,
+    "se_pp": 1.54,
+    "rewards": 4998,
+    "picks": 1376,
+    "not_picks": 3622
    }
   },
   {
@@ -369,13 +361,19 @@
    "name": "Brimstone",
    "feature": "power:STRENGTH",
    "train": {
-    "did_pp": -14.08,
-    "se_pp": 5.1,
-    "rewards": 605,
-    "picks": 115,
-    "not_picks": 490
+    "did_pp": -1.77,
+    "se_pp": 5.78,
+    "rewards": 525,
+    "picks": 76,
+    "not_picks": 449
    },
-   "validation": null,
+   "validation": {
+    "did_pp": 47.06,
+    "se_pp": 14.49,
+    "rewards": 53,
+    "picks": 12,
+    "not_picks": 41
+   },
    "test": null
   },
   {
@@ -383,25 +381,25 @@
    "name": "Burning Sticks",
    "feature": "kw:EXHAUST",
    "train": {
-    "did_pp": 0.07,
-    "se_pp": 2.34,
-    "rewards": 2200,
-    "picks": 531,
-    "not_picks": 1669
+    "did_pp": -4.78,
+    "se_pp": 2.84,
+    "rewards": 1685,
+    "picks": 407,
+    "not_picks": 1278
    },
    "validation": {
-    "did_pp": -11.79,
-    "se_pp": 13.14,
-    "rewards": 49,
-    "picks": 20,
-    "not_picks": 29
+    "did_pp": 3.85,
+    "se_pp": 8.02,
+    "rewards": 182,
+    "picks": 46,
+    "not_picks": 136
    },
    "test": {
-    "did_pp": -19.89,
-    "se_pp": 19.39,
-    "rewards": 26,
-    "picks": 11,
-    "not_picks": 15
+    "did_pp": 5.16,
+    "se_pp": 6.53,
+    "rewards": 329,
+    "picks": 76,
+    "not_picks": 253
    }
   },
   {
@@ -409,25 +407,29 @@
    "name": "Burning Sticks",
    "feature": "type:skill",
    "train": {
-    "did_pp": -1.54,
-    "se_pp": 1.42,
-    "rewards": 4883,
-    "picks": 1662,
-    "not_picks": 3221
+    "did_pp": -4.63,
+    "se_pp": 1.56,
+    "rewards": 4266,
+    "picks": 1503,
+    "not_picks": 2763
    },
    "validation": {
-    "did_pp": -6.83,
-    "se_pp": 4.37,
-    "rewards": 526,
-    "picks": 172,
-    "not_picks": 354
+    "did_pp": -0.24,
+    "se_pp": 3.65,
+    "rewards": 778,
+    "picks": 239,
+    "not_picks": 539
    },
    "test": {
-    "did_pp": -6.99,
-    "se_pp": 4.63,
-    "rewards": 506,
-    "picks": 163,
-    "not_picks": 343
+    "did_pp": 2.03,
+    "se_pp": 3.03,
+    "rewards": 1045,
+    "picks": 361,
+    "not_picks": 684
+   },
+   "heldout": {
+    "did_pp": 1.1,
+    "se_pp": 2.33
    }
   },
   {
@@ -435,29 +437,25 @@
    "name": "Captain's Wheel",
    "feature": "does:block",
    "train": {
-    "did_pp": 2.19,
-    "se_pp": 0.93,
-    "rewards": 15863,
-    "picks": 3617,
-    "not_picks": 12246
+    "did_pp": -0.22,
+    "se_pp": 0.97,
+    "rewards": 14904,
+    "picks": 3472,
+    "not_picks": 11432
    },
    "validation": {
-    "did_pp": 4.49,
-    "se_pp": 2.62,
-    "rewards": 2002,
-    "picks": 452,
-    "not_picks": 1550
+    "did_pp": 1.92,
+    "se_pp": 2.17,
+    "rewards": 3035,
+    "picks": 706,
+    "not_picks": 2329
    },
    "test": {
-    "did_pp": -0.54,
-    "se_pp": 2.94,
-    "rewards": 1857,
-    "picks": 404,
-    "not_picks": 1453
-   },
-   "heldout": {
-    "did_pp": 2.26,
-    "se_pp": 1.96
+    "did_pp": -1.01,
+    "se_pp": 2.09,
+    "rewards": 3122,
+    "picks": 724,
+    "not_picks": 2398
    }
   },
   {
@@ -465,25 +463,25 @@
    "name": "Centennial Puzzle",
    "feature": "does:draw",
    "train": {
-    "did_pp": 0.03,
-    "se_pp": 0.53,
-    "rewards": 53327,
-    "picks": 12805,
-    "not_picks": 40522
+    "did_pp": 0.2,
+    "se_pp": 0.54,
+    "rewards": 50099,
+    "picks": 12186,
+    "not_picks": 37913
    },
    "validation": {
-    "did_pp": 0.41,
-    "se_pp": 1.44,
-    "rewards": 7029,
-    "picks": 1653,
-    "not_picks": 5376
+    "did_pp": 1.15,
+    "se_pp": 1.2,
+    "rewards": 10289,
+    "picks": 2459,
+    "not_picks": 7830
    },
    "test": {
-    "did_pp": -0.72,
-    "se_pp": 1.48,
-    "rewards": 6678,
-    "picks": 1682,
-    "not_picks": 4996
+    "did_pp": 1.0,
+    "se_pp": 1.2,
+    "rewards": 10373,
+    "picks": 2559,
+    "not_picks": 7814
    }
   },
   {
@@ -491,25 +489,25 @@
    "name": "Charon's Ashes",
    "feature": "kw:EXHAUST",
    "train": {
-    "did_pp": -1.87,
-    "se_pp": 3.3,
-    "rewards": 1270,
-    "picks": 316,
-    "not_picks": 954
+    "did_pp": 2.89,
+    "se_pp": 2.88,
+    "rewards": 1614,
+    "picks": 408,
+    "not_picks": 1206
    },
    "validation": {
-    "did_pp": -0.89,
-    "se_pp": 7.8,
-    "rewards": 218,
-    "picks": 50,
-    "not_picks": 168
+    "did_pp": 7.0,
+    "se_pp": 5.84,
+    "rewards": 344,
+    "picks": 101,
+    "not_picks": 243
    },
    "test": {
-    "did_pp": 10.72,
-    "se_pp": 7.4,
-    "rewards": 203,
-    "picks": 61,
-    "not_picks": 142
+    "did_pp": -6.89,
+    "se_pp": 6.62,
+    "rewards": 358,
+    "picks": 89,
+    "not_picks": 269
    }
   },
   {
@@ -517,25 +515,25 @@
    "name": "Cloak Clasp",
    "feature": "does:block",
    "train": {
-    "did_pp": -0.99,
-    "se_pp": 0.93,
-    "rewards": 15880,
-    "picks": 3646,
-    "not_picks": 12234
+    "did_pp": 0.47,
+    "se_pp": 0.95,
+    "rewards": 15070,
+    "picks": 3490,
+    "not_picks": 11580
    },
    "validation": {
-    "did_pp": -2.48,
-    "se_pp": 2.45,
-    "rewards": 2216,
-    "picks": 527,
-    "not_picks": 1689
+    "did_pp": -0.24,
+    "se_pp": 2.12,
+    "rewards": 3208,
+    "picks": 732,
+    "not_picks": 2476
    },
    "test": {
-    "did_pp": -3.84,
-    "se_pp": 2.7,
-    "rewards": 1913,
-    "picks": 440,
-    "not_picks": 1473
+    "did_pp": 2.59,
+    "se_pp": 2.01,
+    "rewards": 3207,
+    "picks": 785,
+    "not_picks": 2422
    }
   },
   {
@@ -543,29 +541,25 @@
    "name": "Crossbow",
    "feature": "type:attack",
    "train": {
-    "did_pp": 5.37,
-    "se_pp": 1.53,
-    "rewards": 7427,
-    "picks": 1115,
-    "not_picks": 6312
+    "did_pp": -1.94,
+    "se_pp": 1.71,
+    "rewards": 7638,
+    "picks": 917,
+    "not_picks": 6721
    },
    "validation": {
-    "did_pp": -2.5,
-    "se_pp": 4.05,
-    "rewards": 1045,
-    "picks": 180,
-    "not_picks": 865
+    "did_pp": 5.52,
+    "se_pp": 3.65,
+    "rewards": 1427,
+    "picks": 172,
+    "not_picks": 1255
    },
    "test": {
-    "did_pp": 0.1,
-    "se_pp": 4.24,
-    "rewards": 1022,
-    "picks": 151,
-    "not_picks": 871
-   },
-   "heldout": {
-    "did_pp": -1.26,
-    "se_pp": 2.93
+    "did_pp": 0.37,
+    "se_pp": 3.77,
+    "rewards": 1492,
+    "picks": 177,
+    "not_picks": 1315
    }
   },
   {
@@ -573,29 +567,25 @@
    "name": "Daughter of the Wind",
    "feature": "does:block",
    "train": {
-    "did_pp": -2.68,
+    "did_pp": 0.06,
     "se_pp": 1.07,
-    "rewards": 12595,
-    "picks": 2741,
-    "not_picks": 9854
+    "rewards": 12419,
+    "picks": 2714,
+    "not_picks": 9705
    },
    "validation": {
-    "did_pp": 3.31,
-    "se_pp": 2.81,
-    "rewards": 1656,
-    "picks": 373,
-    "not_picks": 1283
+    "did_pp": 1.73,
+    "se_pp": 2.36,
+    "rewards": 2616,
+    "picks": 566,
+    "not_picks": 2050
    },
    "test": {
-    "did_pp": 2.08,
-    "se_pp": 3.05,
-    "rewards": 1475,
-    "picks": 345,
-    "not_picks": 1130
-   },
-   "heldout": {
-    "did_pp": 2.75,
-    "se_pp": 2.07
+    "did_pp": -4.05,
+    "se_pp": 2.37,
+    "rewards": 2685,
+    "picks": 556,
+    "not_picks": 2129
    }
   },
   {
@@ -603,25 +593,51 @@
    "name": "Daughter of the Wind",
    "feature": "type:attack",
    "train": {
-    "did_pp": 1.39,
-    "se_pp": 0.98,
-    "rewards": 21409,
-    "picks": 3358,
-    "not_picks": 18051
+    "did_pp": 1.65,
+    "se_pp": 1.03,
+    "rewards": 20676,
+    "picks": 2980,
+    "not_picks": 17696
    },
    "validation": {
-    "did_pp": 4.71,
-    "se_pp": 2.55,
-    "rewards": 2841,
-    "picks": 463,
-    "not_picks": 2378
+    "did_pp": 4.18,
+    "se_pp": 2.31,
+    "rewards": 4349,
+    "picks": 564,
+    "not_picks": 3785
    },
    "test": {
-    "did_pp": -1.44,
-    "se_pp": 2.7,
-    "rewards": 2440,
-    "picks": 449,
-    "not_picks": 1991
+    "did_pp": -1.2,
+    "se_pp": 2.14,
+    "rewards": 4429,
+    "picks": 639,
+    "not_picks": 3790
+   }
+  },
+  {
+   "relic": "DIAMONDDIADEM",
+   "name": "Diamond Diadem",
+   "feature": "does:block",
+   "train": {
+    "did_pp": 0.35,
+    "se_pp": 1.67,
+    "rewards": 5214,
+    "picks": 1014,
+    "not_picks": 4200
+   },
+   "validation": {
+    "did_pp": 1.52,
+    "se_pp": 4.0,
+    "rewards": 1010,
+    "picks": 171,
+    "not_picks": 839
+   },
+   "test": {
+    "did_pp": 0.87,
+    "se_pp": 3.57,
+    "rewards": 1112,
+    "picks": 211,
+    "not_picks": 901
    }
   },
   {
@@ -629,25 +645,25 @@
    "name": "Electric Shrymp",
    "feature": "type:skill",
    "train": {
-    "did_pp": -1.18,
-    "se_pp": 0.74,
-    "rewards": 19914,
-    "picks": 6917,
-    "not_picks": 12997
+    "did_pp": -0.28,
+    "se_pp": 0.7,
+    "rewards": 22398,
+    "picks": 7921,
+    "not_picks": 14477
    },
    "validation": {
-    "did_pp": -3.77,
-    "se_pp": 1.97,
-    "rewards": 2686,
-    "picks": 977,
-    "not_picks": 1709
+    "did_pp": 0.59,
+    "se_pp": 1.53,
+    "rewards": 4497,
+    "picks": 1633,
+    "not_picks": 2864
    },
    "test": {
-    "did_pp": -5.4,
-    "se_pp": 1.99,
-    "rewards": 2591,
-    "picks": 971,
-    "not_picks": 1620
+    "did_pp": -1.79,
+    "se_pp": 1.59,
+    "rewards": 4380,
+    "picks": 1519,
+    "not_picks": 2861
    }
   },
   {
@@ -655,25 +671,25 @@
    "name": "Ember Tea",
    "feature": "power:STRENGTH",
    "train": {
-    "did_pp": 2.78,
-    "se_pp": 3.73,
-    "rewards": 1034,
-    "picks": 222,
-    "not_picks": 812
+    "did_pp": -0.26,
+    "se_pp": 4.49,
+    "rewards": 791,
+    "picks": 153,
+    "not_picks": 638
    },
    "validation": {
-    "did_pp": 14.34,
-    "se_pp": 17.35,
-    "rewards": 47,
-    "picks": 10,
-    "not_picks": 37
+    "did_pp": 22.88,
+    "se_pp": 12.21,
+    "rewards": 93,
+    "picks": 21,
+    "not_picks": 72
    },
    "test": {
-    "did_pp": 20.76,
-    "se_pp": 16.81,
-    "rewards": 56,
-    "picks": 11,
-    "not_picks": 45
+    "did_pp": -3.23,
+    "se_pp": 9.59,
+    "rewards": 148,
+    "picks": 33,
+    "not_picks": 115
    }
   },
   {
@@ -681,25 +697,25 @@
    "name": "Anchor???",
    "feature": "does:block",
    "train": {
-    "did_pp": -1.93,
-    "se_pp": 1.28,
-    "rewards": 8791,
-    "picks": 1833,
-    "not_picks": 6958
+    "did_pp": 0.32,
+    "se_pp": 1.31,
+    "rewards": 8154,
+    "picks": 1751,
+    "not_picks": 6403
    },
    "validation": {
-    "did_pp": -7.35,
-    "se_pp": 3.65,
-    "rewards": 1114,
-    "picks": 226,
-    "not_picks": 888
+    "did_pp": 1.23,
+    "se_pp": 2.71,
+    "rewards": 1960,
+    "picks": 388,
+    "not_picks": 1572
    },
    "test": {
-    "did_pp": 2.44,
-    "se_pp": 3.44,
-    "rewards": 1253,
-    "picks": 260,
-    "not_picks": 993
+    "did_pp": -3.07,
+    "se_pp": 3.02,
+    "rewards": 1677,
+    "picks": 324,
+    "not_picks": 1353
    }
   },
   {
@@ -707,25 +723,25 @@
    "name": "Orichalcum???",
    "feature": "does:block",
    "train": {
-    "did_pp": -2.44,
-    "se_pp": 2.07,
-    "rewards": 3396,
-    "picks": 674,
-    "not_picks": 2722
+    "did_pp": 2.61,
+    "se_pp": 2.34,
+    "rewards": 2679,
+    "picks": 537,
+    "not_picks": 2142
    },
    "validation": {
-    "did_pp": -1.88,
-    "se_pp": 7.71,
-    "rewards": 246,
-    "picks": 49,
-    "not_picks": 197
+    "did_pp": -0.79,
+    "se_pp": 6.39,
+    "rewards": 402,
+    "picks": 72,
+    "not_picks": 330
    },
    "test": {
-    "did_pp": -6.63,
-    "se_pp": 7.61,
-    "rewards": 242,
-    "picks": 60,
-    "not_picks": 182
+    "did_pp": -3.8,
+    "se_pp": 6.76,
+    "rewards": 327,
+    "picks": 61,
+    "not_picks": 266
    }
   },
   {
@@ -733,25 +749,25 @@
    "name": "Strike Dummy???",
    "feature": "name:strike",
    "train": {
-    "did_pp": -0.74,
-    "se_pp": 3.2,
-    "rewards": 1457,
-    "picks": 325,
-    "not_picks": 1132
+    "did_pp": 1.66,
+    "se_pp": 4.02,
+    "rewards": 871,
+    "picks": 196,
+    "not_picks": 675
    },
    "validation": {
-    "did_pp": -5.83,
-    "se_pp": 12.92,
-    "rewards": 89,
-    "picks": 19,
-    "not_picks": 70
+    "did_pp": -10.41,
+    "se_pp": 8.66,
+    "rewards": 178,
+    "picks": 33,
+    "not_picks": 145
    },
    "test": {
-    "did_pp": 0.59,
-    "se_pp": 8.45,
-    "rewards": 195,
-    "picks": 41,
-    "not_picks": 154
+    "did_pp": -7.91,
+    "se_pp": 8.44,
+    "rewards": 214,
+    "picks": 43,
+    "not_picks": 171
    }
   },
   {
@@ -759,39 +775,55 @@
    "name": "Fiddle",
    "feature": "does:draw",
    "train": {
-    "did_pp": -8.63,
-    "se_pp": 4.0,
-    "rewards": 2414,
-    "picks": 188,
-    "not_picks": 2226
+    "did_pp": -6.39,
+    "se_pp": 3.16,
+    "rewards": 2743,
+    "picks": 252,
+    "not_picks": 2491
    },
-   "validation": null,
-   "test": null
+   "validation": {
+    "did_pp": 13.23,
+    "se_pp": 6.34,
+    "rewards": 276,
+    "picks": 24,
+    "not_picks": 252
+   },
+   "test": {
+    "did_pp": 2.43,
+    "se_pp": 11.99,
+    "rewards": 141,
+    "picks": 18,
+    "not_picks": 123
+   },
+   "heldout": {
+    "did_pp": 10.87,
+    "se_pp": 5.6
+   }
   },
   {
    "relic": "FORGOTTENSOUL",
    "name": "Forgotten Soul",
    "feature": "kw:EXHAUST",
    "train": {
-    "did_pp": 1.21,
-    "se_pp": 2.11,
-    "rewards": 3183,
-    "picks": 650,
-    "not_picks": 2533
+    "did_pp": 1.48,
+    "se_pp": 2.39,
+    "rewards": 2406,
+    "picks": 472,
+    "not_picks": 1934
    },
    "validation": {
-    "did_pp": 8.68,
-    "se_pp": 6.79,
-    "rewards": 265,
-    "picks": 52,
-    "not_picks": 213
+    "did_pp": -7.66,
+    "se_pp": 5.68,
+    "rewards": 500,
+    "picks": 90,
+    "not_picks": 410
    },
    "test": {
-    "did_pp": 4.13,
-    "se_pp": 6.21,
-    "rewards": 261,
-    "picks": 61,
-    "not_picks": 200
+    "did_pp": -0.93,
+    "se_pp": 5.48,
+    "rewards": 500,
+    "picks": 98,
+    "not_picks": 402
    }
   },
   {
@@ -799,29 +831,25 @@
    "name": "Fresnel Lens",
    "feature": "does:block",
    "train": {
-    "did_pp": 1.3,
-    "se_pp": 0.58,
-    "rewards": 29565,
-    "picks": 11470,
-    "not_picks": 18095
+    "did_pp": -1.21,
+    "se_pp": 0.61,
+    "rewards": 27595,
+    "picks": 10539,
+    "not_picks": 17056
    },
    "validation": {
-    "did_pp": -3.78,
-    "se_pp": 1.61,
-    "rewards": 3638,
-    "picks": 1403,
-    "not_picks": 2235
+    "did_pp": 0.19,
+    "se_pp": 1.31,
+    "rewards": 5888,
+    "picks": 2241,
+    "not_picks": 3647
    },
    "test": {
-    "did_pp": -0.79,
-    "se_pp": 1.64,
-    "rewards": 3662,
-    "picks": 1413,
-    "not_picks": 2249
-   },
-   "heldout": {
-    "did_pp": -2.31,
-    "se_pp": 1.15
+    "did_pp": -1.53,
+    "se_pp": 1.39,
+    "rewards": 5473,
+    "picks": 1988,
+    "not_picks": 3485
    }
   },
   {
@@ -829,25 +857,25 @@
    "name": "Frozen Egg",
    "feature": "type:power",
    "train": {
-    "did_pp": 0.87,
-    "se_pp": 0.94,
-    "rewards": 11798,
-    "picks": 4375,
-    "not_picks": 7423
+    "did_pp": 0.61,
+    "se_pp": 0.98,
+    "rewards": 10824,
+    "picks": 4099,
+    "not_picks": 6725
    },
    "validation": {
-    "did_pp": 8.04,
-    "se_pp": 2.6,
-    "rewards": 1426,
-    "picks": 563,
-    "not_picks": 863
+    "did_pp": -0.82,
+    "se_pp": 2.06,
+    "rewards": 2369,
+    "picks": 899,
+    "not_picks": 1470
    },
    "test": {
-    "did_pp": 2.15,
-    "se_pp": 2.53,
-    "rewards": 1493,
-    "picks": 517,
-    "not_picks": 976
+    "did_pp": -0.4,
+    "se_pp": 2.09,
+    "rewards": 2317,
+    "picks": 902,
+    "not_picks": 1415
    }
   },
   {
@@ -855,25 +883,25 @@
    "name": "Funerary Mask",
    "feature": "does:draw",
    "train": {
-    "did_pp": 1.1,
-    "se_pp": 1.86,
-    "rewards": 4045,
-    "picks": 896,
-    "not_picks": 3149
+    "did_pp": 1.63,
+    "se_pp": 2.08,
+    "rewards": 3188,
+    "picks": 661,
+    "not_picks": 2527
    },
    "validation": {
-    "did_pp": 4.8,
-    "se_pp": 5.49,
-    "rewards": 542,
-    "picks": 106,
-    "not_picks": 436
+    "did_pp": 2.33,
+    "se_pp": 4.38,
+    "rewards": 789,
+    "picks": 153,
+    "not_picks": 636
    },
    "test": {
-    "did_pp": 4.29,
-    "se_pp": 5.13,
-    "rewards": 513,
-    "picks": 102,
-    "not_picks": 411
+    "did_pp": -1.95,
+    "se_pp": 4.38,
+    "rewards": 729,
+    "picks": 152,
+    "not_picks": 577
    }
   },
   {
@@ -881,25 +909,25 @@
    "name": "Galactic Dust",
    "feature": "does:block",
    "train": {
-    "did_pp": -2.46,
-    "se_pp": 1.9,
-    "rewards": 3436,
-    "picks": 873,
-    "not_picks": 2563
+    "did_pp": -1.91,
+    "se_pp": 1.98,
+    "rewards": 3292,
+    "picks": 862,
+    "not_picks": 2430
    },
    "validation": {
-    "did_pp": -11.61,
-    "se_pp": 5.12,
-    "rewards": 441,
-    "picks": 127,
-    "not_picks": 314
+    "did_pp": 3.89,
+    "se_pp": 4.32,
+    "rewards": 653,
+    "picks": 187,
+    "not_picks": 466
    },
    "test": {
-    "did_pp": -2.48,
-    "se_pp": 5.2,
-    "rewards": 444,
-    "picks": 119,
-    "not_picks": 325
+    "did_pp": -4.93,
+    "se_pp": 4.61,
+    "rewards": 602,
+    "picks": 146,
+    "not_picks": 456
    }
   },
   {
@@ -907,29 +935,25 @@
    "name": "Gambling Chip",
    "feature": "does:draw",
    "train": {
-    "did_pp": 2.07,
-    "se_pp": 1.02,
-    "rewards": 13068,
-    "picks": 3001,
-    "not_picks": 10067
+    "did_pp": -0.56,
+    "se_pp": 1.04,
+    "rewards": 12094,
+    "picks": 2906,
+    "not_picks": 9188
    },
    "validation": {
-    "did_pp": -2.82,
-    "se_pp": 2.73,
-    "rewards": 1767,
-    "picks": 442,
-    "not_picks": 1325
+    "did_pp": -0.39,
+    "se_pp": 2.23,
+    "rewards": 2498,
+    "picks": 622,
+    "not_picks": 1876
    },
    "test": {
-    "did_pp": -2.19,
-    "se_pp": 2.72,
-    "rewards": 1576,
-    "picks": 418,
-    "not_picks": 1158
-   },
-   "heldout": {
-    "did_pp": -2.5,
-    "se_pp": 1.93
+    "did_pp": 1.5,
+    "se_pp": 2.23,
+    "rewards": 2657,
+    "picks": 644,
+    "not_picks": 2013
    }
   },
   {
@@ -937,25 +961,25 @@
    "name": "Game Piece",
    "feature": "does:draw",
    "train": {
-    "did_pp": 0.99,
-    "se_pp": 1.06,
-    "rewards": 11870,
-    "picks": 2799,
-    "not_picks": 9071
+    "did_pp": 0.41,
+    "se_pp": 1.07,
+    "rewards": 11246,
+    "picks": 2661,
+    "not_picks": 8585
    },
    "validation": {
-    "did_pp": -6.65,
-    "se_pp": 2.81,
-    "rewards": 1567,
-    "picks": 382,
-    "not_picks": 1185
+    "did_pp": 3.23,
+    "se_pp": 2.37,
+    "rewards": 2259,
+    "picks": 530,
+    "not_picks": 1729
    },
    "test": {
-    "did_pp": 1.09,
-    "se_pp": 2.59,
-    "rewards": 1624,
-    "picks": 426,
-    "not_picks": 1198
+    "did_pp": -0.9,
+    "se_pp": 2.22,
+    "rewards": 2527,
+    "picks": 589,
+    "not_picks": 1938
    }
   },
   {
@@ -963,56 +987,55 @@
    "name": "Game Piece",
    "feature": "type:power",
    "train": {
-    "did_pp": 3.3,
+    "did_pp": 4.01,
     "se_pp": 0.97,
-    "rewards": 12120,
-    "picks": 3443,
-    "not_picks": 8677
+    "rewards": 11308,
+    "picks": 3411,
+    "not_picks": 7897
    },
    "validation": {
-    "did_pp": 2.88,
-    "se_pp": 2.49,
-    "rewards": 1709,
-    "picks": 488,
-    "not_picks": 1221
+    "did_pp": 2.15,
+    "se_pp": 2.14,
+    "rewards": 2337,
+    "picks": 695,
+    "not_picks": 1642
    },
    "test": {
-    "did_pp": 5.76,
-    "se_pp": 2.54,
-    "rewards": 1659,
-    "picks": 468,
-    "not_picks": 1191
+    "did_pp": 1.4,
+    "se_pp": 2.08,
+    "rewards": 2449,
+    "picks": 756,
+    "not_picks": 1693
    },
    "heldout": {
-    "did_pp": 4.29,
-    "se_pp": 1.78
-   },
-   "pp": 2.51
+    "did_pp": 1.76,
+    "se_pp": 1.49
+   }
   },
   {
    "relic": "GHOSTSEED",
    "name": "Ghost Seed",
    "feature": "kw:ETHEREAL",
    "train": {
-    "did_pp": -0.46,
-    "se_pp": 3.61,
-    "rewards": 1019,
-    "picks": 251,
-    "not_picks": 768
+    "did_pp": 2.56,
+    "se_pp": 3.71,
+    "rewards": 892,
+    "picks": 245,
+    "not_picks": 647
    },
    "validation": {
-    "did_pp": 10.61,
-    "se_pp": 10.33,
-    "rewards": 109,
-    "picks": 28,
-    "not_picks": 81
+    "did_pp": 7.45,
+    "se_pp": 8.83,
+    "rewards": 171,
+    "picks": 44,
+    "not_picks": 127
    },
    "test": {
-    "did_pp": 0.49,
-    "se_pp": 11.15,
-    "rewards": 58,
-    "picks": 18,
-    "not_picks": 40
+    "did_pp": 13.89,
+    "se_pp": 7.11,
+    "rewards": 210,
+    "picks": 49,
+    "not_picks": 161
    }
   },
   {
@@ -1020,39 +1043,51 @@
    "name": "Ghost Seed",
    "feature": "name:strike",
    "train": {
-    "did_pp": -4.3,
-    "se_pp": 4.09,
-    "rewards": 1501,
-    "picks": 192,
-    "not_picks": 1309
+    "did_pp": -2.1,
+    "se_pp": 3.97,
+    "rewards": 1411,
+    "picks": 179,
+    "not_picks": 1232
    },
-   "validation": null,
-   "test": null
+   "validation": {
+    "did_pp": 14.3,
+    "se_pp": 9.65,
+    "rewards": 220,
+    "picks": 28,
+    "not_picks": 192
+   },
+   "test": {
+    "did_pp": 4.58,
+    "se_pp": 11.52,
+    "rewards": 104,
+    "picks": 17,
+    "not_picks": 87
+   }
   },
   {
    "relic": "GIRYA",
    "name": "Girya",
    "feature": "does:multihit",
    "train": {
-    "did_pp": 0.64,
-    "se_pp": 2.39,
-    "rewards": 4118,
-    "picks": 516,
-    "not_picks": 3602
+    "did_pp": 1.18,
+    "se_pp": 2.84,
+    "rewards": 3879,
+    "picks": 422,
+    "not_picks": 3457
    },
    "validation": {
-    "did_pp": 1.44,
-    "se_pp": 15.13,
-    "rewards": 51,
-    "picks": 11,
-    "not_picks": 40
+    "did_pp": 8.8,
+    "se_pp": 8.13,
+    "rewards": 350,
+    "picks": 43,
+    "not_picks": 307
    },
    "test": {
-    "did_pp": 15.49,
-    "se_pp": 11.65,
-    "rewards": 121,
-    "picks": 24,
-    "not_picks": 97
+    "did_pp": 10.14,
+    "se_pp": 10.05,
+    "rewards": 182,
+    "picks": 30,
+    "not_picks": 152
    }
   },
   {
@@ -1060,25 +1095,25 @@
    "name": "Girya",
    "feature": "power:STRENGTH",
    "train": {
-    "did_pp": 5.27,
-    "se_pp": 2.99,
-    "rewards": 1703,
-    "picks": 337,
-    "not_picks": 1366
+    "did_pp": 3.65,
+    "se_pp": 2.88,
+    "rewards": 1746,
+    "picks": 335,
+    "not_picks": 1411
    },
    "validation": {
-    "did_pp": -10.61,
-    "se_pp": 15.23,
-    "rewards": 68,
-    "picks": 13,
-    "not_picks": 55
+    "did_pp": 11.54,
+    "se_pp": 8.05,
+    "rewards": 320,
+    "picks": 49,
+    "not_picks": 271
    },
    "test": {
-    "did_pp": 19.69,
-    "se_pp": 11.68,
-    "rewards": 136,
-    "picks": 26,
-    "not_picks": 110
+    "did_pp": 3.81,
+    "se_pp": 8.02,
+    "rewards": 282,
+    "picks": 46,
+    "not_picks": 236
    }
   },
   {
@@ -1086,25 +1121,29 @@
    "name": "Gnarled Hammer",
    "feature": "type:attack",
    "train": {
-    "did_pp": -1.85,
-    "se_pp": 1.38,
-    "rewards": 8613,
-    "picks": 1665,
-    "not_picks": 6948
+    "did_pp": -4.28,
+    "se_pp": 1.61,
+    "rewards": 6922,
+    "picks": 1203,
+    "not_picks": 5719
    },
    "validation": {
-    "did_pp": 6.64,
-    "se_pp": 4.08,
-    "rewards": 869,
-    "picks": 164,
-    "not_picks": 705
+    "did_pp": 3.89,
+    "se_pp": 3.54,
+    "rewards": 1369,
+    "picks": 248,
+    "not_picks": 1121
    },
    "test": {
-    "did_pp": 4.19,
-    "se_pp": 4.68,
-    "rewards": 777,
-    "picks": 145,
-    "not_picks": 632
+    "did_pp": -8.15,
+    "se_pp": 3.98,
+    "rewards": 1100,
+    "picks": 172,
+    "not_picks": 928
+   },
+   "heldout": {
+    "did_pp": -1.43,
+    "se_pp": 2.65
    }
   },
   {
@@ -1112,25 +1151,25 @@
    "name": "Gremlin Horn",
    "feature": "does:draw",
    "train": {
-    "did_pp": 0.72,
-    "se_pp": 0.71,
-    "rewards": 27745,
-    "picks": 6694,
-    "not_picks": 21051
+    "did_pp": 1.25,
+    "se_pp": 0.75,
+    "rewards": 24207,
+    "picks": 5840,
+    "not_picks": 18367
    },
    "validation": {
-    "did_pp": 0.56,
-    "se_pp": 1.91,
-    "rewards": 3696,
-    "picks": 884,
-    "not_picks": 2812
+    "did_pp": 1.41,
+    "se_pp": 1.64,
+    "rewards": 5028,
+    "picks": 1203,
+    "not_picks": 3825
    },
    "test": {
-    "did_pp": -3.3,
-    "se_pp": 1.93,
-    "rewards": 3610,
-    "picks": 907,
-    "not_picks": 2703
+    "did_pp": -2.25,
+    "se_pp": 1.62,
+    "rewards": 5269,
+    "picks": 1278,
+    "not_picks": 3991
    }
   },
   {
@@ -1138,25 +1177,29 @@
    "name": "Hand Drill",
    "feature": "does:block",
    "train": {
-    "did_pp": 1.16,
-    "se_pp": 1.53,
-    "rewards": 4602,
-    "picks": 1232,
-    "not_picks": 3370
+    "did_pp": 4.48,
+    "se_pp": 1.58,
+    "rewards": 4357,
+    "picks": 1274,
+    "not_picks": 3083
    },
    "validation": {
-    "did_pp": 2.98,
-    "se_pp": 4.65,
-    "rewards": 371,
-    "picks": 122,
-    "not_picks": 249
+    "did_pp": -6.3,
+    "se_pp": 3.62,
+    "rewards": 747,
+    "picks": 223,
+    "not_picks": 524
    },
    "test": {
-    "did_pp": -3.13,
-    "se_pp": 4.15,
-    "rewards": 495,
-    "picks": 155,
-    "not_picks": 340
+    "did_pp": -2.45,
+    "se_pp": 3.36,
+    "rewards": 977,
+    "picks": 285,
+    "not_picks": 692
+   },
+   "heldout": {
+    "did_pp": -4.23,
+    "se_pp": 2.46
    }
   },
   {
@@ -1164,85 +1207,77 @@
    "name": "Hand Drill",
    "feature": "power:VULNERABLE",
    "train": {
-    "did_pp": 6.09,
-    "se_pp": 3.65,
-    "rewards": 916,
-    "picks": 208,
-    "not_picks": 708
+    "did_pp": 6.2,
+    "se_pp": 4.09,
+    "rewards": 753,
+    "picks": 165,
+    "not_picks": 588
    },
    "validation": {
-    "did_pp": -15.29,
-    "se_pp": 13.23,
-    "rewards": 33,
-    "picks": 10,
-    "not_picks": 23
+    "did_pp": 6.8,
+    "se_pp": 11.82,
+    "rewards": 59,
+    "picks": 17,
+    "not_picks": 42
    },
-   "test": null
+   "test": {
+    "did_pp": -3.22,
+    "se_pp": 10.99,
+    "rewards": 117,
+    "picks": 27,
+    "not_picks": 90
+   }
   },
   {
    "relic": "HELICALDART",
    "name": "Helical Dart",
    "feature": "power:DEXTERITY",
    "train": {
-    "did_pp": -4.67,
-    "se_pp": 5.8,
-    "rewards": 445,
-    "picks": 83,
-    "not_picks": 362
+    "did_pp": 5.88,
+    "se_pp": 5.42,
+    "rewards": 519,
+    "picks": 101,
+    "not_picks": 418
    },
-   "validation": null,
-   "test": null
+   "validation": {
+    "did_pp": 4.27,
+    "se_pp": 11.34,
+    "rewards": 60,
+    "picks": 10,
+    "not_picks": 50
+   },
+   "test": {
+    "did_pp": -3.83,
+    "se_pp": 16.71,
+    "rewards": 47,
+    "picks": 11,
+    "not_picks": 36
+   }
   },
   {
    "relic": "HISTORYCOURSE",
    "name": "History Course",
    "feature": "type:attack",
    "train": {
-    "did_pp": 2.33,
-    "se_pp": 1.6,
-    "rewards": 5549,
-    "picks": 769,
-    "not_picks": 4780
+    "did_pp": 0.17,
+    "se_pp": 2.14,
+    "rewards": 3623,
+    "picks": 453,
+    "not_picks": 3170
    },
    "validation": {
-    "did_pp": 0.86,
-    "se_pp": 4.6,
-    "rewards": 654,
-    "picks": 84,
-    "not_picks": 570
+    "did_pp": 8.31,
+    "se_pp": 4.32,
+    "rewards": 540,
+    "picks": 80,
+    "not_picks": 460
    },
    "test": {
-    "did_pp": 13.13,
-    "se_pp": 3.51,
-    "rewards": 652,
-    "picks": 86,
-    "not_picks": 566
-   }
-  },
-  {
-   "relic": "HISTORYCOURSE",
-   "name": "History Course",
-   "feature": "type:skill",
-   "train": {
-    "did_pp": -1.03,
-    "se_pp": 1.16,
-    "rewards": 5402,
-    "picks": 1493,
-    "not_picks": 3909
-   },
-   "validation": {
-    "did_pp": 0.88,
-    "se_pp": 3.45,
-    "rewards": 629,
-    "picks": 159,
-    "not_picks": 470
-   },
-   "test": {
-    "did_pp": -2.76,
-    "se_pp": 3.19,
-    "rewards": 642,
-    "picks": 178,
-    "not_picks": 464
+    "did_pp": 3.81,
+    "se_pp": 3.93,
+    "rewards": 818,
+    "picks": 101,
+    "not_picks": 717
    }
   },
   {
@@ -1250,25 +1285,25 @@
    "name": "Horn Cleat",
    "feature": "does:block",
    "train": {
-    "did_pp": -0.64,
-    "se_pp": 0.62,
-    "rewards": 37501,
-    "picks": 8799,
-    "not_picks": 28702
+    "did_pp": -0.88,
+    "se_pp": 0.65,
+    "rewards": 34487,
+    "picks": 8049,
+    "not_picks": 26438
    },
    "validation": {
-    "did_pp": -1.0,
-    "se_pp": 1.74,
-    "rewards": 4817,
-    "picks": 1115,
-    "not_picks": 3702
+    "did_pp": -2.78,
+    "se_pp": 1.42,
+    "rewards": 7348,
+    "picks": 1670,
+    "not_picks": 5678
    },
    "test": {
-    "did_pp": -1.42,
-    "se_pp": 1.85,
-    "rewards": 4432,
-    "picks": 988,
-    "not_picks": 3444
+    "did_pp": 4.44,
+    "se_pp": 1.36,
+    "rewards": 7396,
+    "picks": 1755,
+    "not_picks": 5641
    }
   },
   {
@@ -1276,25 +1311,25 @@
    "name": "Intimidating Helmet",
    "feature": "does:block",
    "train": {
-    "did_pp": -1.06,
-    "se_pp": 0.96,
-    "rewards": 14149,
-    "picks": 3330,
-    "not_picks": 10819
+    "did_pp": -0.39,
+    "se_pp": 0.99,
+    "rewards": 14004,
+    "picks": 3222,
+    "not_picks": 10782
    },
    "validation": {
-    "did_pp": 3.74,
-    "se_pp": 2.71,
-    "rewards": 1765,
-    "picks": 434,
-    "not_picks": 1331
+    "did_pp": -0.74,
+    "se_pp": 2.11,
+    "rewards": 2916,
+    "picks": 726,
+    "not_picks": 2190
    },
    "test": {
-    "did_pp": 2.72,
-    "se_pp": 2.74,
-    "rewards": 1741,
-    "picks": 398,
-    "not_picks": 1343
+    "did_pp": 0.59,
+    "se_pp": 2.15,
+    "rewards": 2722,
+    "picks": 656,
+    "not_picks": 2066
    }
   },
   {
@@ -1302,25 +1337,25 @@
    "name": "Iron Club",
    "feature": "does:draw",
    "train": {
-    "did_pp": -0.92,
-    "se_pp": 1.67,
-    "rewards": 4058,
-    "picks": 859,
-    "not_picks": 3199
+    "did_pp": -3.24,
+    "se_pp": 1.78,
+    "rewards": 4084,
+    "picks": 865,
+    "not_picks": 3219
    },
    "validation": {
-    "did_pp": -4.39,
-    "se_pp": 4.89,
-    "rewards": 502,
-    "picks": 105,
-    "not_picks": 397
+    "did_pp": 5.53,
+    "se_pp": 3.12,
+    "rewards": 920,
+    "picks": 216,
+    "not_picks": 704
    },
    "test": {
-    "did_pp": -7.25,
-    "se_pp": 5.22,
-    "rewards": 517,
-    "picks": 129,
-    "not_picks": 388
+    "did_pp": -5.05,
+    "se_pp": 4.15,
+    "rewards": 755,
+    "picks": 165,
+    "not_picks": 590
    }
   },
   {
@@ -1328,25 +1363,25 @@
    "name": "Jeweled Mask",
    "feature": "does:draw",
    "train": {
-    "did_pp": -0.08,
-    "se_pp": 1.52,
-    "rewards": 7217,
-    "picks": 1374,
-    "not_picks": 5843
+    "did_pp": -1.03,
+    "se_pp": 1.56,
+    "rewards": 6399,
+    "picks": 1241,
+    "not_picks": 5158
    },
    "validation": {
-    "did_pp": -4.55,
-    "se_pp": 4.47,
-    "rewards": 981,
-    "picks": 169,
-    "not_picks": 812
+    "did_pp": -7.38,
+    "se_pp": 3.51,
+    "rewards": 1385,
+    "picks": 277,
+    "not_picks": 1108
    },
    "test": {
-    "did_pp": 2.49,
-    "se_pp": 3.79,
-    "rewards": 971,
-    "picks": 225,
-    "not_picks": 746
+    "did_pp": 2.09,
+    "se_pp": 3.38,
+    "rewards": 1357,
+    "picks": 289,
+    "not_picks": 1068
    }
   },
   {
@@ -1354,25 +1389,25 @@
    "name": "Jeweled Mask",
    "feature": "type:power",
    "train": {
-    "did_pp": 0.17,
-    "se_pp": 1.5,
-    "rewards": 6852,
-    "picks": 1359,
-    "not_picks": 5493
+    "did_pp": -2.88,
+    "se_pp": 1.56,
+    "rewards": 6065,
+    "picks": 1287,
+    "not_picks": 4778
    },
    "validation": {
-    "did_pp": 2.6,
-    "se_pp": 4.3,
-    "rewards": 907,
-    "picks": 175,
-    "not_picks": 732
+    "did_pp": 10.3,
+    "se_pp": 3.07,
+    "rewards": 1273,
+    "picks": 263,
+    "not_picks": 1010
    },
    "test": {
-    "did_pp": -5.87,
-    "se_pp": 4.24,
-    "rewards": 927,
-    "picks": 180,
-    "not_picks": 747
+    "did_pp": 1.67,
+    "se_pp": 3.2,
+    "rewards": 1324,
+    "picks": 293,
+    "not_picks": 1031
    }
   },
   {
@@ -1380,25 +1415,25 @@
    "name": "Joss Paper",
    "feature": "does:draw",
    "train": {
-    "did_pp": 1.31,
-    "se_pp": 0.8,
-    "rewards": 20994,
-    "picks": 5127,
-    "not_picks": 15867
+    "did_pp": -0.8,
+    "se_pp": 0.83,
+    "rewards": 20320,
+    "picks": 5022,
+    "not_picks": 15298
    },
    "validation": {
-    "did_pp": -1.98,
-    "se_pp": 2.21,
-    "rewards": 2788,
-    "picks": 689,
-    "not_picks": 2099
+    "did_pp": -1.94,
+    "se_pp": 1.71,
+    "rewards": 4507,
+    "picks": 1156,
+    "not_picks": 3351
    },
    "test": {
-    "did_pp": -0.56,
-    "se_pp": 2.18,
-    "rewards": 2570,
-    "picks": 665,
-    "not_picks": 1905
+    "did_pp": -0.26,
+    "se_pp": 1.79,
+    "rewards": 4306,
+    "picks": 1022,
+    "not_picks": 3284
    }
   },
   {
@@ -1406,25 +1441,25 @@
    "name": "Joss Paper",
    "feature": "does:multihit",
    "train": {
-    "did_pp": 0.49,
-    "se_pp": 2.1,
+    "did_pp": -2.93,
+    "se_pp": 2.32,
     "rewards": 7864,
-    "picks": 726,
-    "not_picks": 7138
+    "picks": 655,
+    "not_picks": 7209
    },
    "validation": {
-    "did_pp": -11.67,
-    "se_pp": 6.69,
-    "rewards": 554,
-    "picks": 65,
-    "not_picks": 489
+    "did_pp": 5.36,
+    "se_pp": 6.73,
+    "rewards": 689,
+    "picks": 66,
+    "not_picks": 623
    },
    "test": {
-    "did_pp": -4.34,
-    "se_pp": 6.11,
-    "rewards": 549,
-    "picks": 71,
-    "not_picks": 478
+    "did_pp": -14.47,
+    "se_pp": 4.54,
+    "rewards": 933,
+    "picks": 123,
+    "not_picks": 810
    }
   },
   {
@@ -1432,25 +1467,25 @@
    "name": "Joss Paper",
    "feature": "kw:EXHAUST",
    "train": {
-    "did_pp": 0.37,
-    "se_pp": 0.85,
-    "rewards": 18114,
-    "picks": 4436,
-    "not_picks": 13678
+    "did_pp": 1.33,
+    "se_pp": 0.88,
+    "rewards": 17260,
+    "picks": 4283,
+    "not_picks": 12977
    },
    "validation": {
-    "did_pp": 0.65,
-    "se_pp": 2.34,
-    "rewards": 2463,
-    "picks": 608,
-    "not_picks": 1855
+    "did_pp": -1.05,
+    "se_pp": 1.86,
+    "rewards": 3854,
+    "picks": 962,
+    "not_picks": 2892
    },
    "test": {
-    "did_pp": -2.83,
-    "se_pp": 2.4,
-    "rewards": 2138,
-    "picks": 581,
-    "not_picks": 1557
+    "did_pp": -1.0,
+    "se_pp": 1.95,
+    "rewards": 3663,
+    "picks": 837,
+    "not_picks": 2826
    }
   },
   {
@@ -1458,25 +1493,25 @@
    "name": "Kunai",
    "feature": "power:DEXTERITY",
    "train": {
-    "did_pp": -2.76,
-    "se_pp": 3.48,
-    "rewards": 1297,
-    "picks": 219,
-    "not_picks": 1078
+    "did_pp": 1.1,
+    "se_pp": 3.45,
+    "rewards": 1180,
+    "picks": 234,
+    "not_picks": 946
    },
    "validation": {
-    "did_pp": -8.99,
-    "se_pp": 16.85,
-    "rewards": 44,
-    "picks": 10,
-    "not_picks": 34
+    "did_pp": 2.76,
+    "se_pp": 9.0,
+    "rewards": 187,
+    "picks": 27,
+    "not_picks": 160
    },
    "test": {
-    "did_pp": 6.27,
-    "se_pp": 9.15,
-    "rewards": 137,
-    "picks": 24,
-    "not_picks": 113
+    "did_pp": 15.36,
+    "se_pp": 12.07,
+    "rewards": 67,
+    "picks": 16,
+    "not_picks": 51
    }
   },
   {
@@ -1484,25 +1519,25 @@
    "name": "Kunai",
    "feature": "type:attack",
    "train": {
-    "did_pp": 1.48,
-    "se_pp": 0.8,
-    "rewards": 25301,
-    "picks": 4841,
-    "not_picks": 20460
+    "did_pp": -1.65,
+    "se_pp": 0.93,
+    "rewards": 23405,
+    "picks": 3752,
+    "not_picks": 19653
    },
    "validation": {
-    "did_pp": -0.21,
-    "se_pp": 2.25,
-    "rewards": 3162,
-    "picks": 642,
-    "not_picks": 2520
+    "did_pp": 0.12,
+    "se_pp": 2.05,
+    "rewards": 4853,
+    "picks": 733,
+    "not_picks": 4120
    },
    "test": {
-    "did_pp": -2.35,
-    "se_pp": 2.2,
-    "rewards": 3432,
-    "picks": 682,
-    "not_picks": 2750
+    "did_pp": -0.63,
+    "se_pp": 1.97,
+    "rewards": 4771,
+    "picks": 831,
+    "not_picks": 3940
    }
   },
   {
@@ -1510,25 +1545,25 @@
    "name": "Kusarigama",
    "feature": "type:attack",
    "train": {
-    "did_pp": 1.13,
-    "se_pp": 0.59,
-    "rewards": 50771,
-    "picks": 9704,
-    "not_picks": 41067
+    "did_pp": 0.52,
+    "se_pp": 0.67,
+    "rewards": 45091,
+    "picks": 7497,
+    "not_picks": 37594
    },
    "validation": {
-    "did_pp": -3.95,
-    "se_pp": 1.54,
-    "rewards": 6647,
-    "picks": 1323,
-    "not_picks": 5324
+    "did_pp": 0.86,
+    "se_pp": 1.41,
+    "rewards": 10149,
+    "picks": 1707,
+    "not_picks": 8442
    },
    "test": {
-    "did_pp": -2.12,
-    "se_pp": 1.69,
-    "rewards": 5996,
-    "picks": 1197,
-    "not_picks": 4799
+    "did_pp": 1.5,
+    "se_pp": 1.42,
+    "rewards": 9360,
+    "picks": 1549,
+    "not_picks": 7811
    }
   },
   {
@@ -1536,29 +1571,29 @@
    "name": "Large Capsule",
    "feature": "name:strike",
    "train": {
-    "did_pp": 3.1,
-    "se_pp": 0.88,
-    "rewards": 18265,
-    "picks": 4405,
-    "not_picks": 13860
+    "did_pp": 2.19,
+    "se_pp": 1.03,
+    "rewards": 15569,
+    "picks": 3379,
+    "not_picks": 12190
    },
    "validation": {
-    "did_pp": 2.29,
-    "se_pp": 2.25,
-    "rewards": 2153,
-    "picks": 584,
-    "not_picks": 1569
+    "did_pp": -2.16,
+    "se_pp": 2.23,
+    "rewards": 2805,
+    "picks": 609,
+    "not_picks": 2196
    },
    "test": {
-    "did_pp": 3.17,
-    "se_pp": 2.52,
-    "rewards": 1747,
-    "picks": 482,
-    "not_picks": 1265
+    "did_pp": 3.42,
+    "se_pp": 2.39,
+    "rewards": 2888,
+    "picks": 577,
+    "not_picks": 2311
    },
    "heldout": {
-    "did_pp": 2.68,
-    "se_pp": 1.68
+    "did_pp": 0.44,
+    "se_pp": 1.63
    }
   },
   {
@@ -1566,56 +1601,55 @@
    "name": "Lasting Candy",
    "feature": "type:power",
    "train": {
-    "did_pp": -2.66,
+    "did_pp": -1.89,
     "se_pp": 0.59,
-    "rewards": 34205,
-    "picks": 10892,
-    "not_picks": 23313
+    "rewards": 34726,
+    "picks": 11073,
+    "not_picks": 23653
    },
    "validation": {
-    "did_pp": -2.87,
-    "se_pp": 1.56,
-    "rewards": 4585,
-    "picks": 1496,
-    "not_picks": 3089
+    "did_pp": -1.31,
+    "se_pp": 1.22,
+    "rewards": 7892,
+    "picks": 2585,
+    "not_picks": 5307
    },
    "test": {
-    "did_pp": -2.51,
-    "se_pp": 1.68,
-    "rewards": 4092,
-    "picks": 1291,
-    "not_picks": 2801
+    "did_pp": -1.89,
+    "se_pp": 1.28,
+    "rewards": 7241,
+    "picks": 2385,
+    "not_picks": 4856
    },
    "heldout": {
-    "did_pp": -2.7,
-    "se_pp": 1.14
-   },
-   "pp": -1.56
+    "did_pp": -1.59,
+    "se_pp": 0.88
+   }
   },
   {
    "relic": "LEAFYPOULTICE",
    "name": "Leafy Poultice",
    "feature": "name:strike",
    "train": {
-    "did_pp": 0.76,
-    "se_pp": 1.11,
-    "rewards": 19315,
-    "picks": 2806,
-    "not_picks": 16509
+    "did_pp": 1.63,
+    "se_pp": 1.32,
+    "rewards": 14898,
+    "picks": 2033,
+    "not_picks": 12865
    },
    "validation": {
-    "did_pp": 1.19,
-    "se_pp": 2.82,
-    "rewards": 1862,
-    "picks": 313,
-    "not_picks": 1549
+    "did_pp": -0.06,
+    "se_pp": 2.5,
+    "rewards": 2884,
+    "picks": 431,
+    "not_picks": 2453
    },
    "test": {
-    "did_pp": -8.66,
-    "se_pp": 2.4,
-    "rewards": 2025,
-    "picks": 382,
-    "not_picks": 1643
+    "did_pp": -6.85,
+    "se_pp": 2.42,
+    "rewards": 2291,
+    "picks": 392,
+    "not_picks": 1899
    }
   },
   {
@@ -1623,25 +1657,25 @@
    "name": "Letter Opener",
    "feature": "type:skill",
    "train": {
-    "did_pp": 0.4,
-    "se_pp": 0.45,
-    "rewards": 54038,
-    "picks": 19242,
-    "not_picks": 34796
+    "did_pp": -0.11,
+    "se_pp": 0.48,
+    "rewards": 47405,
+    "picks": 16948,
+    "not_picks": 30457
    },
    "validation": {
-    "did_pp": 0.58,
-    "se_pp": 1.23,
-    "rewards": 6909,
-    "picks": 2416,
-    "not_picks": 4493
+    "did_pp": 1.54,
+    "se_pp": 1.04,
+    "rewards": 9894,
+    "picks": 3555,
+    "not_picks": 6339
    },
    "test": {
-    "did_pp": -2.29,
-    "se_pp": 1.27,
-    "rewards": 6622,
-    "picks": 2428,
-    "not_picks": 4194
+    "did_pp": 0.45,
+    "se_pp": 1.07,
+    "rewards": 9532,
+    "picks": 3402,
+    "not_picks": 6130
    }
   },
   {
@@ -1649,25 +1683,25 @@
    "name": "Lost Wisp",
    "feature": "type:power",
    "train": {
-    "did_pp": 2.47,
-    "se_pp": 1.37,
-    "rewards": 5950,
-    "picks": 1936,
-    "not_picks": 4014
+    "did_pp": -1.9,
+    "se_pp": 1.41,
+    "rewards": 5533,
+    "picks": 1865,
+    "not_picks": 3668
    },
    "validation": {
-    "did_pp": 0.7,
-    "se_pp": 3.2,
-    "rewards": 1080,
-    "picks": 360,
-    "not_picks": 720
+    "did_pp": 0.88,
+    "se_pp": 3.14,
+    "rewards": 1016,
+    "picks": 339,
+    "not_picks": 677
    },
    "test": {
-    "did_pp": 3.62,
-    "se_pp": 4.26,
-    "rewards": 640,
-    "picks": 200,
-    "not_picks": 440
+    "did_pp": 3.96,
+    "se_pp": 3.28,
+    "rewards": 993,
+    "picks": 345,
+    "not_picks": 648
    }
   },
   {
@@ -1675,29 +1709,25 @@
    "name": "Miniature Cannon",
    "feature": "type:attack",
    "train": {
-    "did_pp": 2.03,
-    "se_pp": 0.61,
-    "rewards": 48264,
-    "picks": 8976,
-    "not_picks": 39288
+    "did_pp": 0.69,
+    "se_pp": 0.67,
+    "rewards": 45530,
+    "picks": 7612,
+    "not_picks": 37918
    },
    "validation": {
-    "did_pp": 0.23,
-    "se_pp": 1.66,
-    "rewards": 6133,
-    "picks": 1217,
-    "not_picks": 4916
+    "did_pp": 2.33,
+    "se_pp": 1.47,
+    "rewards": 9367,
+    "picks": 1589,
+    "not_picks": 7778
    },
    "test": {
-    "did_pp": 3.11,
-    "se_pp": 1.71,
-    "rewards": 5676,
-    "picks": 1173,
-    "not_picks": 4503
-   },
-   "heldout": {
-    "did_pp": 1.63,
-    "se_pp": 1.19
+    "did_pp": 1.01,
+    "se_pp": 1.44,
+    "rewards": 9952,
+    "picks": 1600,
+    "not_picks": 8352
    }
   },
   {
@@ -1705,29 +1735,25 @@
    "name": "Molten Egg",
    "feature": "type:attack",
    "train": {
-    "did_pp": 2.12,
-    "se_pp": 0.75,
-    "rewards": 23987,
-    "picks": 6620,
-    "not_picks": 17367
+    "did_pp": 0.91,
+    "se_pp": 0.84,
+    "rewards": 22225,
+    "picks": 5417,
+    "not_picks": 16808
    },
    "validation": {
-    "did_pp": 4.3,
-    "se_pp": 2.04,
-    "rewards": 3017,
-    "picks": 844,
-    "not_picks": 2173
+    "did_pp": 0.35,
+    "se_pp": 1.88,
+    "rewards": 4617,
+    "picks": 1087,
+    "not_picks": 3530
    },
    "test": {
-    "did_pp": 0.36,
-    "se_pp": 2.08,
-    "rewards": 2945,
-    "picks": 822,
-    "not_picks": 2123
-   },
-   "heldout": {
-    "did_pp": 2.37,
-    "se_pp": 1.46
+    "did_pp": -2.32,
+    "se_pp": 1.81,
+    "rewards": 4487,
+    "picks": 1145,
+    "not_picks": 3342
    }
   },
   {
@@ -1735,59 +1761,56 @@
    "name": "Mummified Hand",
    "feature": "type:power",
    "train": {
-    "did_pp": 3.48,
-    "se_pp": 0.85,
-    "rewards": 14493,
-    "picks": 4812,
-    "not_picks": 9681
+    "did_pp": 2.34,
+    "se_pp": 0.89,
+    "rewards": 12644,
+    "picks": 4255,
+    "not_picks": 8389
    },
    "validation": {
-    "did_pp": -2.05,
-    "se_pp": 2.43,
-    "rewards": 1783,
-    "picks": 606,
-    "not_picks": 1177
+    "did_pp": 1.46,
+    "se_pp": 1.84,
+    "rewards": 2876,
+    "picks": 926,
+    "not_picks": 1950
    },
    "test": {
-    "did_pp": 1.52,
-    "se_pp": 2.5,
-    "rewards": 1589,
-    "picks": 488,
-    "not_picks": 1101
+    "did_pp": 6.56,
+    "se_pp": 1.92,
+    "rewards": 2707,
+    "picks": 918,
+    "not_picks": 1789
    },
    "heldout": {
-    "did_pp": -0.32,
-    "se_pp": 1.74
-   }
+    "did_pp": 3.9,
+    "se_pp": 1.33
+   },
+   "pp": 2.34
   },
   {
    "relic": "MUSICBOX",
    "name": "Music Box",
    "feature": "kw:ETHEREAL",
    "train": {
-    "did_pp": -10.42,
-    "se_pp": 5.09,
-    "rewards": 648,
-    "picks": 119,
-    "not_picks": 529
+    "did_pp": -9.83,
+    "se_pp": 5.55,
+    "rewards": 540,
+    "picks": 93,
+    "not_picks": 447
    },
    "validation": {
-    "did_pp": -12.69,
-    "se_pp": 11.55,
-    "rewards": 117,
-    "picks": 23,
-    "not_picks": 94
+    "did_pp": 4.66,
+    "se_pp": 12.53,
+    "rewards": 92,
+    "picks": 17,
+    "not_picks": 75
    },
    "test": {
-    "did_pp": 6.71,
-    "se_pp": 9.37,
-    "rewards": 105,
-    "picks": 31,
-    "not_picks": 74
-   },
-   "heldout": {
-    "did_pp": -0.99,
-    "se_pp": 7.28
+    "did_pp": 7.78,
+    "se_pp": 5.44,
+    "rewards": 102,
+    "picks": 27,
+    "not_picks": 75
    }
   },
   {
@@ -1795,25 +1818,25 @@
    "name": "Music Box",
    "feature": "type:attack",
    "train": {
-    "did_pp": -2.26,
-    "se_pp": 1.63,
-    "rewards": 8288,
-    "picks": 1115,
-    "not_picks": 7173
+    "did_pp": 1.06,
+    "se_pp": 1.68,
+    "rewards": 8205,
+    "picks": 995,
+    "not_picks": 7210
    },
    "validation": {
-    "did_pp": -1.65,
-    "se_pp": 4.16,
-    "rewards": 1202,
-    "picks": 167,
-    "not_picks": 1035
+    "did_pp": 2.52,
+    "se_pp": 3.68,
+    "rewards": 1644,
+    "picks": 211,
+    "not_picks": 1433
    },
    "test": {
-    "did_pp": 4.71,
-    "se_pp": 3.81,
-    "rewards": 1146,
-    "picks": 188,
-    "not_picks": 958
+    "did_pp": -3.22,
+    "se_pp": 4.0,
+    "rewards": 1612,
+    "picks": 166,
+    "not_picks": 1446
    }
   },
   {
@@ -1821,25 +1844,25 @@
    "name": "Mystic Lighter",
    "feature": "type:attack",
    "train": {
-    "did_pp": -0.32,
-    "se_pp": 1.58,
-    "rewards": 6484,
-    "picks": 1240,
-    "not_picks": 5244
+    "did_pp": 1.05,
+    "se_pp": 1.72,
+    "rewards": 6038,
+    "picks": 1006,
+    "not_picks": 5032
    },
    "validation": {
-    "did_pp": 11.35,
-    "se_pp": 5.02,
-    "rewards": 545,
-    "picks": 109,
-    "not_picks": 436
+    "did_pp": 4.99,
+    "se_pp": 3.78,
+    "rewards": 1207,
+    "picks": 214,
+    "not_picks": 993
    },
    "test": {
-    "did_pp": 15.65,
-    "se_pp": 4.83,
-    "rewards": 391,
-    "picks": 94,
-    "not_picks": 297
+    "did_pp": 2.75,
+    "se_pp": 3.95,
+    "rewards": 1137,
+    "picks": 175,
+    "not_picks": 962
    }
   },
   {
@@ -1847,25 +1870,25 @@
    "name": "Neow's Talisman",
    "feature": "name:strike",
    "train": {
-    "did_pp": 3.45,
-    "se_pp": 1.75,
-    "rewards": 5260,
-    "picks": 1031,
-    "not_picks": 4229
+    "did_pp": -2.57,
+    "se_pp": 1.95,
+    "rewards": 4665,
+    "picks": 825,
+    "not_picks": 3840
    },
    "validation": {
-    "did_pp": 8.13,
-    "se_pp": 4.61,
-    "rewards": 514,
-    "picks": 140,
-    "not_picks": 374
+    "did_pp": 10.41,
+    "se_pp": 4.45,
+    "rewards": 743,
+    "picks": 158,
+    "not_picks": 585
    },
    "test": {
-    "did_pp": 15.05,
-    "se_pp": 4.89,
-    "rewards": 495,
-    "picks": 127,
-    "not_picks": 368
+    "did_pp": -9.01,
+    "se_pp": 4.12,
+    "rewards": 815,
+    "picks": 150,
+    "not_picks": 665
    }
   },
   {
@@ -1873,29 +1896,25 @@
    "name": "Nunchaku",
    "feature": "type:attack",
    "train": {
-    "did_pp": 1.35,
-    "se_pp": 0.58,
-    "rewards": 52087,
-    "picks": 10109,
-    "not_picks": 41978
+    "did_pp": 0.22,
+    "se_pp": 0.65,
+    "rewards": 47917,
+    "picks": 7896,
+    "not_picks": 40021
    },
    "validation": {
-    "did_pp": -2.12,
-    "se_pp": 1.64,
-    "rewards": 6508,
-    "picks": 1236,
-    "not_picks": 5272
+    "did_pp": 0.68,
+    "se_pp": 1.45,
+    "rewards": 9969,
+    "picks": 1666,
+    "not_picks": 8303
    },
    "test": {
-    "did_pp": -0.15,
-    "se_pp": 1.6,
-    "rewards": 6296,
-    "picks": 1249,
-    "not_picks": 5047
-   },
-   "heldout": {
-    "did_pp": -1.11,
-    "se_pp": 1.15
+    "did_pp": 3.02,
+    "se_pp": 1.35,
+    "rewards": 9824,
+    "picks": 1704,
+    "not_picks": 8120
    }
   },
   {
@@ -1903,25 +1922,25 @@
    "name": "Nutritious Soup",
    "feature": "name:strike",
    "train": {
-    "did_pp": 1.45,
-    "se_pp": 1.5,
-    "rewards": 8077,
-    "picks": 1495,
-    "not_picks": 6582
+    "did_pp": 1.02,
+    "se_pp": 1.8,
+    "rewards": 6420,
+    "picks": 1034,
+    "not_picks": 5386
    },
    "validation": {
-    "did_pp": 2.03,
-    "se_pp": 4.38,
-    "rewards": 798,
-    "picks": 184,
-    "not_picks": 614
+    "did_pp": 0.17,
+    "se_pp": 3.62,
+    "rewards": 1196,
+    "picks": 230,
+    "not_picks": 966
    },
    "test": {
-    "did_pp": -3.07,
-    "se_pp": 4.24,
-    "rewards": 857,
-    "picks": 192,
-    "not_picks": 665
+    "did_pp": 0.08,
+    "se_pp": 4.41,
+    "rewards": 945,
+    "picks": 167,
+    "not_picks": 778
    }
   },
   {
@@ -1929,25 +1948,25 @@
    "name": "Oddly Smooth Stone",
    "feature": "power:DEXTERITY",
    "train": {
-    "did_pp": -0.79,
+    "did_pp": -0.57,
     "se_pp": 1.8,
-    "rewards": 5196,
-    "picks": 1065,
-    "not_picks": 4131
+    "rewards": 5067,
+    "picks": 1085,
+    "not_picks": 3982
    },
    "validation": {
-    "did_pp": -5.44,
-    "se_pp": 5.25,
-    "rewards": 640,
-    "picks": 132,
-    "not_picks": 508
+    "did_pp": -0.79,
+    "se_pp": 3.79,
+    "rewards": 1124,
+    "picks": 221,
+    "not_picks": 903
    },
    "test": {
-    "did_pp": -9.52,
-    "se_pp": 5.8,
-    "rewards": 570,
-    "picks": 116,
-    "not_picks": 454
+    "did_pp": -3.06,
+    "se_pp": 3.93,
+    "rewards": 998,
+    "picks": 232,
+    "not_picks": 766
    }
   },
   {
@@ -1955,25 +1974,29 @@
    "name": "Orichalcum",
    "feature": "does:block",
    "train": {
-    "did_pp": 0.17,
-    "se_pp": 0.66,
-    "rewards": 31819,
-    "picks": 7557,
-    "not_picks": 24262
+    "did_pp": -2.11,
+    "se_pp": 0.69,
+    "rewards": 29964,
+    "picks": 6888,
+    "not_picks": 23076
    },
    "validation": {
-    "did_pp": 1.07,
-    "se_pp": 1.86,
-    "rewards": 4112,
-    "picks": 908,
-    "not_picks": 3204
+    "did_pp": -0.44,
+    "se_pp": 1.51,
+    "rewards": 6376,
+    "picks": 1467,
+    "not_picks": 4909
    },
    "test": {
-    "did_pp": -2.79,
-    "se_pp": 1.95,
-    "rewards": 3738,
-    "picks": 832,
-    "not_picks": 2906
+    "did_pp": 0.79,
+    "se_pp": 1.59,
+    "rewards": 5630,
+    "picks": 1313,
+    "not_picks": 4317
+   },
+   "heldout": {
+    "did_pp": 0.14,
+    "se_pp": 1.09
    }
   },
   {
@@ -1981,29 +2004,25 @@
    "name": "Ornamental Fan",
    "feature": "does:block",
    "train": {
-    "did_pp": -1.67,
-    "se_pp": 0.65,
-    "rewards": 33393,
-    "picks": 7580,
-    "not_picks": 25813
+    "did_pp": -0.28,
+    "se_pp": 0.67,
+    "rewards": 30619,
+    "picks": 7235,
+    "not_picks": 23384
    },
    "validation": {
-    "did_pp": -0.25,
-    "se_pp": 1.74,
-    "rewards": 4734,
-    "picks": 1062,
-    "not_picks": 3672
+    "did_pp": -0.22,
+    "se_pp": 1.48,
+    "rewards": 6475,
+    "picks": 1472,
+    "not_picks": 5003
    },
    "test": {
-    "did_pp": -2.38,
-    "se_pp": 1.92,
-    "rewards": 4069,
-    "picks": 922,
-    "not_picks": 3147
-   },
-   "heldout": {
-    "did_pp": -1.21,
-    "se_pp": 1.29
+    "did_pp": -1.98,
+    "se_pp": 1.47,
+    "rewards": 6412,
+    "picks": 1488,
+    "not_picks": 4924
    }
   },
   {
@@ -2011,29 +2030,25 @@
    "name": "Ornamental Fan",
    "feature": "type:attack",
    "train": {
-    "did_pp": 1.7,
-    "se_pp": 0.55,
-    "rewards": 57846,
-    "picks": 11371,
-    "not_picks": 46475
+    "did_pp": 1.03,
+    "se_pp": 0.63,
+    "rewards": 50952,
+    "picks": 8471,
+    "not_picks": 42481
    },
    "validation": {
-    "did_pp": 1.49,
-    "se_pp": 1.43,
-    "rewards": 8151,
-    "picks": 1618,
-    "not_picks": 6533
+    "did_pp": 1.32,
+    "se_pp": 1.41,
+    "rewards": 10894,
+    "picks": 1764,
+    "not_picks": 9130
    },
    "test": {
-    "did_pp": 0.32,
-    "se_pp": 1.57,
-    "rewards": 6958,
-    "picks": 1423,
-    "not_picks": 5535
-   },
-   "heldout": {
-    "did_pp": 0.96,
-    "se_pp": 1.06
+    "did_pp": 2.91,
+    "se_pp": 1.35,
+    "rewards": 10568,
+    "picks": 1764,
+    "not_picks": 8804
    }
   },
   {
@@ -2041,25 +2056,25 @@
    "name": "Pael's Blood",
    "feature": "does:draw",
    "train": {
-    "did_pp": -1.12,
-    "se_pp": 0.87,
-    "rewards": 17951,
-    "picks": 4407,
-    "not_picks": 13544
+    "did_pp": -1.66,
+    "se_pp": 0.93,
+    "rewards": 16418,
+    "picks": 3885,
+    "not_picks": 12533
    },
    "validation": {
-    "did_pp": 3.72,
-    "se_pp": 2.54,
-    "rewards": 2084,
-    "picks": 495,
-    "not_picks": 1589
+    "did_pp": -0.65,
+    "se_pp": 1.95,
+    "rewards": 3746,
+    "picks": 877,
+    "not_picks": 2869
    },
    "test": {
-    "did_pp": -1.86,
-    "se_pp": 2.49,
-    "rewards": 2040,
-    "picks": 512,
-    "not_picks": 1528
+    "did_pp": -1.44,
+    "se_pp": 2.01,
+    "rewards": 3475,
+    "picks": 822,
+    "not_picks": 2653
    }
   },
   {
@@ -2067,25 +2082,25 @@
    "name": "Pael's Eye",
    "feature": "kw:EXHAUST",
    "train": {
-    "did_pp": 0.22,
-    "se_pp": 2.0,
-    "rewards": 3192,
-    "picks": 752,
-    "not_picks": 2440
+    "did_pp": -0.12,
+    "se_pp": 2.17,
+    "rewards": 2840,
+    "picks": 663,
+    "not_picks": 2177
    },
    "validation": {
-    "did_pp": 6.93,
-    "se_pp": 7.16,
-    "rewards": 253,
-    "picks": 66,
-    "not_picks": 187
+    "did_pp": 4.79,
+    "se_pp": 4.16,
+    "rewards": 650,
+    "picks": 192,
+    "not_picks": 458
    },
    "test": {
-    "did_pp": -10.6,
-    "se_pp": 7.13,
-    "rewards": 209,
-    "picks": 55,
-    "not_picks": 154
+    "did_pp": 5.78,
+    "se_pp": 5.31,
+    "rewards": 464,
+    "picks": 105,
+    "not_picks": 359
    }
   },
   {
@@ -2093,25 +2108,25 @@
    "name": "Pael's Legion",
    "feature": "does:block",
    "train": {
-    "did_pp": -0.63,
-    "se_pp": 1.06,
-    "rewards": 11925,
-    "picks": 2907,
-    "not_picks": 9018
+    "did_pp": -0.01,
+    "se_pp": 0.98,
+    "rewards": 14095,
+    "picks": 3423,
+    "not_picks": 10672
    },
    "validation": {
-    "did_pp": 4.78,
-    "se_pp": 2.8,
-    "rewards": 1605,
-    "picks": 411,
-    "not_picks": 1194
+    "did_pp": -0.3,
+    "se_pp": 2.02,
+    "rewards": 3268,
+    "picks": 749,
+    "not_picks": 2519
    },
    "test": {
-    "did_pp": -5.13,
-    "se_pp": 3.12,
-    "rewards": 1417,
-    "picks": 358,
-    "not_picks": 1059
+    "did_pp": 0.64,
+    "se_pp": 2.04,
+    "rewards": 3166,
+    "picks": 777,
+    "not_picks": 2389
    }
   },
   {
@@ -2119,27 +2134,49 @@
    "name": "Pandora's Box",
    "feature": "name:strike",
    "train": {
-    "did_pp": 1.45,
-    "se_pp": 3.66,
-    "rewards": 2377,
-    "picks": 215,
-    "not_picks": 2162
+    "did_pp": -10.2,
+    "se_pp": 4.97,
+    "rewards": 1502,
+    "picks": 120,
+    "not_picks": 1382
    },
-   "validation": null,
-   "test": null
+   "validation": {
+    "did_pp": 10.78,
+    "se_pp": 12.53,
+    "rewards": 110,
+    "picks": 11,
+    "not_picks": 99
+   },
+   "test": {
+    "did_pp": -19.32,
+    "se_pp": 13.1,
+    "rewards": 120,
+    "picks": 14,
+    "not_picks": 106
+   },
+   "heldout": {
+    "did_pp": -3.6,
+    "se_pp": 9.05
+   }
   },
   {
    "relic": "PAPERKRANE",
    "name": "Paper Krane",
    "feature": "power:WEAK",
    "train": {
-    "did_pp": -10.52,
-    "se_pp": 6.12,
-    "rewards": 504,
-    "picks": 76,
-    "not_picks": 428
+    "did_pp": -7.66,
+    "se_pp": 4.85,
+    "rewards": 766,
+    "picks": 123,
+    "not_picks": 643
    },
-   "validation": null,
+   "validation": {
+    "did_pp": -20.85,
+    "se_pp": 11.08,
+    "rewards": 202,
+    "picks": 25,
+    "not_picks": 177
+   },
    "test": null
   },
   {
@@ -2147,25 +2184,25 @@
    "name": "Paper Phrog",
    "feature": "power:VULNERABLE",
    "train": {
-    "did_pp": -1.87,
-    "se_pp": 2.24,
-    "rewards": 2823,
-    "picks": 677,
-    "not_picks": 2146
+    "did_pp": 2.87,
+    "se_pp": 2.36,
+    "rewards": 2846,
+    "picks": 563,
+    "not_picks": 2283
    },
    "validation": {
-    "did_pp": 5.21,
-    "se_pp": 6.5,
-    "rewards": 313,
-    "picks": 71,
-    "not_picks": 242
+    "did_pp": -8.65,
+    "se_pp": 5.05,
+    "rewards": 696,
+    "picks": 133,
+    "not_picks": 563
    },
    "test": {
-    "did_pp": -0.62,
-    "se_pp": 6.16,
-    "rewards": 414,
-    "picks": 93,
-    "not_picks": 321
+    "did_pp": 0.04,
+    "se_pp": 5.16,
+    "rewards": 669,
+    "picks": 135,
+    "not_picks": 534
    }
   },
   {
@@ -2173,25 +2210,25 @@
    "name": "Parrying Shield",
    "feature": "does:block",
    "train": {
-    "did_pp": 0.38,
-    "se_pp": 0.66,
-    "rewards": 31965,
-    "picks": 7624,
-    "not_picks": 24341
+    "did_pp": 0.39,
+    "se_pp": 0.69,
+    "rewards": 29880,
+    "picks": 7181,
+    "not_picks": 22699
    },
    "validation": {
-    "did_pp": 0.56,
-    "se_pp": 1.79,
-    "rewards": 4225,
-    "picks": 1025,
-    "not_picks": 3200
+    "did_pp": -1.23,
+    "se_pp": 1.5,
+    "rewards": 6251,
+    "picks": 1482,
+    "not_picks": 4769
    },
    "test": {
-    "did_pp": 0.99,
-    "se_pp": 1.77,
-    "rewards": 4156,
-    "picks": 1036,
-    "not_picks": 3120
+    "did_pp": -1.27,
+    "se_pp": 1.51,
+    "rewards": 6190,
+    "picks": 1496,
+    "not_picks": 4694
    }
   },
   {
@@ -2199,25 +2236,25 @@
    "name": "Pendulum",
    "feature": "does:draw",
    "train": {
-    "did_pp": 0.41,
-    "se_pp": 0.54,
-    "rewards": 50711,
-    "picks": 12060,
-    "not_picks": 38651
+    "did_pp": 0.62,
+    "se_pp": 0.56,
+    "rewards": 47401,
+    "picks": 11385,
+    "not_picks": 36016
    },
    "validation": {
-    "did_pp": -1.23,
-    "se_pp": 1.49,
-    "rewards": 6686,
-    "picks": 1601,
-    "not_picks": 5085
+    "did_pp": 1.64,
+    "se_pp": 1.17,
+    "rewards": 10308,
+    "picks": 2600,
+    "not_picks": 7708
    },
    "test": {
-    "did_pp": 0.2,
-    "se_pp": 1.49,
-    "rewards": 6306,
-    "picks": 1606,
-    "not_picks": 4700
+    "did_pp": 1.13,
+    "se_pp": 1.22,
+    "rewards": 9852,
+    "picks": 2400,
+    "not_picks": 7452
    }
   },
   {
@@ -2225,25 +2262,25 @@
    "name": "Pen Nib",
    "feature": "type:attack",
    "train": {
-    "did_pp": 0.53,
-    "se_pp": 0.57,
-    "rewards": 53807,
-    "picks": 10281,
-    "not_picks": 43526
+    "did_pp": 0.35,
+    "se_pp": 0.65,
+    "rewards": 47793,
+    "picks": 7892,
+    "not_picks": 39901
    },
    "validation": {
-    "did_pp": 2.26,
-    "se_pp": 1.56,
-    "rewards": 6836,
-    "picks": 1333,
-    "not_picks": 5503
+    "did_pp": 0.32,
+    "se_pp": 1.44,
+    "rewards": 10731,
+    "picks": 1677,
+    "not_picks": 9054
    },
    "test": {
-    "did_pp": 1.24,
-    "se_pp": 1.55,
-    "rewards": 6853,
-    "picks": 1438,
-    "not_picks": 5415
+    "did_pp": 2.03,
+    "se_pp": 1.36,
+    "rewards": 10783,
+    "picks": 1776,
+    "not_picks": 9007
    }
   },
   {
@@ -2251,25 +2288,25 @@
    "name": "Permafrost",
    "feature": "does:block",
    "train": {
-    "did_pp": -0.09,
-    "se_pp": 0.64,
-    "rewards": 34695,
-    "picks": 7977,
-    "not_picks": 26718
+    "did_pp": -0.47,
+    "se_pp": 0.69,
+    "rewards": 29287,
+    "picks": 6970,
+    "not_picks": 22317
    },
    "validation": {
-    "did_pp": -0.6,
-    "se_pp": 1.77,
-    "rewards": 4601,
-    "picks": 1048,
-    "not_picks": 3553
+    "did_pp": 0.52,
+    "se_pp": 1.5,
+    "rewards": 6290,
+    "picks": 1516,
+    "not_picks": 4774
    },
    "test": {
-    "did_pp": -0.64,
-    "se_pp": 1.78,
-    "rewards": 4546,
-    "picks": 1021,
-    "not_picks": 3525
+    "did_pp": 1.5,
+    "se_pp": 1.48,
+    "rewards": 6373,
+    "picks": 1503,
+    "not_picks": 4870
    }
   },
   {
@@ -2277,25 +2314,25 @@
    "name": "Permafrost",
    "feature": "type:power",
    "train": {
-    "did_pp": 0.71,
-    "se_pp": 0.63,
-    "rewards": 31355,
-    "picks": 8920,
-    "not_picks": 22435
+    "did_pp": 1.03,
+    "se_pp": 0.7,
+    "rewards": 25337,
+    "picks": 7187,
+    "not_picks": 18150
    },
    "validation": {
-    "did_pp": -1.54,
-    "se_pp": 1.72,
-    "rewards": 4144,
-    "picks": 1193,
-    "not_picks": 2951
+    "did_pp": 0.86,
+    "se_pp": 1.48,
+    "rewards": 5552,
+    "picks": 1585,
+    "not_picks": 3967
    },
    "test": {
-    "did_pp": -1.39,
-    "se_pp": 1.73,
-    "rewards": 4076,
-    "picks": 1118,
-    "not_picks": 2958
+    "did_pp": 1.7,
+    "se_pp": 1.47,
+    "rewards": 5633,
+    "picks": 1614,
+    "not_picks": 4019
    }
   },
   {
@@ -2303,25 +2340,29 @@
    "name": "Pocketwatch",
    "feature": "does:draw",
    "train": {
-    "did_pp": -0.67,
-    "se_pp": 1.02,
-    "rewards": 13240,
-    "picks": 3034,
-    "not_picks": 10206
+    "did_pp": -2.49,
+    "se_pp": 1.07,
+    "rewards": 12427,
+    "picks": 2822,
+    "not_picks": 9605
    },
    "validation": {
-    "did_pp": -6.77,
-    "se_pp": 2.68,
-    "rewards": 1883,
-    "picks": 437,
-    "not_picks": 1446
+    "did_pp": -3.29,
+    "se_pp": 2.18,
+    "rewards": 3052,
+    "picks": 675,
+    "not_picks": 2377
    },
    "test": {
-    "did_pp": -0.64,
-    "se_pp": 2.89,
-    "rewards": 1399,
-    "picks": 346,
-    "not_picks": 1053
+    "did_pp": 1.21,
+    "se_pp": 2.27,
+    "rewards": 2640,
+    "picks": 643,
+    "not_picks": 1997
+   },
+   "heldout": {
+    "did_pp": -1.13,
+    "se_pp": 1.57
    }
   },
   {
@@ -2329,25 +2370,25 @@
    "name": "Pollinous Core",
    "feature": "does:draw",
    "train": {
-    "did_pp": 0.04,
+    "did_pp": -0.61,
     "se_pp": 1.3,
-    "rewards": 7176,
-    "picks": 1722,
-    "not_picks": 5454
+    "rewards": 7281,
+    "picks": 1778,
+    "not_picks": 5503
    },
    "validation": {
-    "did_pp": -5.29,
-    "se_pp": 3.65,
-    "rewards": 927,
-    "picks": 225,
-    "not_picks": 702
+    "did_pp": -3.98,
+    "se_pp": 2.59,
+    "rewards": 1740,
+    "picks": 456,
+    "not_picks": 1284
    },
    "test": {
-    "did_pp": -1.73,
-    "se_pp": 3.44,
-    "rewards": 936,
-    "picks": 251,
-    "not_picks": 685
+    "did_pp": -3.85,
+    "se_pp": 2.87,
+    "rewards": 1627,
+    "picks": 388,
+    "not_picks": 1239
    }
   },
   {
@@ -2355,25 +2396,25 @@
    "name": "Power Cell",
    "feature": "does:draw",
    "train": {
-    "did_pp": -6.25,
-    "se_pp": 3.27,
-    "rewards": 1299,
-    "picks": 272,
-    "not_picks": 1027
+    "did_pp": -0.02,
+    "se_pp": 3.19,
+    "rewards": 1300,
+    "picks": 298,
+    "not_picks": 1002
    },
    "validation": {
-    "did_pp": -6.11,
-    "se_pp": 8.21,
-    "rewards": 74,
-    "picks": 27,
-    "not_picks": 47
+    "did_pp": -15.02,
+    "se_pp": 8.43,
+    "rewards": 188,
+    "picks": 45,
+    "not_picks": 143
    },
    "test": {
-    "did_pp": -8.24,
-    "se_pp": 15.97,
-    "rewards": 54,
-    "picks": 13,
-    "not_picks": 41
+    "did_pp": 1.04,
+    "se_pp": 7.86,
+    "rewards": 270,
+    "picks": 50,
+    "not_picks": 220
    }
   },
   {
@@ -2381,29 +2422,25 @@
    "name": "Punch Dagger",
    "feature": "type:attack",
    "train": {
-    "did_pp": -2.64,
-    "se_pp": 1.25,
-    "rewards": 10845,
-    "picks": 1960,
-    "not_picks": 8885
+    "did_pp": 0.75,
+    "se_pp": 1.45,
+    "rewards": 8933,
+    "picks": 1428,
+    "not_picks": 7505
    },
    "validation": {
-    "did_pp": 1.01,
-    "se_pp": 3.5,
-    "rewards": 1276,
-    "picks": 238,
-    "not_picks": 1038
+    "did_pp": -2.68,
+    "se_pp": 3.13,
+    "rewards": 1914,
+    "picks": 302,
+    "not_picks": 1612
    },
    "test": {
-    "did_pp": -1.09,
-    "se_pp": 3.74,
-    "rewards": 1215,
-    "picks": 205,
-    "not_picks": 1010
-   },
-   "heldout": {
-    "did_pp": 0.03,
-    "se_pp": 2.56
+    "did_pp": -3.35,
+    "se_pp": 3.1,
+    "rewards": 1970,
+    "picks": 325,
+    "not_picks": 1645
    }
   },
   {
@@ -2411,25 +2448,25 @@
    "name": "Rainbow Ring",
    "feature": "power:DEXTERITY",
    "train": {
-    "did_pp": -2.85,
-    "se_pp": 3.68,
-    "rewards": 961,
-    "picks": 202,
-    "not_picks": 759
+    "did_pp": 4.2,
+    "se_pp": 3.37,
+    "rewards": 1134,
+    "picks": 225,
+    "not_picks": 909
    },
    "validation": {
-    "did_pp": -9.4,
-    "se_pp": 16.97,
-    "rewards": 56,
-    "picks": 11,
-    "not_picks": 45
+    "did_pp": -8.1,
+    "se_pp": 7.96,
+    "rewards": 186,
+    "picks": 41,
+    "not_picks": 145
    },
    "test": {
-    "did_pp": -1.02,
-    "se_pp": 9.31,
-    "rewards": 148,
-    "picks": 37,
-    "not_picks": 111
+    "did_pp": -5.8,
+    "se_pp": 9.76,
+    "rewards": 160,
+    "picks": 32,
+    "not_picks": 128
    }
   },
   {
@@ -2437,25 +2474,25 @@
    "name": "Rainbow Ring",
    "feature": "power:STRENGTH",
    "train": {
-    "did_pp": 0.75,
-    "se_pp": 3.19,
-    "rewards": 1654,
-    "picks": 299,
-    "not_picks": 1355
+    "did_pp": 1.82,
+    "se_pp": 3.09,
+    "rewards": 1888,
+    "picks": 323,
+    "not_picks": 1565
    },
    "validation": {
-    "did_pp": 9.14,
-    "se_pp": 16.23,
-    "rewards": 61,
-    "picks": 12,
-    "not_picks": 49
+    "did_pp": 14.45,
+    "se_pp": 7.41,
+    "rewards": 292,
+    "picks": 45,
+    "not_picks": 247
    },
    "test": {
-    "did_pp": -28.83,
-    "se_pp": 13.06,
-    "rewards": 93,
-    "picks": 11,
-    "not_picks": 82
+    "did_pp": 25.22,
+    "se_pp": 7.78,
+    "rewards": 185,
+    "picks": 50,
+    "not_picks": 135
    }
   },
   {
@@ -2463,25 +2500,25 @@
    "name": "Rainbow Ring",
    "feature": "type:attack",
    "train": {
-    "did_pp": 0.92,
-    "se_pp": 0.85,
-    "rewards": 24097,
-    "picks": 4397,
-    "not_picks": 19700
+    "did_pp": -0.22,
+    "se_pp": 0.92,
+    "rewards": 23126,
+    "picks": 3749,
+    "not_picks": 19377
    },
    "validation": {
-    "did_pp": 0.39,
-    "se_pp": 2.42,
-    "rewards": 2798,
-    "picks": 540,
-    "not_picks": 2258
+    "did_pp": 0.25,
+    "se_pp": 1.98,
+    "rewards": 4778,
+    "picks": 743,
+    "not_picks": 4035
    },
    "test": {
-    "did_pp": 2.21,
-    "se_pp": 2.13,
-    "rewards": 3352,
-    "picks": 658,
-    "not_picks": 2694
+    "did_pp": 2.65,
+    "se_pp": 2.0,
+    "rewards": 4798,
+    "picks": 740,
+    "not_picks": 4058
    }
   },
   {
@@ -2489,25 +2526,25 @@
    "name": "Rainbow Ring",
    "feature": "type:power",
    "train": {
-    "did_pp": 0.71,
-    "se_pp": 0.94,
-    "rewards": 12875,
-    "picks": 3700,
-    "not_picks": 9175
+    "did_pp": -0.45,
+    "se_pp": 0.97,
+    "rewards": 11950,
+    "picks": 3515,
+    "not_picks": 8435
    },
    "validation": {
-    "did_pp": 3.76,
-    "se_pp": 2.81,
-    "rewards": 1473,
-    "picks": 434,
-    "not_picks": 1039
+    "did_pp": 2.36,
+    "se_pp": 2.06,
+    "rewards": 2500,
+    "picks": 745,
+    "not_picks": 1755
    },
    "test": {
-    "did_pp": 0.7,
-    "se_pp": 2.55,
-    "rewards": 1733,
-    "picks": 511,
-    "not_picks": 1222
+    "did_pp": -2.35,
+    "se_pp": 2.21,
+    "rewards": 2550,
+    "picks": 758,
+    "not_picks": 1792
    }
   },
   {
@@ -2515,25 +2552,25 @@
    "name": "Rainbow Ring",
    "feature": "type:skill",
    "train": {
-    "did_pp": -1.07,
-    "se_pp": 0.66,
-    "rewards": 24099,
-    "picks": 8252,
-    "not_picks": 15847
+    "did_pp": -0.64,
+    "se_pp": 0.67,
+    "rewards": 23084,
+    "picks": 8219,
+    "not_picks": 14865
    },
    "validation": {
-    "did_pp": 0.46,
-    "se_pp": 1.9,
-    "rewards": 2829,
-    "picks": 989,
-    "not_picks": 1840
+    "did_pp": -4.63,
+    "se_pp": 1.43,
+    "rewards": 4886,
+    "picks": 1722,
+    "not_picks": 3164
    },
    "test": {
-    "did_pp": -0.99,
-    "se_pp": 1.72,
-    "rewards": 3374,
-    "picks": 1227,
-    "not_picks": 2147
+    "did_pp": 0.84,
+    "se_pp": 1.47,
+    "rewards": 4795,
+    "picks": 1608,
+    "not_picks": 3187
    }
   },
   {
@@ -2541,29 +2578,25 @@
    "name": "Razor Tooth",
    "feature": "type:attack",
    "train": {
-    "did_pp": -3.58,
-    "se_pp": 0.82,
-    "rewards": 26194,
-    "picks": 4806,
-    "not_picks": 21388
+    "did_pp": 0.08,
+    "se_pp": 0.92,
+    "rewards": 24449,
+    "picks": 4028,
+    "not_picks": 20421
    },
    "validation": {
-    "did_pp": 0.64,
-    "se_pp": 2.23,
-    "rewards": 3555,
-    "picks": 670,
-    "not_picks": 2885
+    "did_pp": 1.37,
+    "se_pp": 2.0,
+    "rewards": 5106,
+    "picks": 812,
+    "not_picks": 4294
    },
    "test": {
-    "did_pp": 0.74,
-    "se_pp": 2.24,
-    "rewards": 3306,
-    "picks": 641,
-    "not_picks": 2665
-   },
-   "heldout": {
-    "did_pp": 0.69,
-    "se_pp": 1.58
+    "did_pp": -0.54,
+    "se_pp": 1.82,
+    "rewards": 5655,
+    "picks": 956,
+    "not_picks": 4699
    }
   },
   {
@@ -2571,29 +2604,25 @@
    "name": "Razor Tooth",
    "feature": "type:skill",
    "train": {
-    "did_pp": -1.76,
-    "se_pp": 0.63,
-    "rewards": 26142,
-    "picks": 9150,
-    "not_picks": 16992
+    "did_pp": 0.2,
+    "se_pp": 0.66,
+    "rewards": 24519,
+    "picks": 8562,
+    "not_picks": 15957
    },
    "validation": {
-    "did_pp": -1.39,
-    "se_pp": 1.74,
-    "rewards": 3548,
-    "picks": 1217,
-    "not_picks": 2331
+    "did_pp": -4.11,
+    "se_pp": 1.44,
+    "rewards": 5095,
+    "picks": 1783,
+    "not_picks": 3312
    },
    "test": {
-    "did_pp": -0.54,
-    "se_pp": 1.76,
-    "rewards": 3347,
-    "picks": 1183,
-    "not_picks": 2164
-   },
-   "heldout": {
-    "did_pp": -0.97,
-    "se_pp": 1.24
+    "did_pp": -0.3,
+    "se_pp": 1.35,
+    "rewards": 5623,
+    "picks": 2064,
+    "not_picks": 3559
    }
   },
   {
@@ -2601,51 +2630,56 @@
    "name": "Red Mask",
    "feature": "power:WEAK",
    "train": {
-    "did_pp": -1.17,
-    "se_pp": 1.42,
-    "rewards": 10116,
-    "picks": 1843,
-    "not_picks": 8273
+    "did_pp": -3.88,
+    "se_pp": 1.4,
+    "rewards": 10453,
+    "picks": 1967,
+    "not_picks": 8486
    },
    "validation": {
-    "did_pp": -2.66,
-    "se_pp": 3.74,
-    "rewards": 1297,
-    "picks": 245,
-    "not_picks": 1052
+    "did_pp": -2.51,
+    "se_pp": 2.89,
+    "rewards": 2242,
+    "picks": 429,
+    "not_picks": 1813
    },
    "test": {
-    "did_pp": -8.47,
-    "se_pp": 3.96,
-    "rewards": 1215,
-    "picks": 225,
-    "not_picks": 990
-   }
+    "did_pp": -7.52,
+    "se_pp": 3.06,
+    "rewards": 2172,
+    "picks": 423,
+    "not_picks": 1749
+   },
+   "heldout": {
+    "did_pp": -4.87,
+    "se_pp": 2.1
+   },
+   "pp": -2.77
   },
   {
    "relic": "REDSKULL",
    "name": "Red Skull",
    "feature": "power:STRENGTH",
    "train": {
-    "did_pp": 3.03,
-    "se_pp": 1.91,
-    "rewards": 4890,
-    "picks": 936,
-    "not_picks": 3954
+    "did_pp": 0.84,
+    "se_pp": 1.99,
+    "rewards": 5032,
+    "picks": 876,
+    "not_picks": 4156
    },
    "validation": {
-    "did_pp": 0.3,
-    "se_pp": 5.8,
-    "rewards": 531,
-    "picks": 102,
-    "not_picks": 429
+    "did_pp": 12.02,
+    "se_pp": 4.4,
+    "rewards": 988,
+    "picks": 156,
+    "not_picks": 832
    },
    "test": {
-    "did_pp": 8.08,
-    "se_pp": 5.23,
-    "rewards": 623,
-    "picks": 111,
-    "not_picks": 512
+    "did_pp": 4.17,
+    "se_pp": 4.9,
+    "rewards": 973,
+    "picks": 134,
+    "not_picks": 839
    }
   },
   {
@@ -2653,25 +2687,25 @@
    "name": "Regalite",
    "feature": "does:block",
    "train": {
-    "did_pp": 2.6,
-    "se_pp": 2.1,
-    "rewards": 2807,
-    "picks": 703,
-    "not_picks": 2104
+    "did_pp": -0.95,
+    "se_pp": 2.04,
+    "rewards": 3132,
+    "picks": 770,
+    "not_picks": 2362
    },
    "validation": {
-    "did_pp": 2.92,
-    "se_pp": 5.84,
-    "rewards": 348,
-    "picks": 96,
-    "not_picks": 252
+    "did_pp": -6.39,
+    "se_pp": 4.01,
+    "rewards": 753,
+    "picks": 196,
+    "not_picks": 557
    },
    "test": {
-    "did_pp": 3.1,
-    "se_pp": 5.28,
-    "rewards": 468,
-    "picks": 121,
-    "not_picks": 347
+    "did_pp": 1.22,
+    "se_pp": 4.35,
+    "rewards": 620,
+    "picks": 177,
+    "not_picks": 443
    }
   },
   {
@@ -2679,25 +2713,25 @@
    "name": "Reptile Trinket",
    "feature": "power:STRENGTH",
    "train": {
-    "did_pp": 0.13,
-    "se_pp": 2.12,
-    "rewards": 4047,
-    "picks": 695,
-    "not_picks": 3352
+    "did_pp": -0.56,
+    "se_pp": 2.25,
+    "rewards": 3848,
+    "picks": 628,
+    "not_picks": 3220
    },
    "validation": {
-    "did_pp": 2.72,
-    "se_pp": 6.21,
-    "rewards": 412,
-    "picks": 84,
-    "not_picks": 328
+    "did_pp": -6.29,
+    "se_pp": 5.55,
+    "rewards": 649,
+    "picks": 106,
+    "not_picks": 543
    },
    "test": {
-    "did_pp": -3.5,
-    "se_pp": 6.41,
-    "rewards": 366,
-    "picks": 65,
-    "not_picks": 301
+    "did_pp": -0.58,
+    "se_pp": 5.24,
+    "rewards": 764,
+    "picks": 123,
+    "not_picks": 641
    }
   },
   {
@@ -2705,25 +2739,25 @@
    "name": "Ripple Basin",
    "feature": "does:block",
    "train": {
-    "did_pp": -1.19,
-    "se_pp": 0.71,
-    "rewards": 26889,
-    "picks": 6510,
-    "not_picks": 20379
+    "did_pp": -0.7,
+    "se_pp": 0.72,
+    "rewards": 26382,
+    "picks": 6369,
+    "not_picks": 20013
    },
    "validation": {
-    "did_pp": 2.04,
-    "se_pp": 1.89,
-    "rewards": 3566,
-    "picks": 813,
-    "not_picks": 2753
+    "did_pp": -2.98,
+    "se_pp": 1.6,
+    "rewards": 5246,
+    "picks": 1301,
+    "not_picks": 3945
    },
    "test": {
-    "did_pp": -6.27,
-    "se_pp": 1.98,
-    "rewards": 3312,
-    "picks": 825,
-    "not_picks": 2487
+    "did_pp": -0.54,
+    "se_pp": 1.58,
+    "rewards": 5553,
+    "picks": 1295,
+    "not_picks": 4258
    }
   },
   {
@@ -2731,25 +2765,25 @@
    "name": "Ripple Basin",
    "feature": "type:attack",
    "train": {
-    "did_pp": -0.48,
-    "se_pp": 0.64,
-    "rewards": 46112,
-    "picks": 8200,
-    "not_picks": 37912
+    "did_pp": -0.8,
+    "se_pp": 0.69,
+    "rewards": 44563,
+    "picks": 7090,
+    "not_picks": 37473
    },
    "validation": {
-    "did_pp": 1.73,
-    "se_pp": 1.73,
-    "rewards": 6045,
-    "picks": 1072,
-    "not_picks": 4973
+    "did_pp": -2.09,
+    "se_pp": 1.61,
+    "rewards": 8894,
+    "picks": 1346,
+    "not_picks": 7548
    },
    "test": {
-    "did_pp": 1.81,
-    "se_pp": 1.76,
-    "rewards": 5676,
-    "picks": 1065,
-    "not_picks": 4611
+    "did_pp": -1.42,
+    "se_pp": 1.51,
+    "rewards": 9409,
+    "picks": 1508,
+    "not_picks": 7901
    }
   },
   {
@@ -2757,25 +2791,25 @@
    "name": "Royal Stamp",
    "feature": "type:attack",
    "train": {
-    "did_pp": -0.76,
-    "se_pp": 1.26,
-    "rewards": 11195,
-    "picks": 1911,
-    "not_picks": 9284
+    "did_pp": -2.26,
+    "se_pp": 1.53,
+    "rewards": 9109,
+    "picks": 1280,
+    "not_picks": 7829
    },
    "validation": {
-    "did_pp": 3.2,
-    "se_pp": 4.21,
-    "rewards": 999,
-    "picks": 168,
-    "not_picks": 831
+    "did_pp": -2.32,
+    "se_pp": 2.99,
+    "rewards": 2118,
+    "picks": 326,
+    "not_picks": 1792
    },
    "test": {
-    "did_pp": -0.01,
-    "se_pp": 3.38,
-    "rewards": 1335,
-    "picks": 260,
-    "not_picks": 1075
+    "did_pp": -1.24,
+    "se_pp": 3.5,
+    "rewards": 1469,
+    "picks": 240,
+    "not_picks": 1229
    }
   },
   {
@@ -2783,29 +2817,25 @@
    "name": "Royal Stamp",
    "feature": "type:skill",
    "train": {
-    "did_pp": -1.99,
-    "se_pp": 0.97,
-    "rewards": 11175,
-    "picks": 3756,
-    "not_picks": 7419
+    "did_pp": 0.84,
+    "se_pp": 1.08,
+    "rewards": 8970,
+    "picks": 2978,
+    "not_picks": 5992
    },
    "validation": {
-    "did_pp": 0.12,
-    "se_pp": 2.93,
-    "rewards": 1221,
-    "picks": 383,
-    "not_picks": 838
+    "did_pp": -3.33,
+    "se_pp": 2.15,
+    "rewards": 2222,
+    "picks": 784,
+    "not_picks": 1438
    },
    "test": {
-    "did_pp": -1.83,
-    "se_pp": 2.63,
-    "rewards": 1415,
-    "picks": 481,
-    "not_picks": 934
-   },
-   "heldout": {
-    "did_pp": -0.96,
-    "se_pp": 1.96
+    "did_pp": 2.12,
+    "se_pp": 2.34,
+    "rewards": 1705,
+    "picks": 613,
+    "not_picks": 1092
    }
   },
   {
@@ -2813,25 +2843,25 @@
    "name": "Ruined Helmet",
    "feature": "power:STRENGTH",
    "train": {
-    "did_pp": -6.16,
-    "se_pp": 4.13,
-    "rewards": 943,
-    "picks": 176,
-    "not_picks": 767
+    "did_pp": -6.33,
+    "se_pp": 4.26,
+    "rewards": 919,
+    "picks": 183,
+    "not_picks": 736
    },
    "validation": {
-    "did_pp": -20.31,
-    "se_pp": 17.28,
-    "rewards": 59,
-    "picks": 10,
-    "not_picks": 49
+    "did_pp": -2.53,
+    "se_pp": 11.06,
+    "rewards": 156,
+    "picks": 26,
+    "not_picks": 130
    },
    "test": {
-    "did_pp": 15.3,
-    "se_pp": 10.17,
-    "rewards": 118,
-    "picks": 31,
-    "not_picks": 87
+    "did_pp": 15.44,
+    "se_pp": 11.46,
+    "rewards": 115,
+    "picks": 22,
+    "not_picks": 93
    }
   },
   {
@@ -2839,25 +2869,25 @@
    "name": "Sai",
    "feature": "does:block",
    "train": {
-    "did_pp": 1.94,
-    "se_pp": 1.3,
-    "rewards": 7516,
-    "picks": 1467,
-    "not_picks": 6049
+    "did_pp": 1.98,
+    "se_pp": 1.31,
+    "rewards": 7381,
+    "picks": 1477,
+    "not_picks": 5904
    },
    "validation": {
-    "did_pp": -1.29,
-    "se_pp": 3.64,
-    "rewards": 903,
-    "picks": 185,
-    "not_picks": 718
+    "did_pp": 0.65,
+    "se_pp": 2.82,
+    "rewards": 1590,
+    "picks": 314,
+    "not_picks": 1276
    },
    "test": {
-    "did_pp": 6.31,
-    "se_pp": 3.55,
-    "rewards": 843,
-    "picks": 171,
-    "not_picks": 672
+    "did_pp": 3.75,
+    "se_pp": 2.84,
+    "rewards": 1520,
+    "picks": 310,
+    "not_picks": 1210
    }
   },
   {
@@ -2865,25 +2895,25 @@
    "name": "Self-Forming Clay",
    "feature": "does:block",
    "train": {
-    "did_pp": -2.12,
-    "se_pp": 1.74,
-    "rewards": 4782,
-    "picks": 1039,
-    "not_picks": 3743
+    "did_pp": -1.24,
+    "se_pp": 1.52,
+    "rewards": 6262,
+    "picks": 1407,
+    "not_picks": 4855
    },
    "validation": {
-    "did_pp": 5.8,
-    "se_pp": 4.9,
-    "rewards": 680,
-    "picks": 127,
-    "not_picks": 553
+    "did_pp": -1.85,
+    "se_pp": 3.64,
+    "rewards": 1250,
+    "picks": 236,
+    "not_picks": 1014
    },
    "test": {
-    "did_pp": 1.91,
-    "se_pp": 4.46,
-    "rewards": 767,
-    "picks": 161,
-    "not_picks": 606
+    "did_pp": 1.13,
+    "se_pp": 3.26,
+    "rewards": 1375,
+    "picks": 311,
+    "not_picks": 1064
    }
   },
   {
@@ -2891,25 +2921,25 @@
    "name": "Shuriken",
    "feature": "power:STRENGTH",
    "train": {
-    "did_pp": 2.92,
-    "se_pp": 2.8,
-    "rewards": 2069,
-    "picks": 374,
-    "not_picks": 1695
+    "did_pp": 4.96,
+    "se_pp": 3.32,
+    "rewards": 1798,
+    "picks": 278,
+    "not_picks": 1520
    },
    "validation": {
-    "did_pp": 6.72,
-    "se_pp": 10.86,
-    "rewards": 161,
+    "did_pp": 7.88,
+    "se_pp": 9.36,
+    "rewards": 162,
     "picks": 28,
-    "not_picks": 133
+    "not_picks": 134
    },
    "test": {
-    "did_pp": 23.32,
-    "se_pp": 8.25,
-    "rewards": 144,
-    "picks": 25,
-    "not_picks": 119
+    "did_pp": -15.31,
+    "se_pp": 10.9,
+    "rewards": 224,
+    "picks": 23,
+    "not_picks": 201
    }
   },
   {
@@ -2917,59 +2947,51 @@
    "name": "Shuriken",
    "feature": "type:attack",
    "train": {
-    "did_pp": 0.68,
-    "se_pp": 0.84,
-    "rewards": 24700,
-    "picks": 4743,
-    "not_picks": 19957
+    "did_pp": 1.4,
+    "se_pp": 0.93,
+    "rewards": 22305,
+    "picks": 3789,
+    "not_picks": 18516
    },
    "validation": {
-    "did_pp": 0.43,
-    "se_pp": 2.14,
-    "rewards": 3298,
-    "picks": 693,
-    "not_picks": 2605
+    "did_pp": 1.23,
+    "se_pp": 1.95,
+    "rewards": 4980,
+    "picks": 795,
+    "not_picks": 4185
    },
    "test": {
-    "did_pp": 3.65,
-    "se_pp": 2.14,
-    "rewards": 3477,
-    "picks": 687,
-    "not_picks": 2790
+    "did_pp": 2.19,
+    "se_pp": 1.91,
+    "rewards": 4811,
+    "picks": 820,
+    "not_picks": 3991
    }
-  },
-  {
-   "relic": "SLINGOFCOURAGE",
-   "name": "Sling of Courage",
-   "feature": "power:STRENGTH",
-   "train": {
-    "did_pp": -1.07,
-    "se_pp": 5.72,
-    "rewards": 465,
-    "picks": 98,
-    "not_picks": 367
-   },
-   "validation": null,
-   "test": null
   },
   {
    "relic": "SNECKOEYE",
    "name": "Snecko Eye",
    "feature": "does:draw",
    "train": {
-    "did_pp": -1.24,
-    "se_pp": 2.94,
-    "rewards": 1631,
-    "picks": 279,
-    "not_picks": 1352
+    "did_pp": 1.53,
+    "se_pp": 3.83,
+    "rewards": 1105,
+    "picks": 191,
+    "not_picks": 914
    },
-   "validation": null,
+   "validation": {
+    "did_pp": -7.31,
+    "se_pp": 10.09,
+    "rewards": 45,
+    "picks": 16,
+    "not_picks": 29
+   },
    "test": {
-    "did_pp": -5.96,
-    "se_pp": 14.1,
-    "rewards": 47,
-    "picks": 10,
-    "not_picks": 37
+    "did_pp": 19.74,
+    "se_pp": 6.71,
+    "rewards": 53,
+    "picks": 13,
+    "not_picks": 40
    }
   },
   {
@@ -2977,25 +2999,25 @@
    "name": "Snecko Skull",
    "feature": "power:POISON",
    "train": {
-    "did_pp": 2.26,
-    "se_pp": 1.94,
-    "rewards": 5117,
-    "picks": 973,
-    "not_picks": 4144
+    "did_pp": 3.36,
+    "se_pp": 1.79,
+    "rewards": 6260,
+    "picks": 1145,
+    "not_picks": 5115
    },
    "validation": {
-    "did_pp": -2.63,
-    "se_pp": 5.7,
-    "rewards": 572,
-    "picks": 112,
-    "not_picks": 460
+    "did_pp": 4.43,
+    "se_pp": 3.77,
+    "rewards": 1425,
+    "picks": 260,
+    "not_picks": 1165
    },
    "test": {
-    "did_pp": 11.42,
-    "se_pp": 5.49,
-    "rewards": 670,
-    "picks": 125,
-    "not_picks": 545
+    "did_pp": -2.39,
+    "se_pp": 4.0,
+    "rewards": 1332,
+    "picks": 244,
+    "not_picks": 1088
    }
   },
   {
@@ -3003,25 +3025,25 @@
    "name": "Sparkling Rouge",
    "feature": "power:DEXTERITY",
    "train": {
-    "did_pp": 1.18,
-    "se_pp": 2.37,
-    "rewards": 2680,
-    "picks": 550,
-    "not_picks": 2130
+    "did_pp": 0.37,
+    "se_pp": 2.4,
+    "rewards": 2602,
+    "picks": 534,
+    "not_picks": 2068
    },
    "validation": {
-    "did_pp": -8.45,
-    "se_pp": 6.92,
-    "rewards": 296,
-    "picks": 55,
-    "not_picks": 241
+    "did_pp": 0.84,
+    "se_pp": 5.15,
+    "rewards": 461,
+    "picks": 114,
+    "not_picks": 347
    },
    "test": {
-    "did_pp": 9.92,
-    "se_pp": 6.34,
-    "rewards": 360,
-    "picks": 84,
-    "not_picks": 276
+    "did_pp": 2.83,
+    "se_pp": 5.19,
+    "rewards": 507,
+    "picks": 109,
+    "not_picks": 398
    }
   },
   {
@@ -3029,25 +3051,25 @@
    "name": "Sparkling Rouge",
    "feature": "power:STRENGTH",
    "train": {
-    "did_pp": -1.19,
-    "se_pp": 1.89,
-    "rewards": 4759,
-    "picks": 915,
-    "not_picks": 3844
+    "did_pp": -0.44,
+    "se_pp": 2.02,
+    "rewards": 4378,
+    "picks": 803,
+    "not_picks": 3575
    },
    "validation": {
-    "did_pp": 2.47,
-    "se_pp": 6.02,
-    "rewards": 488,
-    "picks": 95,
-    "not_picks": 393
+    "did_pp": 0.32,
+    "se_pp": 5.25,
+    "rewards": 790,
+    "picks": 129,
+    "not_picks": 661
    },
    "test": {
-    "did_pp": -8.43,
-    "se_pp": 6.83,
-    "rewards": 406,
-    "picks": 68,
-    "not_picks": 338
+    "did_pp": 2.89,
+    "se_pp": 5.03,
+    "rewards": 783,
+    "picks": 124,
+    "not_picks": 659
    }
   },
   {
@@ -3055,25 +3077,25 @@
    "name": "Spiked Gauntlets",
    "feature": "type:power",
    "train": {
-    "did_pp": -3.12,
-    "se_pp": 2.65,
-    "rewards": 2676,
-    "picks": 404,
-    "not_picks": 2272
+    "did_pp": 3.08,
+    "se_pp": 3.06,
+    "rewards": 1859,
+    "picks": 309,
+    "not_picks": 1550
    },
    "validation": {
-    "did_pp": 7.94,
-    "se_pp": 8.55,
-    "rewards": 206,
-    "picks": 33,
-    "not_picks": 173
+    "did_pp": -1.75,
+    "se_pp": 9.35,
+    "rewards": 232,
+    "picks": 37,
+    "not_picks": 195
    },
    "test": {
-    "did_pp": 7.38,
-    "se_pp": 8.89,
-    "rewards": 221,
-    "picks": 36,
-    "not_picks": 185
+    "did_pp": 6.27,
+    "se_pp": 5.88,
+    "rewards": 467,
+    "picks": 71,
+    "not_picks": 396
    }
   },
   {
@@ -3081,25 +3103,25 @@
    "name": "Stone Cracker",
    "feature": "does:draw",
    "train": {
-    "did_pp": 0.17,
-    "se_pp": 0.71,
-    "rewards": 27814,
-    "picks": 6659,
-    "not_picks": 21155
+    "did_pp": 0.73,
+    "se_pp": 0.74,
+    "rewards": 25564,
+    "picks": 6095,
+    "not_picks": 19469
    },
    "validation": {
-    "did_pp": -2.11,
-    "se_pp": 1.89,
-    "rewards": 3558,
-    "picks": 882,
-    "not_picks": 2676
+    "did_pp": -2.13,
+    "se_pp": 1.58,
+    "rewards": 5402,
+    "picks": 1343,
+    "not_picks": 4059
    },
    "test": {
-    "did_pp": 1.03,
-    "se_pp": 1.98,
-    "rewards": 3231,
-    "picks": 805,
-    "not_picks": 2426
+    "did_pp": 0.01,
+    "se_pp": 1.66,
+    "rewards": 5044,
+    "picks": 1201,
+    "not_picks": 3843
    }
   },
   {
@@ -3107,29 +3129,25 @@
    "name": "Strike Dummy",
    "feature": "name:strike",
    "train": {
-    "did_pp": 2.89,
-    "se_pp": 1.06,
-    "rewards": 22592,
-    "picks": 3952,
-    "not_picks": 18640
+    "did_pp": 0.22,
+    "se_pp": 1.16,
+    "rewards": 21443,
+    "picks": 3295,
+    "not_picks": 18148
    },
    "validation": {
-    "did_pp": -4.95,
-    "se_pp": 2.67,
-    "rewards": 2590,
-    "picks": 490,
-    "not_picks": 2100
+    "did_pp": 0.13,
+    "se_pp": 2.52,
+    "rewards": 4088,
+    "picks": 663,
+    "not_picks": 3425
    },
    "test": {
-    "did_pp": -4.24,
-    "se_pp": 2.9,
-    "rewards": 2462,
-    "picks": 471,
-    "not_picks": 1991
-   },
-   "heldout": {
-    "did_pp": -4.62,
-    "se_pp": 1.96
+    "did_pp": 6.86,
+    "se_pp": 2.4,
+    "rewards": 4132,
+    "picks": 712,
+    "not_picks": 3420
    }
   },
   {
@@ -3137,25 +3155,29 @@
    "name": "Sturdy Clamp",
    "feature": "does:block",
    "train": {
-    "did_pp": -0.27,
-    "se_pp": 0.9,
-    "rewards": 16217,
-    "picks": 3804,
-    "not_picks": 12413
+    "did_pp": 2.08,
+    "se_pp": 0.93,
+    "rewards": 15114,
+    "picks": 3608,
+    "not_picks": 11506
    },
    "validation": {
-    "did_pp": 2.12,
-    "se_pp": 2.62,
-    "rewards": 2049,
-    "picks": 443,
-    "not_picks": 1606
+    "did_pp": -1.14,
+    "se_pp": 1.97,
+    "rewards": 3424,
+    "picks": 812,
+    "not_picks": 2612
    },
    "test": {
-    "did_pp": 1.34,
-    "se_pp": 2.57,
-    "rewards": 2010,
-    "picks": 469,
-    "not_picks": 1541
+    "did_pp": 5.68,
+    "se_pp": 2.03,
+    "rewards": 3158,
+    "picks": 768,
+    "not_picks": 2390
+   },
+   "heldout": {
+    "did_pp": 2.17,
+    "se_pp": 1.41
    }
   },
   {
@@ -3163,25 +3185,25 @@
    "name": "Sword of Jade",
    "feature": "power:STRENGTH",
    "train": {
-    "did_pp": 3.44,
-    "se_pp": 3.89,
-    "rewards": 1073,
-    "picks": 173,
-    "not_picks": 900
+    "did_pp": 2.41,
+    "se_pp": 3.97,
+    "rewards": 1142,
+    "picks": 158,
+    "not_picks": 984
    },
    "validation": {
-    "did_pp": 20.27,
-    "se_pp": 11.54,
-    "rewards": 112,
-    "picks": 18,
-    "not_picks": 94
+    "did_pp": -0.2,
+    "se_pp": 9.33,
+    "rewards": 239,
+    "picks": 35,
+    "not_picks": 204
    },
    "test": {
-    "did_pp": -6.74,
-    "se_pp": 15.14,
-    "rewards": 106,
-    "picks": 13,
-    "not_picks": 93
+    "did_pp": -4.57,
+    "se_pp": 10.57,
+    "rewards": 193,
+    "picks": 23,
+    "not_picks": 170
    }
   },
   {
@@ -3189,55 +3211,56 @@
    "name": "Sword of Stone",
    "feature": "type:power",
    "train": {
-    "did_pp": -2.19,
-    "se_pp": 0.51,
-    "rewards": 21770,
-    "picks": 6695,
-    "not_picks": 15075
+    "did_pp": -1.72,
+    "se_pp": 0.62,
+    "rewards": 15748,
+    "picks": 4787,
+    "not_picks": 10961
    },
    "validation": {
-    "did_pp": -1.74,
-    "se_pp": 1.27,
-    "rewards": 3962,
-    "picks": 1122,
-    "not_picks": 2840
+    "did_pp": -1.0,
+    "se_pp": 1.29,
+    "rewards": 3295,
+    "picks": 1034,
+    "not_picks": 2261
    },
    "test": {
-    "did_pp": -1.43,
-    "se_pp": 1.23,
-    "rewards": 2307,
-    "picks": 685,
-    "not_picks": 1622
+    "did_pp": -3.57,
+    "se_pp": 1.27,
+    "rewards": 3356,
+    "picks": 1086,
+    "not_picks": 2270
    },
    "heldout": {
-    "did_pp": -1.58,
-    "se_pp": 0.88
-   }
+    "did_pp": -2.31,
+    "se_pp": 0.91
+   },
+   "pp": -1.4
   },
   {
    "relic": "TEAOFDISCOURTESY",
    "name": "Tea of Discourtesy",
    "feature": "does:draw",
    "train": {
-    "did_pp": 0.41,
-    "se_pp": 1.1,
-    "rewards": 10974,
-    "picks": 2652,
-    "not_picks": 8322
+    "did_pp": 0.58,
+    "se_pp": 1.13,
+    "rewards": 10677,
+    "picks": 2489,
+    "not_picks": 8188
    },
    "validation": {
-    "did_pp": -0.68,
-    "se_pp": 2.98,
-    "rewards": 1488,
-    "picks": 336,
-    "not_picks": 1152
+    "did_pp": 1.29,
+    "se_pp": 2.37,
+    "rewards": 2468,
+    "picks": 565,
+    "not_picks": 1903
    },
    "test": {
-    "did_pp": -4.66,
-    "se_pp": 3.06,
-    "rewards": 1373,
-    "picks": 355,
-    "not_picks": 1018
+    "did_pp": 0.47,
+    "se_pp": 2.4,
+    "rewards": 2269,
+    "picks": 533,
+    "not_picks": 1736
    }
   },
   {
@@ -3245,33 +3268,51 @@
    "name": "The Abacus",
    "feature": "does:block",
    "train": {
-    "did_pp": -5.33,
-    "se_pp": 2.3,
-    "rewards": 2552,
-    "picks": 549,
-    "not_picks": 2003
+    "did_pp": -3.01,
+    "se_pp": 2.6,
+    "rewards": 1925,
+    "picks": 425,
+    "not_picks": 1500
    },
-   "validation": null,
-   "test": null
+   "validation": {
+    "did_pp": 0.66,
+    "se_pp": 7.31,
+    "rewards": 230,
+    "picks": 48,
+    "not_picks": 182
+   },
+   "test": {
+    "did_pp": 5.69,
+    "se_pp": 10.71,
+    "rewards": 80,
+    "picks": 17,
+    "not_picks": 63
+   }
   },
   {
    "relic": "THEABACUS",
    "name": "The Abacus",
    "feature": "does:draw",
    "train": {
-    "did_pp": -0.25,
-    "se_pp": 2.26,
-    "rewards": 2313,
-    "picks": 570,
-    "not_picks": 1743
+    "did_pp": -2.34,
+    "se_pp": 2.69,
+    "rewards": 1670,
+    "picks": 396,
+    "not_picks": 1274
    },
-   "validation": null,
+   "validation": {
+    "did_pp": -4.4,
+    "se_pp": 6.6,
+    "rewards": 265,
+    "picks": 72,
+    "not_picks": 193
+   },
    "test": {
-    "did_pp": 0.54,
-    "se_pp": 15.09,
-    "rewards": 41,
-    "picks": 12,
-    "not_picks": 29
+    "did_pp": 14.59,
+    "se_pp": 9.4,
+    "rewards": 71,
+    "picks": 24,
+    "not_picks": 47
    }
   },
   {
@@ -3279,25 +3320,25 @@
    "name": "The Boot",
    "feature": "does:block",
    "train": {
-    "did_pp": -1.01,
-    "se_pp": 1.57,
-    "rewards": 4473,
-    "picks": 1250,
-    "not_picks": 3223
+    "did_pp": -0.99,
+    "se_pp": 1.54,
+    "rewards": 4374,
+    "picks": 1252,
+    "not_picks": 3122
    },
    "validation": {
-    "did_pp": 1.71,
-    "se_pp": 4.65,
-    "rewards": 408,
-    "picks": 131,
-    "not_picks": 277
+    "did_pp": 1.25,
+    "se_pp": 3.61,
+    "rewards": 842,
+    "picks": 249,
+    "not_picks": 593
    },
    "test": {
-    "did_pp": 3.93,
-    "se_pp": 5.69,
-    "rewards": 205,
-    "picks": 67,
-    "not_picks": 138
+    "did_pp": 0.5,
+    "se_pp": 3.09,
+    "rewards": 1021,
+    "picks": 299,
+    "not_picks": 722
    }
   },
   {
@@ -3305,55 +3346,25 @@
    "name": "The Boot",
    "feature": "type:attack",
    "train": {
-    "did_pp": 1.33,
-    "se_pp": 1.36,
-    "rewards": 7526,
-    "picks": 1597,
-    "not_picks": 5929
+    "did_pp": 2.25,
+    "se_pp": 1.45,
+    "rewards": 7230,
+    "picks": 1441,
+    "not_picks": 5789
    },
    "validation": {
-    "did_pp": 5.2,
-    "se_pp": 3.52,
-    "rewards": 833,
-    "picks": 214,
-    "not_picks": 619
+    "did_pp": -2.43,
+    "se_pp": 3.16,
+    "rewards": 1411,
+    "picks": 294,
+    "not_picks": 1117
    },
    "test": {
-    "did_pp": 7.82,
-    "se_pp": 3.91,
-    "rewards": 639,
-    "picks": 183,
-    "not_picks": 456
-   }
-  },
-  {
-   "relic": "TOASTYMITTENS",
-   "name": "Toasty Mittens",
-   "feature": "does:draw",
-   "train": {
-    "did_pp": -3.11,
-    "se_pp": 1.48,
-    "rewards": 5612,
-    "picks": 1591,
-    "not_picks": 4021
-   },
-   "validation": {
-    "did_pp": 10.11,
-    "se_pp": 4.72,
-    "rewards": 481,
-    "picks": 162,
-    "not_picks": 319
-   },
-   "test": {
-    "did_pp": 1.46,
-    "se_pp": 4.6,
-    "rewards": 513,
-    "picks": 173,
-    "not_picks": 340
-   },
-   "heldout": {
-    "did_pp": 5.67,
-    "se_pp": 3.29
+    "did_pp": 0.79,
+    "se_pp": 2.92,
+    "rewards": 1619,
+    "picks": 354,
+    "not_picks": 1265
    }
   },
   {
@@ -3361,25 +3372,25 @@
    "name": "Toasty Mittens",
    "feature": "kw:EXHAUST",
    "train": {
-    "did_pp": 1.95,
-    "se_pp": 1.62,
-    "rewards": 4818,
-    "picks": 1187,
-    "not_picks": 3631
+    "did_pp": 0.2,
+    "se_pp": 1.23,
+    "rewards": 8901,
+    "picks": 2138,
+    "not_picks": 6763
    },
    "validation": {
-    "did_pp": -0.43,
-    "se_pp": 6.71,
-    "rewards": 306,
-    "picks": 81,
-    "not_picks": 225
+    "did_pp": 4.88,
+    "se_pp": 2.52,
+    "rewards": 1942,
+    "picks": 510,
+    "not_picks": 1432
    },
    "test": {
-    "did_pp": 5.4,
-    "se_pp": 5.2,
-    "rewards": 425,
-    "picks": 120,
-    "not_picks": 305
+    "did_pp": 6.26,
+    "se_pp": 2.66,
+    "rewards": 1851,
+    "picks": 423,
+    "not_picks": 1428
    }
   },
   {
@@ -3387,45 +3398,51 @@
    "name": "Toasty Mittens",
    "feature": "power:STRENGTH",
    "train": {
-    "did_pp": -4.48,
-    "se_pp": 4.08,
-    "rewards": 1180,
-    "picks": 174,
-    "not_picks": 1006
+    "did_pp": -5.36,
+    "se_pp": 3.14,
+    "rewards": 2479,
+    "picks": 293,
+    "not_picks": 2186
    },
    "validation": {
-    "did_pp": 11.61,
-    "se_pp": 16.14,
-    "rewards": 92,
-    "picks": 11,
-    "not_picks": 81
+    "did_pp": -18.37,
+    "se_pp": 7.4,
+    "rewards": 385,
+    "picks": 54,
+    "not_picks": 331
    },
-   "test": null
+   "test": {
+    "did_pp": -10.81,
+    "se_pp": 7.6,
+    "rewards": 437,
+    "picks": 44,
+    "not_picks": 393
+   }
   },
   {
    "relic": "TOUGHBANDAGES",
    "name": "Tough Bandages",
    "feature": "does:block",
    "train": {
-    "did_pp": -3.31,
+    "did_pp": -3.23,
     "se_pp": 2.42,
-    "rewards": 2226,
-    "picks": 477,
-    "not_picks": 1749
+    "rewards": 2271,
+    "picks": 502,
+    "not_picks": 1769
    },
    "validation": {
-    "did_pp": 1.85,
-    "se_pp": 7.53,
-    "rewards": 236,
-    "picks": 55,
-    "not_picks": 181
+    "did_pp": -5.9,
+    "se_pp": 5.61,
+    "rewards": 442,
+    "picks": 88,
+    "not_picks": 354
    },
    "test": {
-    "did_pp": -9.4,
-    "se_pp": 6.12,
-    "rewards": 331,
-    "picks": 77,
-    "not_picks": 254
+    "did_pp": 7.31,
+    "se_pp": 5.4,
+    "rewards": 422,
+    "picks": 91,
+    "not_picks": 331
    }
   },
   {
@@ -3433,29 +3450,25 @@
    "name": "Toxic Egg",
    "feature": "type:skill",
    "train": {
-    "did_pp": 1.34,
-    "se_pp": 0.61,
-    "rewards": 26393,
-    "picks": 11856,
-    "not_picks": 14537
+    "did_pp": -0.36,
+    "se_pp": 0.62,
+    "rewards": 24983,
+    "picks": 11375,
+    "not_picks": 13608
    },
    "validation": {
-    "did_pp": 2.55,
-    "se_pp": 1.7,
-    "rewards": 3373,
-    "picks": 1514,
-    "not_picks": 1859
+    "did_pp": 1.23,
+    "se_pp": 1.38,
+    "rewards": 5059,
+    "picks": 2352,
+    "not_picks": 2707
    },
    "test": {
-    "did_pp": -0.71,
-    "se_pp": 1.72,
-    "rewards": 3222,
-    "picks": 1443,
-    "not_picks": 1779
-   },
-   "heldout": {
-    "did_pp": 0.94,
-    "se_pp": 1.21
+    "did_pp": 4.55,
+    "se_pp": 1.3,
+    "rewards": 5335,
+    "picks": 2495,
+    "not_picks": 2840
    }
   },
   {
@@ -3463,25 +3476,25 @@
    "name": "Tri-Boomerang",
    "feature": "type:attack",
    "train": {
-    "did_pp": -1.23,
-    "se_pp": 1.41,
-    "rewards": 10395,
-    "picks": 1544,
-    "not_picks": 8851
+    "did_pp": -0.29,
+    "se_pp": 1.68,
+    "rewards": 8371,
+    "picks": 1017,
+    "not_picks": 7354
    },
    "validation": {
-    "did_pp": 1.55,
-    "se_pp": 3.66,
-    "rewards": 1390,
-    "picks": 243,
-    "not_picks": 1147
+    "did_pp": -2.64,
+    "se_pp": 3.36,
+    "rewards": 2065,
+    "picks": 260,
+    "not_picks": 1805
    },
    "test": {
-    "did_pp": 2.25,
-    "se_pp": 4.09,
-    "rewards": 1210,
-    "picks": 192,
-    "not_picks": 1018
+    "did_pp": -3.56,
+    "se_pp": 3.37,
+    "rewards": 1929,
+    "picks": 241,
+    "not_picks": 1688
    }
   },
   {
@@ -3489,25 +3502,25 @@
    "name": "Tuning Fork",
    "feature": "does:block",
    "train": {
-    "did_pp": 0.01,
-    "se_pp": 0.67,
-    "rewards": 31054,
-    "picks": 7351,
-    "not_picks": 23703
+    "did_pp": 0.09,
+    "se_pp": 0.69,
+    "rewards": 29433,
+    "picks": 6997,
+    "not_picks": 22436
    },
    "validation": {
-    "did_pp": -0.43,
-    "se_pp": 1.83,
-    "rewards": 3805,
-    "picks": 908,
-    "not_picks": 2897
+    "did_pp": -0.19,
+    "se_pp": 1.47,
+    "rewards": 6165,
+    "picks": 1490,
+    "not_picks": 4675
    },
    "test": {
-    "did_pp": -0.08,
-    "se_pp": 1.95,
-    "rewards": 3473,
-    "picks": 830,
-    "not_picks": 2643
+    "did_pp": 0.59,
+    "se_pp": 1.55,
+    "rewards": 5888,
+    "picks": 1408,
+    "not_picks": 4480
    }
   },
   {
@@ -3515,25 +3528,25 @@
    "name": "Tuning Fork",
    "feature": "type:skill",
    "train": {
-    "did_pp": 0.32,
-    "se_pp": 0.45,
-    "rewards": 53251,
-    "picks": 18794,
-    "not_picks": 34457
+    "did_pp": 0.71,
+    "se_pp": 0.47,
+    "rewards": 49041,
+    "picks": 17346,
+    "not_picks": 31695
    },
    "validation": {
-    "did_pp": -1.7,
-    "se_pp": 1.25,
-    "rewards": 6529,
-    "picks": 2283,
-    "not_picks": 4246
+    "did_pp": 0.62,
+    "se_pp": 1.01,
+    "rewards": 10434,
+    "picks": 3691,
+    "not_picks": 6743
    },
    "test": {
-    "did_pp": 0.51,
-    "se_pp": 1.31,
-    "rewards": 5961,
-    "picks": 2187,
-    "not_picks": 3774
+    "did_pp": 0.4,
+    "se_pp": 1.04,
+    "rewards": 9989,
+    "picks": 3612,
+    "not_picks": 6377
    }
   },
   {
@@ -3541,25 +3554,25 @@
    "name": "Twisted Funnel",
    "feature": "power:POISON",
    "train": {
-    "did_pp": 2.52,
-    "se_pp": 2.83,
-    "rewards": 2753,
-    "picks": 384,
-    "not_picks": 2369
+    "did_pp": 3.35,
+    "se_pp": 2.5,
+    "rewards": 3359,
+    "picks": 559,
+    "not_picks": 2800
    },
    "validation": {
-    "did_pp": -6.2,
-    "se_pp": 7.18,
-    "rewards": 371,
-    "picks": 68,
-    "not_picks": 303
+    "did_pp": -3.34,
+    "se_pp": 5.82,
+    "rewards": 683,
+    "picks": 100,
+    "not_picks": 583
    },
    "test": {
-    "did_pp": -1.02,
-    "se_pp": 8.04,
-    "rewards": 335,
-    "picks": 60,
-    "not_picks": 275
+    "did_pp": 6.78,
+    "se_pp": 5.85,
+    "rewards": 617,
+    "picks": 95,
+    "not_picks": 522
    }
   },
   {
@@ -3567,25 +3580,25 @@
    "name": "Unceasing Top",
    "feature": "does:draw",
    "train": {
-    "did_pp": -1.02,
-    "se_pp": 1.08,
-    "rewards": 11754,
-    "picks": 2763,
-    "not_picks": 8991
+    "did_pp": 0.13,
+    "se_pp": 1.13,
+    "rewards": 10381,
+    "picks": 2472,
+    "not_picks": 7909
    },
    "validation": {
-    "did_pp": -0.95,
-    "se_pp": 2.82,
-    "rewards": 1684,
-    "picks": 380,
-    "not_picks": 1304
+    "did_pp": -2.15,
+    "se_pp": 2.35,
+    "rewards": 2429,
+    "picks": 589,
+    "not_picks": 1840
    },
    "test": {
-    "did_pp": -7.96,
-    "se_pp": 3.23,
-    "rewards": 1257,
-    "picks": 274,
-    "not_picks": 983
+    "did_pp": 2.49,
+    "se_pp": 2.58,
+    "rewards": 2133,
+    "picks": 478,
+    "not_picks": 1655
    }
   },
   {
@@ -3593,13 +3606,19 @@
    "name": "Undying Sigil",
    "feature": "power:DOOM",
    "train": {
-    "did_pp": -0.65,
-    "se_pp": 5.07,
-    "rewards": 357,
-    "picks": 149,
-    "not_picks": 208
+    "did_pp": -3.26,
+    "se_pp": 6.44,
+    "rewards": 307,
+    "picks": 83,
+    "not_picks": 224
    },
-   "validation": null,
+   "validation": {
+    "did_pp": 15.95,
+    "se_pp": 10.94,
+    "rewards": 68,
+    "picks": 26,
+    "not_picks": 42
+   },
    "test": null
   },
   {
@@ -3607,25 +3626,25 @@
    "name": "Vajra",
    "feature": "power:STRENGTH",
    "train": {
-    "did_pp": 0.24,
-    "se_pp": 1.32,
-    "rewards": 10839,
-    "picks": 2119,
-    "not_picks": 8720
+    "did_pp": 0.19,
+    "se_pp": 1.47,
+    "rewards": 9400,
+    "picks": 1699,
+    "not_picks": 7701
    },
    "validation": {
-    "did_pp": 3.15,
-    "se_pp": 3.81,
-    "rewards": 1133,
-    "picks": 264,
-    "not_picks": 869
+    "did_pp": 4.66,
+    "se_pp": 3.37,
+    "rewards": 1811,
+    "picks": 346,
+    "not_picks": 1465
    },
    "test": {
-    "did_pp": 0.21,
-    "se_pp": 4.22,
-    "rewards": 1104,
-    "picks": 217,
-    "not_picks": 887
+    "did_pp": -2.13,
+    "se_pp": 3.45,
+    "rewards": 1782,
+    "picks": 318,
+    "not_picks": 1464
    }
   },
   {
@@ -3633,25 +3652,25 @@
    "name": "Vambrace",
    "feature": "does:block",
    "train": {
-    "did_pp": -0.59,
-    "se_pp": 0.66,
-    "rewards": 31837,
-    "picks": 7357,
-    "not_picks": 24480
+    "did_pp": -0.95,
+    "se_pp": 0.69,
+    "rewards": 29944,
+    "picks": 6938,
+    "not_picks": 23006
    },
    "validation": {
-    "did_pp": 1.86,
-    "se_pp": 1.85,
-    "rewards": 3977,
-    "picks": 892,
-    "not_picks": 3085
+    "did_pp": -2.21,
+    "se_pp": 1.48,
+    "rewards": 6347,
+    "picks": 1525,
+    "not_picks": 4822
    },
    "test": {
-    "did_pp": -1.91,
-    "se_pp": 1.9,
-    "rewards": 3993,
-    "picks": 932,
-    "not_picks": 3061
+    "did_pp": -0.47,
+    "se_pp": 1.45,
+    "rewards": 6423,
+    "picks": 1571,
+    "not_picks": 4852
    }
   },
   {
@@ -3659,25 +3678,25 @@
    "name": "Vitruvian Minion",
    "feature": "does:block",
    "train": {
-    "did_pp": 2.64,
+    "did_pp": 0.11,
     "se_pp": 4.17,
-    "rewards": 698,
-    "picks": 175,
-    "not_picks": 523
+    "rewards": 754,
+    "picks": 173,
+    "not_picks": 581
    },
    "validation": {
-    "did_pp": -13.39,
-    "se_pp": 12.04,
-    "rewards": 79,
-    "picks": 23,
-    "not_picks": 56
+    "did_pp": -5.28,
+    "se_pp": 9.73,
+    "rewards": 129,
+    "picks": 28,
+    "not_picks": 101
    },
    "test": {
-    "did_pp": -9.26,
-    "se_pp": 14.27,
-    "rewards": 37,
-    "picks": 12,
-    "not_picks": 25
+    "did_pp": -2.17,
+    "se_pp": 8.39,
+    "rewards": 130,
+    "picks": 33,
+    "not_picks": 97
    }
   },
   {
@@ -3685,25 +3704,25 @@
    "name": "War Paint",
    "feature": "type:skill",
    "train": {
-    "did_pp": -0.43,
-    "se_pp": 0.33,
-    "rewards": 106621,
-    "picks": 36927,
-    "not_picks": 69694
+    "did_pp": -0.68,
+    "se_pp": 0.35,
+    "rewards": 98551,
+    "picks": 34496,
+    "not_picks": 64055
    },
    "validation": {
-    "did_pp": -0.85,
-    "se_pp": 0.93,
-    "rewards": 13353,
-    "picks": 4701,
-    "not_picks": 8652
+    "did_pp": -0.35,
+    "se_pp": 0.75,
+    "rewards": 21334,
+    "picks": 7522,
+    "not_picks": 13812
    },
    "test": {
-    "did_pp": 0.32,
-    "se_pp": 0.92,
-    "rewards": 13541,
-    "picks": 4939,
-    "not_picks": 8602
+    "did_pp": 0.33,
+    "se_pp": 0.76,
+    "rewards": 20732,
+    "picks": 7277,
+    "not_picks": 13455
    }
   },
   {
@@ -3711,25 +3730,25 @@
    "name": "Whetstone",
    "feature": "type:attack",
    "train": {
-    "did_pp": 0.76,
-    "se_pp": 0.44,
-    "rewards": 100953,
-    "picks": 18791,
-    "not_picks": 82162
+    "did_pp": -0.21,
+    "se_pp": 0.49,
+    "rewards": 92027,
+    "picks": 15239,
+    "not_picks": 76788
    },
    "validation": {
-    "did_pp": 2.25,
-    "se_pp": 1.19,
-    "rewards": 13274,
-    "picks": 2596,
-    "not_picks": 10678
+    "did_pp": 2.64,
+    "se_pp": 1.06,
+    "rewards": 19802,
+    "picks": 3192,
+    "not_picks": 16610
    },
    "test": {
-    "did_pp": -1.65,
-    "se_pp": 1.21,
-    "rewards": 13012,
-    "picks": 2555,
-    "not_picks": 10457
+    "did_pp": 0.6,
+    "se_pp": 1.05,
+    "rewards": 19542,
+    "picks": 3202,
+    "not_picks": 16340
    }
   },
   {
@@ -3737,25 +3756,25 @@
    "name": "Winged Boots",
    "feature": "does:multihit",
    "train": {
-    "did_pp": -2.84,
-    "se_pp": 2.15,
-    "rewards": 4582,
-    "picks": 683,
-    "not_picks": 3899
+    "did_pp": 0.78,
+    "se_pp": 2.34,
+    "rewards": 4874,
+    "picks": 642,
+    "not_picks": 4232
    },
    "validation": {
-    "did_pp": -0.26,
-    "se_pp": 6.23,
-    "rewards": 333,
-    "picks": 69,
-    "not_picks": 264
+    "did_pp": 3.37,
+    "se_pp": 4.34,
+    "rewards": 751,
+    "picks": 131,
+    "not_picks": 620
    },
    "test": {
-    "did_pp": 4.33,
-    "se_pp": 6.29,
-    "rewards": 271,
-    "picks": 62,
-    "not_picks": 209
+    "did_pp": 2.89,
+    "se_pp": 4.6,
+    "rewards": 748,
+    "picks": 135,
+    "not_picks": 613
    }
   }
  ]

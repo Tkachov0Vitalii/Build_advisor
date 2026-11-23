@@ -1,317 +1,317 @@
 {
-  "rows": 2184681,
+  "rows": 1634569,
   "reference_spread": 6.0,
   "skip_weight": 6.0,
   "lift_scales": {
     "ironclad": [
       8.0,
-      5.8
+      6.0
     ],
     "silent": [
-      10.2,
-      5.4
+      8.0,
+      7.0
     ],
     "defect": [
-      5.6,
+      3.8,
       5.8
     ],
     "regent": [
-      9.0,
-      4.4
+      6.2,
+      5.3
     ],
     "necrobinder": [
-      9.3,
-      5.8
+      7.6,
+      6.7
     ]
   },
   "bars": {
-    "1:0": 0.73,
-    "1:1": 0.48,
-    "1:2": 0.21,
+    "1:0": 0.79,
+    "1:1": 0.54,
+    "1:2": 0.35,
     "1:3": 0.14,
-    "1:4": -0.15,
-    "1:5": 0.31,
-    "2:0": 1.53,
-    "2:1": 1.37,
-    "2:2": 0.99,
-    "2:3": 0.25,
+    "1:4": 0.19,
+    "1:5": 0.4,
+    "2:0": 1.4,
+    "2:1": 1.32,
+    "2:2": 1.07,
+    "2:3": 0.2,
     "2:4": -0.8,
-    "2:5": -2.58,
-    "3:0": -0.09,
-    "3:1": 0.81,
-    "3:2": -0.4,
-    "3:3": -1.67,
-    "3:4": -2.76,
-    "3:5": -3.35
+    "2:5": -2.2,
+    "3:0": -0.46,
+    "3:1": 0.6,
+    "3:2": -0.59,
+    "3:3": -1.8,
+    "3:4": -2.8,
+    "3:5": -3.2
   },
   "splits": {
     "train": {
-      "decisions": 1740477,
-      "advised_skip": 0.3243,
-      "winners_skip": 0.3758,
-      "players_skip": 0.3268,
-      "agreement_with_winners": 0.6527,
+      "decisions": 1146869,
+      "advised_skip": 0.3413,
+      "winners_skip": 0.3889,
+      "players_skip": 0.3437,
+      "agreement_with_winners": 0.6485,
       "by_act": {
         "1": {
-          "decisions": 949453,
-          "advised_skip": 0.2245,
-          "winners_skip": 0.2272,
-          "players_skip": 0.2316,
-          "agreement_with_winners": 0.6771
+          "decisions": 614476,
+          "advised_skip": 0.2382,
+          "winners_skip": 0.241,
+          "players_skip": 0.2433,
+          "agreement_with_winners": 0.6675
         },
         "2": {
-          "decisions": 530325,
-          "advised_skip": 0.3989,
-          "winners_skip": 0.406,
-          "players_skip": 0.3982,
-          "agreement_with_winners": 0.6455
+          "decisions": 351448,
+          "advised_skip": 0.4146,
+          "winners_skip": 0.4195,
+          "players_skip": 0.4154,
+          "agreement_with_winners": 0.6436
         },
         "3": {
-          "decisions": 260699,
-          "advised_skip": 0.5359,
-          "winners_skip": 0.5405,
-          "players_skip": 0.5282,
-          "agreement_with_winners": 0.6284
+          "decisions": 180945,
+          "advised_skip": 0.5488,
+          "winners_skip": 0.5523,
+          "players_skip": 0.5458,
+          "agreement_with_winners": 0.6286
         }
       },
       "by_character": {
         "ironclad": {
-          "decisions": 390489,
-          "advised_skip": 0.3371,
-          "winners_skip": 0.3836,
-          "players_skip": 0.3332,
-          "agreement_with_winners": 0.6475
+          "decisions": 281735,
+          "advised_skip": 0.3678,
+          "winners_skip": 0.4005,
+          "players_skip": 0.3549,
+          "agreement_with_winners": 0.6389
         },
         "silent": {
-          "decisions": 374587,
-          "advised_skip": 0.296,
-          "winners_skip": 0.3611,
-          "players_skip": 0.3156,
-          "agreement_with_winners": 0.6805
+          "decisions": 272355,
+          "advised_skip": 0.3141,
+          "winners_skip": 0.3812,
+          "players_skip": 0.3391,
+          "agreement_with_winners": 0.6756
         },
         "defect": {
-          "decisions": 351425,
-          "advised_skip": 0.296,
-          "winners_skip": 0.3516,
-          "players_skip": 0.3117,
-          "agreement_with_winners": 0.6433
+          "decisions": 218847,
+          "advised_skip": 0.3099,
+          "winners_skip": 0.3576,
+          "players_skip": 0.3217,
+          "agreement_with_winners": 0.618
         },
         "regent": {
-          "decisions": 308456,
-          "advised_skip": 0.3352,
-          "winners_skip": 0.3947,
-          "players_skip": 0.3399,
-          "agreement_with_winners": 0.6418
+          "decisions": 183500,
+          "advised_skip": 0.3189,
+          "winners_skip": 0.404,
+          "players_skip": 0.3544,
+          "agreement_with_winners": 0.6508
         },
         "necrobinder": {
-          "decisions": 315520,
-          "advised_skip": 0.3628,
-          "winners_skip": 0.3919,
-          "players_skip": 0.3361,
-          "agreement_with_winners": 0.6437
+          "decisions": 190432,
+          "advised_skip": 0.3987,
+          "winners_skip": 0.3996,
+          "players_skip": 0.349,
+          "agreement_with_winners": 0.6517
         }
       },
       "by_ascension": {
         "0-4": {
-          "decisions": 788837,
-          "advised_skip": 0.3113,
-          "winners_skip": 0.3686,
-          "players_skip": 0.3218,
-          "agreement_with_winners": 0.6423
+          "decisions": 303665,
+          "advised_skip": 0.3152,
+          "winners_skip": 0.3777,
+          "players_skip": 0.3397,
+          "agreement_with_winners": 0.6323
         },
         "5-9": {
-          "decisions": 472365,
-          "advised_skip": 0.3297,
-          "winners_skip": 0.3778,
-          "players_skip": 0.3317,
-          "agreement_with_winners": 0.656
+          "decisions": 272851,
+          "advised_skip": 0.3398,
+          "winners_skip": 0.3891,
+          "players_skip": 0.3409,
+          "agreement_with_winners": 0.641
         },
         "10+": {
-          "decisions": 479275,
-          "advised_skip": 0.3402,
-          "winners_skip": 0.3901,
-          "players_skip": 0.3301,
-          "agreement_with_winners": 0.6729
+          "decisions": 570191,
+          "advised_skip": 0.3558,
+          "winners_skip": 0.3969,
+          "players_skip": 0.3473,
+          "agreement_with_winners": 0.6642
         }
       }
     },
     "validation": {
-      "decisions": 231491,
-      "advised_skip": 0.3218,
-      "winners_skip": 0.3744,
-      "players_skip": 0.3217,
-      "agreement_with_winners": 0.6507,
+      "decisions": 245899,
+      "advised_skip": 0.34,
+      "winners_skip": 0.3888,
+      "players_skip": 0.3441,
+      "agreement_with_winners": 0.6495,
       "by_act": {
         "1": {
-          "decisions": 127666,
-          "advised_skip": 0.2259,
-          "winners_skip": 0.2268,
-          "players_skip": 0.2271,
-          "agreement_with_winners": 0.676
+          "decisions": 131761,
+          "advised_skip": 0.2368,
+          "winners_skip": 0.242,
+          "players_skip": 0.2438,
+          "agreement_with_winners": 0.6715
         },
         "2": {
-          "decisions": 70646,
-          "advised_skip": 0.397,
-          "winners_skip": 0.403,
-          "players_skip": 0.3953,
-          "agreement_with_winners": 0.6441
+          "decisions": 75175,
+          "advised_skip": 0.4135,
+          "winners_skip": 0.4185,
+          "players_skip": 0.4167,
+          "agreement_with_winners": 0.6421
         },
         "3": {
-          "decisions": 33179,
-          "advised_skip": 0.5309,
-          "winners_skip": 0.5395,
-          "players_skip": 0.529,
-          "agreement_with_winners": 0.6245
+          "decisions": 38963,
+          "advised_skip": 0.547,
+          "winners_skip": 0.5529,
+          "players_skip": 0.543,
+          "agreement_with_winners": 0.6287
         }
       },
       "by_character": {
         "ironclad": {
-          "decisions": 51063,
-          "advised_skip": 0.3413,
-          "winners_skip": 0.3875,
-          "players_skip": 0.3291,
-          "agreement_with_winners": 0.644
+          "decisions": 59766,
+          "advised_skip": 0.3667,
+          "winners_skip": 0.4017,
+          "players_skip": 0.3552,
+          "agreement_with_winners": 0.6467
         },
         "silent": {
-          "decisions": 50164,
-          "advised_skip": 0.2938,
-          "winners_skip": 0.3663,
-          "players_skip": 0.3155,
-          "agreement_with_winners": 0.6837
+          "decisions": 60857,
+          "advised_skip": 0.313,
+          "winners_skip": 0.3818,
+          "players_skip": 0.3398,
+          "agreement_with_winners": 0.6798
         },
         "defect": {
-          "decisions": 48625,
-          "advised_skip": 0.2898,
-          "winners_skip": 0.3446,
-          "players_skip": 0.307,
-          "agreement_with_winners": 0.643
+          "decisions": 46230,
+          "advised_skip": 0.307,
+          "winners_skip": 0.361,
+          "players_skip": 0.3222,
+          "agreement_with_winners": 0.6144
         },
         "regent": {
-          "decisions": 40349,
-          "advised_skip": 0.3299,
-          "winners_skip": 0.3926,
-          "players_skip": 0.3363,
-          "agreement_with_winners": 0.6404
+          "decisions": 38647,
+          "advised_skip": 0.3226,
+          "winners_skip": 0.4098,
+          "players_skip": 0.3552,
+          "agreement_with_winners": 0.6492
         },
         "necrobinder": {
-          "decisions": 41290,
-          "advised_skip": 0.3615,
-          "winners_skip": 0.3829,
-          "players_skip": 0.3233,
-          "agreement_with_winners": 0.6351
+          "decisions": 40399,
+          "advised_skip": 0.3953,
+          "winners_skip": 0.3875,
+          "players_skip": 0.3484,
+          "agreement_with_winners": 0.6399
         }
       },
       "by_ascension": {
         "0-4": {
-          "decisions": 100759,
-          "advised_skip": 0.3086,
-          "winners_skip": 0.3683,
-          "players_skip": 0.313,
-          "agreement_with_winners": 0.6392
+          "decisions": 64710,
+          "advised_skip": 0.3143,
+          "winners_skip": 0.3727,
+          "players_skip": 0.3376,
+          "agreement_with_winners": 0.636
         },
         "5-9": {
-          "decisions": 63117,
-          "advised_skip": 0.3265,
-          "winners_skip": 0.3709,
-          "players_skip": 0.3241,
-          "agreement_with_winners": 0.6508
+          "decisions": 59475,
+          "advised_skip": 0.3383,
+          "winners_skip": 0.3887,
+          "players_skip": 0.3406,
+          "agreement_with_winners": 0.6392
         },
         "10+": {
-          "decisions": 67615,
-          "advised_skip": 0.3371,
-          "winners_skip": 0.3915,
-          "players_skip": 0.3325,
-          "agreement_with_winners": 0.676
+          "decisions": 121636,
+          "advised_skip": 0.3543,
+          "winners_skip": 0.4003,
+          "players_skip": 0.3492,
+          "agreement_with_winners": 0.6647
         }
       }
     },
     "test": {
-      "decisions": 212670,
-      "advised_skip": 0.3244,
-      "winners_skip": 0.3657,
-      "players_skip": 0.3139,
-      "agreement_with_winners": 0.6558,
+      "decisions": 241801,
+      "advised_skip": 0.3422,
+      "winners_skip": 0.3862,
+      "players_skip": 0.3428,
+      "agreement_with_winners": 0.6481,
       "by_act": {
         "1": {
-          "decisions": 116619,
-          "advised_skip": 0.2266,
-          "winners_skip": 0.2199,
-          "players_skip": 0.2217,
-          "agreement_with_winners": 0.6838
+          "decisions": 129906,
+          "advised_skip": 0.2394,
+          "winners_skip": 0.2389,
+          "players_skip": 0.2423,
+          "agreement_with_winners": 0.6686
         },
         "2": {
-          "decisions": 64315,
-          "advised_skip": 0.3977,
-          "winners_skip": 0.3973,
-          "players_skip": 0.3836,
-          "agreement_with_winners": 0.6474
+          "decisions": 73641,
+          "advised_skip": 0.4175,
+          "winners_skip": 0.4155,
+          "players_skip": 0.4149,
+          "agreement_with_winners": 0.6418
         },
         "3": {
-          "decisions": 31736,
-          "advised_skip": 0.5351,
-          "winners_skip": 0.5237,
-          "players_skip": 0.5114,
-          "agreement_with_winners": 0.6285
+          "decisions": 38254,
+          "advised_skip": 0.5466,
+          "winners_skip": 0.5515,
+          "players_skip": 0.5455,
+          "agreement_with_winners": 0.628
         }
       },
       "by_character": {
         "ironclad": {
-          "decisions": 52097,
-          "advised_skip": 0.3378,
-          "winners_skip": 0.3756,
-          "players_skip": 0.3159,
-          "agreement_with_winners": 0.6487
+          "decisions": 60921,
+          "advised_skip": 0.367,
+          "winners_skip": 0.3955,
+          "players_skip": 0.3521,
+          "agreement_with_winners": 0.6385
         },
         "silent": {
-          "decisions": 48104,
-          "advised_skip": 0.2968,
-          "winners_skip": 0.3545,
-          "players_skip": 0.3083,
-          "agreement_with_winners": 0.6849
+          "decisions": 56291,
+          "advised_skip": 0.3174,
+          "winners_skip": 0.3763,
+          "players_skip": 0.3377,
+          "agreement_with_winners": 0.6751
         },
         "defect": {
-          "decisions": 39434,
-          "advised_skip": 0.2995,
-          "winners_skip": 0.3459,
-          "players_skip": 0.3046,
-          "agreement_with_winners": 0.6441
+          "decisions": 46480,
+          "advised_skip": 0.3079,
+          "winners_skip": 0.3649,
+          "players_skip": 0.3266,
+          "agreement_with_winners": 0.613
         },
         "regent": {
-          "decisions": 38439,
-          "advised_skip": 0.3341,
-          "winners_skip": 0.3819,
-          "players_skip": 0.3211,
-          "agreement_with_winners": 0.6482
+          "decisions": 38555,
+          "advised_skip": 0.3216,
+          "winners_skip": 0.3994,
+          "players_skip": 0.3508,
+          "agreement_with_winners": 0.6478
         },
         "necrobinder": {
-          "decisions": 34596,
-          "advised_skip": 0.36,
-          "winners_skip": 0.3747,
-          "players_skip": 0.3212,
-          "agreement_with_winners": 0.6448
+          "decisions": 39554,
+          "advised_skip": 0.3998,
+          "winners_skip": 0.3963,
+          "players_skip": 0.3471,
+          "agreement_with_winners": 0.6581
         }
       },
       "by_ascension": {
         "0-4": {
-          "decisions": 94519,
-          "advised_skip": 0.3087,
-          "winners_skip": 0.3609,
-          "players_skip": 0.3119,
-          "agreement_with_winners": 0.65
+          "decisions": 64782,
+          "advised_skip": 0.3195,
+          "winners_skip": 0.375,
+          "players_skip": 0.3389,
+          "agreement_with_winners": 0.6312
         },
         "5-9": {
-          "decisions": 53895,
-          "advised_skip": 0.3298,
-          "winners_skip": 0.358,
-          "players_skip": 0.3175,
-          "agreement_with_winners": 0.657
+          "decisions": 57383,
+          "advised_skip": 0.347,
+          "winners_skip": 0.3935,
+          "players_skip": 0.3453,
+          "agreement_with_winners": 0.644
         },
         "10+": {
-          "decisions": 64256,
-          "advised_skip": 0.3429,
-          "winners_skip": 0.3828,
-          "players_skip": 0.3138,
-          "agreement_with_winners": 0.6662
+          "decisions": 119590,
+          "advised_skip": 0.3521,
+          "winners_skip": 0.3911,
+          "players_skip": 0.3437,
+          "agreement_with_winners": 0.6636
         }
       }
     }

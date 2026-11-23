@@ -4,7 +4,8 @@
 # e.g. tools/refit_for_version.sh ../_refit v0.111.0 v0.111.1 v0.111.0
 #   <slice version>   Spire Codex stats slice used for the metrics (a "stat_versions" entry,
 #                     see https://spire-codex.com/api/runs/versions)
-#   <export version>  build_id values whose runs are exported (newest first)
+#   <export version>  build_id values whose runs are exported (newest first), optionally
+#                     with the date it was current: v0.111.1@2026-11-16
 # Steps (each is skipped when its output exists, so the script resumes):
 #   1. runs -> extract (tools/build_version_extract.py; MAX_RUNS, default 150000; START = a date when
 #      the oldest export version was current, e.g. START=2026-11-01 for v0.111.0)

@@ -44,6 +44,8 @@ internal static class ModLocalization
          "Ancient relics are compared with the other Ancient picks at the same act over a corpus of 139k runs: all those runs reached the same point, so survival does not inflate the value."),
         ("синергия с реликвией", "relic synergy"),
         ("Игровая фигура: каждая сила тянет карту", "Game Piece: every Power draws a card"),
+        ("Высохшая рука: сила делает карту в руке бесплатной", "Mummified Hand: a Power makes a card in hand free"),
+        ("Красная маска уже накладывает слабость на всех врагов", "Red Mask already applies Weak to all enemies"),
         ("Игроки в похожих ситуациях пропускали награду в", "Players in similar situations skipped this reward in"),
         ("% случаев", "% of cases"),
         ("Взять или пропустить", "Take or skip"),

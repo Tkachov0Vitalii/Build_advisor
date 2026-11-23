@@ -7,8 +7,9 @@ namespace BuildAdvisor.Integration;
 // Spire Codex relic lift mixes every point of the run, so a relic taken at the start of act 3 looks
 // strong just because its runs already survived two acts. Here a pick is compared with the other
 // Ancient picks of the same character at the same act start: those runs all reached that point.
-// Check on held-out runs: per-relic values correlate 0.87 with the train values, and runs whose
-// pick was in the train top third won 8 pp more often than runs whose pick was in the bottom third.
+// 7.5 refit on game versions v0.111.0/v0.111.1 only (174k runs): per-relic values correlate 0.89
+// with the train values on held-out runs, and runs whose pick was in the train top third won
+// 7.9 pp more often than runs whose pick was in the bottom third.
 internal static partial class AncientRelicValues
 {
     // Fewer runs than this for a character falls back to every character at that act.
@@ -17,14 +18,11 @@ internal static partial class AncientRelicValues
     internal static string Key(string relicId) =>
         new string(relicId.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
 
-    // 7.5: Ancient relics changed in v0.108–v0.111 (Major Update #3, main branch v0.111.1). The
-    // table mixes builds (most runs v0.107.1), so these keep the version-sliced community score
-    // until the table is refitted on v0.111+ runs. Neow's Sacrifice and Dowsing Rod are new.
-    internal static readonly IReadOnlySet<string> ChangedSinceTable = new HashSet<string>(StringComparer.Ordinal)
-    {
-        "DIAMONDDIADEM", "BEAUTIFULBRACELET", "FURCOAT", "SIGNETRING", "MEATCLEAVER", "TOYBOX",
-        "SEALOFGOLD", "TOASTYMITTENS", "SERETALON", "DISTINGUISHEDCAPE", "JEWELEDMASK", "SANDCASTLE"
-    };
+    // 7.5: relics left out of the table until it is refitted after a patch that changed them.
+    // Empty since the v0.111.x refit (2026-11-24: 174k runs of v0.111.0/v0.111.1); v0.111.1 had
+    // changed Diamond Diadem, Toasty Mittens, Beautiful Bracelet, Fur Coat, Signet Ring, Meat
+    // Cleaver, Toybox, Seal of Gold, Sere Talon, Distinguished Cape, Jeweled Mask, Sand Castle.
+    internal static readonly IReadOnlySet<string> ChangedSinceTable = new HashSet<string>(StringComparer.Ordinal);
 
     internal static (decimal Pp, int Runs, bool ForCharacter)? Value(string? character, int act, string relicId)
     {
@@ -37,20 +35,23 @@ internal static partial class AncientRelicValues
     }
 }
 
-// 7.4 (H7): relic × card synergies measured on the corpus (tools/measure_relic_synergies.py,
+// 7.4 (H8): relic × card synergies measured on the corpus (tools/measure_relic_synergies.py,
 // report docs/relic-synergies-report.json). Only pairs whose relic text names the card feature
-// were tested (151 with data); one passed train (z ≥ 2) and held-out (z ≥ 2) checks with a
-// mechanical reason: Game Piece draws a card per Power played. Lasting Candy × Power also passed,
-// but it adds a Power to rewards, so that is reward composition, not synergy, and is left out.
-// Shuriken, Kunai, Nunchaku, Pen Nib, Ornamental Fan with Attacks and Letter Opener with Skills
-// showed 0–1.7 pp on train and did not hold on held-out runs.
+// are tested; a pair ships when it passes train (z ≥ 2) and held-out (z ≥ 2) checks and has a
+// mechanical reason. 7.5 refit on v0.111.x runs (134k runs, 150 pairs): Mummified Hand × Power
+// (a Power makes a card in hand free) and Red Mask × Weak (the relic already applies Weak to all
+// enemies) pass. Sword of Stone × Power and Lasting Candy × Power pass too but have no mechanism
+// (reward composition) and are left out. Game Piece × Power, shipped in 7.4 on mixed builds, did
+// not hold on v0.111.x held-out runs (+1.8 ± 1.5 pp) and is dropped. Shuriken, Kunai, Nunchaku,
+// Pen Nib, Ornamental Fan with Attacks and Letter Opener with Skills do not hold either.
 internal static class RelicSynergies
 {
     internal sealed record Synergy(string Relic, string Feature, decimal Pp, string Text);
 
     internal static readonly IReadOnlyList<Synergy> Verified =
     [
-        new("GAMEPIECE", "type:power", 2.51m, "Игровая фигура: каждая сила тянет карту"),
+        new("MUMMIFIEDHAND", "type:power", 2.34m, "Высохшая рука: сила делает карту в руке бесплатной"),
+        new("REDMASK", "power:WEAK", -2.77m, "Красная маска уже накладывает слабость на всех врагов"),
     ];
 
     internal static bool HasFeature(CardDefinition card, string feature) => feature switch
@@ -58,6 +59,8 @@ internal static class RelicSynergies
         "type:power" => card.Type.Contains("power", StringComparison.OrdinalIgnoreCase),
         "type:attack" => card.Type.Contains("attack", StringComparison.OrdinalIgnoreCase),
         "type:skill" => card.Type.Contains("skill", StringComparison.OrdinalIgnoreCase),
+        _ when feature.StartsWith("power:", StringComparison.Ordinal) =>
+            card.Signals.Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains(feature["power:".Length..], StringComparer.OrdinalIgnoreCase),
         _ => false
     };
 

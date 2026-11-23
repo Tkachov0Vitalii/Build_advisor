@@ -106,11 +106,13 @@ internal static class TakeSkipCalibration
     // A10 fit, whose median card is +7.2 pp.
     internal const decimal FallbackCenter = 7.2m;
     private static readonly decimal[] ExcessEdges = [-4m, -1m, 2m, 5m, 9m];
+    // 7.5: refitted on v0.111.0/v0.111.1 runs (1.6M rewards, tools/refit_for_version.sh); report
+    // docs/take-skip-calibration-report.json.
     private static readonly decimal[,] Bars =
     {
-        { 0.73m, 0.48m, 0.21m, 0.14m, -0.15m, 0.31m },
-        { 1.53m, 1.37m, 0.99m, 0.25m, -0.8m, -2.58m },
-        { -0.09m, 0.81m, -0.4m, -1.67m, -2.76m, -3.35m }
+        { 0.79m, 0.54m, 0.35m, 0.14m, 0.19m, 0.4m },
+        { 1.4m, 1.32m, 1.07m, 0.2m, -0.8m, -2.2m },
+        { -0.46m, 0.6m, -0.59m, -1.8m, -2.8m, -3.2m }
     };
 
     internal static decimal Bar(int act, int deckSize, int expectedDeckSize, int skipPercent)

@@ -1577,23 +1577,29 @@ internal static class BuildAdvisorRegression
             throw new InvalidOperationException("The statistics note must name the slice in use, and only then.");
         var english = ModLocalization.Translate(CardRewardPatch.StatsVersionNote("v0.111.0"), AdvisorLanguage.English);
         if (HasCyrillic(english)) throw new InvalidOperationException("Statistics version note is not translated: " + english);
-        // Ancient relics changed by v0.111.1 drop out of the mixed-build table.
-        if (AncientRelicValues.Value("ironclad", 2, "TOASTY_MITTENS") is not null || AncientRelicValues.Value("ironclad", 1, "MEAT_CLEAVER") is not null ||
-            AncientRelicValues.Value("ironclad", 2, "SNECKO_EYE") is null)
-            throw new InvalidOperationException("Ancient relics changed in v0.111.1 must not use the old table.");
+        // The Ancient table is refitted on v0.111.x: changed and new Ancient relics have values again.
+        if (AncientRelicValues.ChangedSinceTable.Count != 0 || AncientRelicValues.Value("ironclad", 2, "TOASTY_MITTENS") is not { ForCharacter: true } ||
+            AncientRelicValues.Value("ironclad", 1, "NEOWS_SACRIFICE") is null)
+            throw new InvalidOperationException("The v0.111.x Ancient table must value the relics the patch changed or added.");
     }
 
     // 7.4 (H7): only corpus-verified relic × card synergies change the score.
     private static void RelicSynergiesAreCorpusVerified()
     {
-        var catalog = new[] { Card("STRIKE", "Attack", damage: 6, rarity: "basic"), Card("INFLAME", "Power", rarity: "uncommon"), Card("POMMEL", "Attack", damage: 9) }
+        var catalog = new[] { Card("STRIKE", "Attack", damage: 6, rarity: "basic"), Card("INFLAME", "Power", rarity: "uncommon"), Card("POMMEL", "Attack", damage: 9),
+                Card("CLOTHESLINE", "Attack", damage: 12) with { Signals = "DAMAGE WEAKPOWER WEAK" } }
             .ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
         OfferScore Score(string relic, string card) => DeckBuildScoring.Evaluate(
             new RunContext("ironclad", ["STRIKE"], [relic], 0, 2, 20, 80, 80, 99, null, 1m, 1, 0, 0, []), [card], catalog, Metrics(card)).Offers[0];
         bool Has(OfferScore s) => (s.Adjustments ?? []).Any(x => x.Label == "синергия с реликвией");
-        var power = Score("GAME_PIECE", "INFLAME");
-        if (!Has(power) || Has(Score("GAME_PIECE", "POMMEL")) || Has(Score("SHURIKEN", "POMMEL")) || Has(Score("BURNING_BLOOD", "INFLAME")))
-            throw new InvalidOperationException("Game Piece must value Powers; unverified synergies (Shuriken × Attack) must not.");
+        // 7.5 (v0.111.x refit): Mummified Hand × Power up, Red Mask × Weak down; Game Piece dropped.
+        var power = Score("MUMMIFIED_HAND", "INFLAME");
+        var weak = Score("RED_MASK", "CLOTHESLINE");
+        if (!Has(power) || power.Adjustments!.First(x => x.Label == "синергия с реликвией").Value <= 0 ||
+            !Has(weak) || weak.Adjustments!.First(x => x.Label == "синергия с реликвией").Value >= 0 ||
+            Has(Score("MUMMIFIED_HAND", "POMMEL")) || Has(Score("RED_MASK", "POMMEL")) || Has(Score("GAME_PIECE", "INFLAME")) ||
+            Has(Score("SHURIKEN", "POMMEL")) || Has(Score("BURNING_BLOOD", "INFLAME")))
+            throw new InvalidOperationException("Only corpus-verified synergies may change the score (Mummified Hand × Power, Red Mask × Weak).");
         var english = ModLocalization.Translate(ScoreExplanation.Breakdown(power) + "\n" + power.Reason, AdvisorLanguage.English);
         if (HasCyrillic(english)) throw new InvalidOperationException("Relic synergy text is not translated: " + english);
     }

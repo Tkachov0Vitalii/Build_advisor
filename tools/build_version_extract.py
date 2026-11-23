@@ -21,7 +21,10 @@ Output: <out>/part-NNNNNN.jsonl.gz (one per export page) and <out>/splits.tsv
 so an interrupted download resumes from the last cursor.
 
 Usage:
-    python3 tools/build_version_extract.py <out dir> v0.111.1 [v0.111.0 ...] [--max-runs 150000] [--page 1000] [--start 2026-11-01]
+    python3 tools/build_version_extract.py <out dir> v0.111.1 [v0.111.0 ...] [--max-runs 150000]
+        (static per-version daily file, streamed; the default since 7.5)
+    python3 tools/build_version_extract.py <out dir> v0.111.1@2026-11-16 [--page 1000] [--start <date>]
+        (paged API from a date; times out when the version is rare after that date)
 """
 import argparse
 import gzip
@@ -98,11 +101,61 @@ def fetch(version, limit, cursor, start=None, attempts=5):
             time.sleep(10 * (attempt + 1))
 
 
+def existing_hashes(out_dir):
+    """Run hashes already in the extract dir (e.g. an older corpus merged in), so they are not doubled."""
+    seen = set()
+    for name in os.listdir(out_dir):
+        if name.endswith('.jsonl.gz'):
+            with gzip.open(os.path.join(out_dir, name), 'rt', encoding='utf-8') as handle:
+                seen.update(json.loads(line)['h'] for line in handle if line.strip())
+    return seen
+
+
+def stream_static(version, args, state, state_path, splits):
+    """The whole version from its static daily file (/exports/runs-<version>.jsonl.gz), streamed:
+    v0.111.1 was 52 MB, v0.111.0 1.8 GB on 2026-11-23. The paged API timed out for both that day."""
+    if version in state['done']:
+        return
+    known = existing_hashes(args.out)
+    url = f'https://spire-codex.com/exports/runs-{version}.jsonl.gz'
+    request = urllib.request.Request(url, headers={'User-Agent': 'build-advisor-tools'})
+    started = time.time()
+    kept = seen = 0
+    part = os.path.join(args.out, 'part-%06d.jsonl.gz' % state['part'])
+    with urllib.request.urlopen(request, timeout=600) as response, \
+            gzip.GzipFile(fileobj=response) as raw, gzip.open(part, 'wt', compresslevel=6) as out:
+        for line in io.TextIOWrapper(raw, encoding='utf-8'):
+            if not line.strip():
+                continue
+            seen += 1
+            try:
+                row = convert(json.loads(line))
+            except (ValueError, TypeError, AttributeError):
+                row = None
+            if row is None or row['h'] in known:
+                continue
+            known.add(row['h'])
+            out.write(json.dumps(row, separators=(',', ':')) + '\n')
+            splits.write(f"{row['h']}\t{split_of(row['h'])}\n")
+            kept += 1
+            if kept >= args.max_runs:
+                break
+            if seen % 20000 == 0:
+                print(f'{version}: seen {seen} kept {kept} ({time.time() - started:.0f}s)', file=sys.stderr)
+    splits.flush()
+    state['part'] += 1
+    state['kept'] += kept
+    state['seen'] += seen
+    state['done'].append(version)
+    json.dump(state, open(state_path, 'w'), indent=1)
+    print(f'{version}: static file seen {seen} kept {kept} ({time.time() - started:.0f}s)', file=sys.stderr)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('out')
     parser.add_argument('versions', nargs='+')
-    parser.add_argument('--max-runs', type=int, default=150_000, help='kept runs over all versions')
+    parser.add_argument('--max-runs', type=int, default=150_000, help='kept runs over all versions (paged API) or per version (static file)')
     parser.add_argument('--page', type=int, default=1_000)
     parser.add_argument('--start', help='ISO date to start from. The server scans forward from it and times out where the version is rare '
                              '(v0.111.0 from 2026-08-10 timed out, from 2026-11-01 1,000 runs took 17 s): pick a date when the version was the current one')
@@ -111,11 +164,17 @@ def main():
     state_path = os.path.join(args.out, 'state.json')
     state = json.load(open(state_path)) if os.path.exists(state_path) else {'cursors': {}, 'done': [], 'kept': 0, 'seen': 0, 'part': 0}
     splits = open(os.path.join(args.out, 'splits.tsv'), 'a', encoding='utf-8')
-    for version in args.versions:
+    for spec in args.versions:
+        # "v0.111.1@2026-11-16": a start date per version (the export times out where a version is rare).
+        version, _, own_start = spec.partition('@')
+        start = own_start or args.start
+        if not own_start and not args.start:
+            stream_static(version, args, state, state_path, splits)
+            continue
         while version not in state['done'] and state['kept'] < args.max_runs:
             started = time.time()
             try:
-                body, cursor = fetch(version, args.page, state['cursors'].get(version), args.start)
+                body, cursor = fetch(version, args.page, state['cursors'].get(version), start)
             except Exception as error:
                 # The tail of an older version is sparse and times out: keep what was fetched.
                 print(f'{version}: giving up after retries ({error}); keeping {state["kept"]} runs', file=sys.stderr)
