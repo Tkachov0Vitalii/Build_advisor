@@ -118,9 +118,9 @@ public static class CardRewardPatch
             }
             var catalog = await catalogTask;
             // Pick Coach is enrichment only. Never make the first advice wait for it.
-            var coach = coachTask.IsCompletedSuccessfully ? coachTask.Result : null;
-            var coachPending = !coachTask.IsCompleted;
-            var coachMap = coach?.Offers.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
+            var snapshot = CoachSnapshot.Of(coachTask);
+            var (coach, coachPending) = snapshot;
+            var coachMap = snapshot.Map;
             var assessment = DeckBuildScoring.Evaluate(context, ids, catalog, metrics, coachMap, currentUpgraded, ArchetypeAdvisor.Current(context, coach).Direction);
             PersonalRunDiary.RecordAdvice(assessment);
             var text = FormatAdvice(context, assessment, metrics, coach, coachPending) + metricsNote;
@@ -136,9 +136,11 @@ public static class CardRewardPatch
                     var liveContext = RunContextReader.TryRead() ?? context;
                     var localizedCatalog = await Catalog.GetAsync();
                     if (!GodotObject.IsInstanceValid(screen)) return;
-                    var refreshed = DeckBuildScoring.Evaluate(liveContext, ids, localizedCatalog, metrics, coachMap, currentUpgraded, ArchetypeAdvisor.Current(liveContext, coach).Direction);
+                    // Pick Coach's answer as of now, not the state captured with this closure.
+                    var live = CoachSnapshot.Of(coachTask);
+                    var refreshed = DeckBuildScoring.Evaluate(liveContext, ids, localizedCatalog, metrics, live.Map, currentUpgraded, ArchetypeAdvisor.Current(liveContext, live.Advice).Direction);
                     Badges(screen, refreshed, ids);
-                    AdviceOverlay.Render(screen, FormatAdvice(liveContext, refreshed, metrics, coach, false), null, liveContext, AdviceSummaries.ForCards(refreshed));
+                    AdviceOverlay.Render(screen, FormatAdvice(liveContext, refreshed, metrics, live.Advice, live.Pending), null, liveContext, AdviceSummaries.ForCards(refreshed));
                     AdviceOverlay.EnableCardSearch(screen, liveContext, () => BuildSearchEntries(RunContextReader.TryRead() ?? liveContext, localizedCatalog, metrics));
                 }
                 catch (Exception error) { GD.PrintErr("Build Advisor language refresh: " + error); }
@@ -203,7 +205,7 @@ public static class CardRewardPatch
             if (!GodotObject.IsInstanceValid(screen) || !screen.IsInsideTree()) return;
             // The player may have changed language while Pick Coach was in flight.
             catalog = await Catalog.GetAsync(token);
-            var coachMap = coach?.Offers.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
+            var coachMap = CoachSnapshot.Of(coachTask).Map;
             var assessment = DeckBuildScoring.Evaluate(RunContextReader.TryRead() ?? context, ids, catalog, metrics, coachMap, currentUpgraded, ArchetypeAdvisor.Current(RunContextReader.TryRead() ?? context, coach).Direction);
             PersonalRunDiary.RecordAdvice(assessment);
             Badges(screen, assessment, ids);

@@ -10,6 +10,18 @@ internal sealed record CoachAdvice(string Archetype, decimal WinRate, IReadOnlyL
     public IReadOnlyList<ArchetypeCluster> Candidates { get; init; } = [];
 }
 
+// What Pick Coach has answered so far. 7.6.1: the "Refresh" button re-scored with the state
+// captured before Pick Coach answered (usually "pending"), so the "similar winning decks"
+// adjustment shown after its answer vanished on refresh. Take a new snapshot every time.
+internal readonly record struct CoachSnapshot(CoachAdvice? Advice, bool Pending)
+{
+    public static CoachSnapshot Of(Task<CoachAdvice?> task) =>
+        new(task.IsCompletedSuccessfully ? task.Result : null, !task.IsCompleted);
+
+    public IReadOnlyDictionary<string, CoachOffer>? Map =>
+        Advice?.Offers.ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
+}
+
 internal sealed class PickCoachClient
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(6) };

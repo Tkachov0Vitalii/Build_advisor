@@ -76,6 +76,7 @@ internal static class BuildAdvisorRegression
             EventKeysAndMetricsParse();
             EventAdviceUsesCommunityLift();
             SlipperyBridgeFollowsTheCardAtStake();
+            RefreshUsesPickCoachAnswer();
             PotionAdviceRespectsSlots();
             ScoreBreakdownGroupsAdjustments();
             Release620TextIsTranslated();
@@ -1175,6 +1176,31 @@ internal static class BuildAdvisorRegression
         var parsed = EventMetricsClient.Parse("""{"rows":[{"event":"SELF_HELP_BOOK","option":"READ_ENTIRE_BOOK","share":40.5,"win_rate":12.3,"lift":2.4,"lift_n":900},{"event":"X","share":1}]}""");
         if (parsed.Count != 1 || !parsed.TryGetValue(EventMetricsClient.Key("SELF_HELP_BOOK", "READ_ENTIRE_BOOK"), out var row) || row.Lift != 2.4m || row.LiftSamples != 900 || row.Share != 40.5m)
             throw new InvalidOperationException("Event metrics were not parsed.");
+    }
+
+    // 7.6.1 (owner report): the card reward showed the Pick Coach bonus ("похожие победные колоды")
+    // after Pick Coach answered, and "Обновить" re-scored without it, because the refresh used the
+    // "pending" state captured before the answer. Every evaluation now takes a new snapshot.
+    private static void RefreshUsesPickCoachAnswer()
+    {
+        var catalog = new[] { Card("COACH_PICK", "Skill", block: 6), Card("ATTACK", "Attack", damage: 6), Card("DEFEND", "Skill", block: 5) }
+            .ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
+        var metrics = Metrics("COACH_PICK");
+        var context = new RunContext("ironclad", ["ATTACK", "ATTACK", "DEFEND", "DEFEND"], [], 0, 2, 20, 70, 80, 99, null, 1m, 2, 2, 0, []);
+        var answer = new TaskCompletionSource<CoachAdvice?>();
+        var pending = CoachSnapshot.Of(answer.Task);
+        answer.SetResult(new CoachAdvice("test build", .5m, [new CoachOffer("COACH_PICK", "Coach Pick", 9m, .6m)]));
+        var answered = CoachSnapshot.Of(answer.Task);
+        if (!pending.Pending || pending.Advice is not null || pending.Map is not null ||
+            answered.Pending || answered.Advice is null || answered.Map?.ContainsKey("COACH_PICK") != true)
+            throw new InvalidOperationException("A coach snapshot must follow the answer of Pick Coach.");
+        var failed = CoachSnapshot.Of(Task.FromException<CoachAdvice?>(new HttpRequestException("offline")));
+        if (failed.Pending || failed.Advice is not null)
+            throw new InvalidOperationException("A failed Pick Coach request is finished and has no advice.");
+        bool HasCoach(CoachSnapshot snapshot) => DeckBuildScoring.Evaluate(context, ["COACH_PICK"], catalog, metrics, snapshot.Map).Offers[0]
+            .Adjustments?.Any(x => x.Label == "похожие победные колоды") == true;
+        if (!HasCoach(answered) || HasCoach(pending))
+            throw new InvalidOperationException("The Pick Coach adjustment must appear exactly when Pick Coach has answered.");
     }
 
     // 7.6 (Steam report): Slippery Bridge advised "Hold On" on every page until it became lethal,

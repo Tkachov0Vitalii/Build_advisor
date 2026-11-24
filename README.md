@@ -1,4 +1,4 @@
-# Build Advisor 7.6.0 for Slay the Spire 2
+# Build Advisor 7.6.1 for Slay the Spire 2
 
 [Русская версия](README_RU.md) · [Changelog](CHANGELOG.md) · [Install](INSTALL_EN.md) · [Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases) · [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3832174623) · [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588)
 
@@ -27,6 +27,7 @@ Unless you turn on auto-pick, the mod never acts for you; it does not change the
 ## Where the numbers come from
 
 - Community statistics: [Spire Codex](https://spire-codex.com/) (Codex Score, win-rate lift, archetypes). Network is optional; the last data is cached on disk.
+- **Refresh** (7.6.1) no longer changes the card scores: it used to re-score without the “similar winning decks” adjustment that arrives after the first advice.
 - **Slippery Bridge** (7.6) is advised by the card at stake, not by statistics: Spire Codex shows a higher win rate for every further “Hold On” only because runs with HP to spare keep holding on, and 7.5 advised holding on until it became lethal. A starter card, a curse or a weak card → “Overcome” (a free removal); a useful card is kept only while at least half of max HP remains, the next random card is weaker on average and the price is at most 5 HP (8 HP for a key card).
 - **Draw cards in act 1** (7.6) no longer get the “needs draw” bonus: on 174k v0.111.x runs a draw card taken in act 1 won no more often than its lift predicts, and where the bonus lifted it above the community favourite the pick had about 1 pp less lift.
 - **Statistics of your game version** (7.5): the mod reads the game version and asks Spire Codex for that version only (e.g. `a10:v0.111.0` for game v0.111.1, the beta with the same content), falling back to the previous version of the same patch line or to all versions. After Major Update #3 this matters: Demon Form was −5.1 pp on v0.107.1 and +9.5 pp on v0.111.0. The card panel names the version in use.
@@ -38,9 +39,9 @@ Unless you turn on auto-pick, the mod never acts for you; it does not change the
 ## Install
 
 - **[Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3832174623)** — subscribe to Build Advisor, start the game, choose *Modded*.
-- **Manual ([GitHub Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases) / [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588))** — extract `BuildAdvisor-7.6.0.zip` into `Slay the Spire 2/mods/` (you get `mods/build-advisor/build-advisor.dll`); start the game and choose *Modded*. Details: [INSTALL_EN.md](INSTALL_EN.md).
+- **Manual ([GitHub Releases](https://github.com/Tkachov0Vitalii/Build_advisor/releases) / [Nexus Mods](https://www.nexusmods.com/slaythespire2/mods/1588))** — extract `BuildAdvisor-7.6.1.zip` into `Slay the Spire 2/mods/` (you get `mods/build-advisor/build-advisor.dll`); start the game and choose *Modded*. Details: [INSTALL_EN.md](INSTALL_EN.md).
 
-The game log (`%APPDATA%\SlayTheSpire2\logs\godot.log`) shows `Build Advisor 7.6.0 loaded; all patches installed; regression matrix passed.`
+The game log (`%APPDATA%\SlayTheSpire2\logs\godot.log`) shows `Build Advisor 7.6.1 loaded; all patches installed; regression matrix passed.`
 
 ## Build from source
 
