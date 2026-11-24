@@ -185,8 +185,9 @@ internal static class DeckBuildScoring
             return RunHistoryInsights.ChoiceSignal(context.Character, id, context.Act, deck.Length, copies);
         }).ToArray();
         var choiceAdjustments = CenteredChoiceAdjustments(choiceSignals);
+        var coachCentre = CoachCentre(offered, coach);
         var offers = offered.Select((id, index) => Score(id, Find(id), context, deck, metrics, coach, needs, archetypes, threat, averageCost, choiceAdjustments[index],
-            upgradedOffers?.Contains(SpireCodexMetricsClient.NormalizeId(id)) == true, direction, team)).OrderByDescending(x => x.Final).ToArray();
+            upgradedOffers?.Contains(SpireCodexMetricsClient.NormalizeId(id)) == true, direction, team, coachCentre)).OrderByDescending(x => x.Final).ToArray();
         var best = offers.FirstOrDefault()?.Final ?? 0;
         var missesCurrentNeed = !needs.SequenceEqual(["синергия/качество"]) && offers.All(x => x.Context <= 0);
         var heuristicSkip = Math.Clamp(20
@@ -214,10 +215,25 @@ internal static class DeckBuildScoring
         return new BuildAssessment(summary, needs, archetypes, (decimal)averageCost, skip, offers);
     }
 
+    // 7.6.1: Pick Coach gives almost every offered card a positive score (mean about 8 of 12), so an
+    // absolute bonus lifted all cards over the take threshold, which was fitted on replays without
+    // Pick Coach: on 872 runs submitted after Spire Codex's daily dump, advised skips fell from
+    // 22 / 32 / 43 % to 12 / 21 / 33 % per act once Pick Coach answered. Only the difference between
+    // the offered cards is kept, as for the learned choice adjustment. Outcome check on the same runs
+    // (runs in the dump are excluded: Pick Coach counts a winning run among its own "nearby winning
+    // decks"): +1 coach point on the taken card relative to the offer = +0.24 pp of win rate
+    // (95 % CI −0.19..+0.75); the bonus is worth about +0.16 pp per point, so its size is kept.
+    internal static decimal CoachCentre(IEnumerable<string> offered, IReadOnlyDictionary<string, CoachOffer>? coach)
+    {
+        if (coach is null) return 0m;
+        var scores = offered.Select(id => coach.TryGetValue(SpireCodexMetricsClient.NormalizeId(id), out var offer) ? Math.Clamp(offer.Score, -12m, 12m) : 0m).ToArray();
+        return scores.Length == 0 ? 0m : scores.Average();
+    }
+
     private static OfferScore Score(string id, CardDefinition? card, RunContext context, IReadOnlyList<CardDefinition> deck,
         IReadOnlyDictionary<string, EntityMetric> metrics, IReadOnlyDictionary<string, CoachOffer>? coach,
         IReadOnlyList<string> needs, IReadOnlyList<string> archetypes, ThreatAssessment threat, double averageCost, decimal learnedChoiceAdjustment,
-        bool upgraded = false, ArchetypeDirection? direction = null, IReadOnlyList<TeammateProfile>? team = null)
+        bool upgraded = false, ArchetypeDirection? direction = null, IReadOnlyList<TeammateProfile>? team = null, decimal coachCentre = 0m)
     {
         var key = SpireCodexMetricsClient.NormalizeId(id);
         var name = (card?.Name ?? (metrics.TryGetValue(key, out var itemName) ? itemName.Name : id)) + (upgraded ? "+" : "");
@@ -280,11 +296,15 @@ internal static class DeckBuildScoring
         }
         // Pick Coach reports commitment delta/support, not a replacement 0-100 card score.
         // Treat it as bounded contextual evidence on top of community quality.
-        if (coach is not null && coach.TryGetValue(key, out var suggested))
+        // 7.6.1: relative to the other offered cards (CoachCentre). A card Pick Coach does not list
+        // has no support among nearby winning decks (score 0).
+        if (coach is not null)
         {
+            var suggested = coach.TryGetValue(key, out var offer) ? Math.Clamp(offer.Score, -12m, 12m) : 0m;
+            var coachBonus = suggested - coachCentre;
             // Similar winning decks must not silently override an explicit player direction.
-            var coachBonus = competing.Length > 0 ? Math.Min(0m, suggested.Score) : Math.Clamp(suggested.Score, -12m, 12m);
-            Adjust(coachBonus, "похожие победные колоды");
+            if (competing.Length > 0) coachBonus = Math.Min(0m, coachBonus);
+            if (coachBonus != 0m) Adjust(coachBonus, "похожие победные колоды");
         }
         // H2: a missing defining card of the community archetype the deck is building towards.
         var keyCard = competing.Length > 0 ? 0m : ArchetypeAdvisor.Bonus(direction, id, context.Cards);

@@ -77,6 +77,7 @@ internal static class BuildAdvisorRegression
             EventAdviceUsesCommunityLift();
             SlipperyBridgeFollowsTheCardAtStake();
             RefreshUsesPickCoachAnswer();
+            CoachBonusIsRelativeToTheOffer();
             PotionAdviceRespectsSlots();
             ScoreBreakdownGroupsAdjustments();
             Release620TextIsTranslated();
@@ -1197,10 +1198,34 @@ internal static class BuildAdvisorRegression
         var failed = CoachSnapshot.Of(Task.FromException<CoachAdvice?>(new HttpRequestException("offline")));
         if (failed.Pending || failed.Advice is not null)
             throw new InvalidOperationException("A failed Pick Coach request is finished and has no advice.");
-        bool HasCoach(CoachSnapshot snapshot) => DeckBuildScoring.Evaluate(context, ["COACH_PICK"], catalog, metrics, snapshot.Map).Offers[0]
-            .Adjustments?.Any(x => x.Label == "похожие победные колоды") == true;
+        bool HasCoach(CoachSnapshot snapshot) => DeckBuildScoring.Evaluate(context, ["COACH_PICK", "ATTACK"], catalog, metrics, snapshot.Map).Offers
+            .First(x => x.Id == "COACH_PICK").Adjustments?.Any(x => x.Label == "похожие победные колоды") == true;
         if (!HasCoach(answered) || HasCoach(pending))
             throw new InvalidOperationException("The Pick Coach adjustment must appear exactly when Pick Coach has answered.");
+    }
+
+    // 7.6.1: Pick Coach scores nearly every offered card positively; an absolute bonus lifted the
+    // whole reward over the take threshold (fitted without Pick Coach). Only differences count now.
+    private static void CoachBonusIsRelativeToTheOffer()
+    {
+        var catalog = new[] { Card("OFFER_A", "Skill", block: 7), Card("OFFER_B", "Attack", damage: 8), Card("OFFER_C", "Skill", draw: 1), Card("ATTACK", "Attack", damage: 6), Card("DEFEND", "Skill", block: 5) }
+            .ToDictionary(x => SpireCodexMetricsClient.NormalizeId(x.Id), StringComparer.OrdinalIgnoreCase);
+        var metrics = Metrics("OFFER_A", "OFFER_B", "OFFER_C");
+        var context = new RunContext("ironclad", ["ATTACK", "ATTACK", "ATTACK", "DEFEND", "DEFEND", "DEFEND"], [], 0, 2, 22, 60, 80, 99, null, 1m, 3, 3, 0, []);
+        string[] offer = ["OFFER_A", "OFFER_B", "OFFER_C"];
+        Dictionary<string, CoachOffer> Coach(decimal a, decimal b, decimal c) => new(StringComparer.OrdinalIgnoreCase)
+        { ["OFFER_A"] = new("OFFER_A", "A", a, 0m), ["OFFER_B"] = new("OFFER_B", "B", b, 0m), ["OFFER_C"] = new("OFFER_C", "C", c, 0m) };
+        decimal CoachPart(OfferScore x) => x.RawAdjustments?.Where(a => a.Label == "похожие победные колоды").Sum(a => a.Value) ?? 0m;
+        var plain = DeckBuildScoring.Evaluate(context, offer, catalog, metrics).Offers.ToDictionary(x => x.Id);
+        var even = DeckBuildScoring.Evaluate(context, offer, catalog, metrics, Coach(10m, 10m, 10m)).Offers.ToDictionary(x => x.Id);
+        if (offer.Any(id => even[id].Final != plain[id].Final || CoachPart(even[id]) != 0m))
+            throw new InvalidOperationException("Equal coach scores must not move the take/skip verdict.");
+        var uneven = DeckBuildScoring.Evaluate(context, offer, catalog, metrics, Coach(12m, 0m, 0m)).Offers.ToDictionary(x => x.Id);
+        if (CoachPart(uneven["OFFER_A"]) != 8m || CoachPart(uneven["OFFER_B"]) != -4m || CoachPart(uneven["OFFER_C"]) != -4m)
+            throw new InvalidOperationException("The coach bonus must be the difference from the offer's mean coach score: " +
+                string.Join(", ", offer.Select(id => $"{id} {CoachPart(uneven[id])}")));
+        if (DeckBuildScoring.CoachCentre(offer, null) != 0m || DeckBuildScoring.CoachCentre(["OFFER_A", "UNLISTED"], Coach(12m, 0m, 0m)) != 6m)
+            throw new InvalidOperationException("A card Pick Coach does not list counts as score 0 in the centre.");
     }
 
     // 7.6 (Steam report): Slippery Bridge advised "Hold On" on every page until it became lethal,
